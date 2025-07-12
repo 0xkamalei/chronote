@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a native macOS time tracking application built with SwiftUI and SwiftData. The app tracks application usage, manages hierarchical projects, and provides timer functionality for focused work sessions.
+This is a native macOS time tracking application built with SwiftUI and SwiftData. like timing app. The app tracks application usage, manages hierarchical projects, and provides timer functionality for focused work sessions.
 
 ## Development Commands
 
@@ -38,7 +38,6 @@ open time-vscode.xcodeproj
 ### Data Models
 - **Project**: Hierarchical project structure with color coding, custom encoding/decoding for Color persistence
 - **Activity**: Represents app usage tracking with duration and system icons
-- **Item**: SwiftData model for persistence (currently basic timestamp)
 
 ### View Architecture
 - **NavigationSplitView**: Main layout with sidebar and detail views
@@ -63,8 +62,6 @@ Projects use an index-based ordering system where:
 
 ### Project Management
 - Projects support unlimited nesting through parent/child relationships
-- Color encoding uses NSColor for macOS-specific color space handling
-- Index-based ordering allows for consistent drag-and-drop reordering
 - Mock data currently used for development and testing
 
 ### State Flow
