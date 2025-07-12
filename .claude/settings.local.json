@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xcodebuild:*)",
+      "Bash(open:*)",
+      "Bash(git rebase:*)",
+      "Bash(git stash:*)",
+      "Bash(git commit:*)",
+      "Bash(git add:*)",
+      "Bash(git branch:*)",
+      "Bash(git init:*)"
+    ],
+    "deny": []
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "XcodeBuildMCP"
+  ]
+}
