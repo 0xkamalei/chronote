@@ -8,10 +8,12 @@
 
 /* Begin PBXBuildFile section */
 		14550FBD2E24006900BACDC0 /* CLAUDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 14550FBC2E24006900BACDC0 /* CLAUDE.md */; };
+		14550FD52E24B04800BACDC0 /* GEMINI.md in Resources */ = {isa = PBXBuildFile; fileRef = 14550FD42E24B04800BACDC0 /* GEMINI.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		14550FBC2E24006900BACDC0 /* CLAUDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CLAUDE.md; sourceTree = "<group>"; };
+		14550FD42E24B04800BACDC0 /* GEMINI.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = GEMINI.md; sourceTree = "<group>"; };
 		14F7E02B2E141361000CB627 /* time-vscode.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "time-vscode.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -52,6 +54,7 @@
 				14550FBC2E24006900BACDC0 /* CLAUDE.md */,
 				14F7E02D2E141361000CB627 /* time-vscode */,
 				14F7E02C2E141361000CB627 /* Products */,
+				14550FD42E24B04800BACDC0 /* GEMINI.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -130,6 +133,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				14550FBD2E24006900BACDC0 /* CLAUDE.md in Resources */,
+				14550FD52E24B04800BACDC0 /* GEMINI.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
