@@ -24,3 +24,5 @@ DerivedData/
 
 # Other
 .yoyo/
+
+.debug
