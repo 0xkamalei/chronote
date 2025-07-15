@@ -2,12 +2,10 @@ import SwiftUI
 
 struct ProjectRowView: View {
     @ObservedObject var project: Project
-    @Binding var selectedProject: Project?
     @EnvironmentObject private var appState: AppState
 
-    init(project: Project, selectedProject: Binding<Project?>) {
+    init(project: Project) {
         self.project = project
-        self._selectedProject = selectedProject
     }
 
     var body: some View {
@@ -15,7 +13,7 @@ struct ProjectRowView: View {
             DisclosureGroup(
                 content: {
                     ForEach(project.children) { child in
-                        ProjectRowView(project: child, selectedProject: $selectedProject)
+                        ProjectRowView(project: child)
                     }
                     .onMove { source, destination in
                         moveChildProjects(from: source, to: destination)
@@ -37,8 +35,9 @@ struct ProjectRowView: View {
             Spacer()
         }
         .contentShape(Rectangle())
+        .background(appState.isProjectSelected(project) ? Color.accentColor.opacity(0.2) : Color.clear)
         .onTapGesture {
-            selectedProject = project
+            appState.selectProject(project)
         }
     }
     

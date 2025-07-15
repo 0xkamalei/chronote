@@ -13,8 +13,6 @@ struct ContentView: View {
     @EnvironmentObject private var appState: AppState
 
     // Mock data
-    
-    
     let activities = [
         Activity(appName: "Google Chrome", duration: "48m", icon: "globe", minutes: 48),
         Activity(appName: "Microsoft Edge", duration: "18m", icon: "safari", minutes: 18),
@@ -35,8 +33,7 @@ struct ContentView: View {
         Activity(appName: "GitHub Copilot for Xcode Extension", duration: "1m", icon: "brain.head.profile", minutes: 1)
     ]
     
-    @State private var selectedProject: Project?
-    @State private var selectedSidebar: String? = "Activities"
+    // 移除本地状态管理，使用全局AppState
     @State private var searchText: String = ""
     @State private var isDatePickerExpanded: Bool = false
     @State private var selectedDateRange = DateRange(startDate: Date(), endDate: Date())
@@ -48,7 +45,7 @@ struct ContentView: View {
 
     var body: some View {
         NavigationSplitView {
-            SidebarView(selectedSidebar: $selectedSidebar, selectedProject: $selectedProject)
+            SidebarView()
                 .navigationSplitViewColumnWidth(min: 220, ideal: 220)
         } detail: {
             VStack(spacing: 0) {
@@ -57,8 +54,8 @@ struct ContentView: View {
                 
                 Divider()
                 
-                // Activities list
-                ActivitiesView(activities: activities)
+                // Activities list with filtering based on selection
+                ActivitiesView(activities: filteredActivities)
             }
             .frame(minWidth: 600, minHeight: 400)
             .sheet(isPresented: $isAddingProject) {
@@ -72,9 +69,42 @@ struct ContentView: View {
         .toolbar {
             MainToolbarView(isAddingProject: $isAddingProject, isStartingTimer: $isStartingTimer, isAddingTimeEntry: $isAddingTimeEntry, selectedDateRange: $selectedDateRange, selectedPreset: $selectedPreset, searchText: $searchText)
         }
+        .onAppear {
+            // AppState已经在init中设置了默认选择，这里不需要额外处理
+            print("🚀 App launched - Using global AppState for selection management")
+        }
+    }
+    
+    // 使用全局AppState的选择状态进行过滤
+    private var filteredActivities: [Activity] {
+        if let selectedProject = appState.selectedProject {
+            // Filter activities for specific project
+            print("🔍 Filtering activities for project: \(selectedProject.name)")
+            // TODO: Implement actual project-activity filtering
+            return activities
+        } else if let selectedSidebar = appState.selectedSidebar {
+            switch selectedSidebar {
+            case "All Activities":
+                print("📊 Showing all activities")
+                return activities
+            case "Unassigned":
+                print("❓ Showing unassigned activities")
+                // TODO: Filter for unassigned activities
+                return activities
+            case "My Projects":
+                print("📁 Showing activities assigned to projects")
+                // TODO: Filter for activities assigned to any project
+                return activities
+            default:
+                return activities
+            }
+        }
+        
+        return activities
     }
 }
 
 #Preview {
     ContentView()
+        .environmentObject(AppState())
 }
