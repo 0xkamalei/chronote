@@ -1,13 +1,11 @@
 import SwiftUI
 
 struct SidebarView: View {
-    @Binding var selectedSidebar: String?
-    @Binding var selectedProject: Project?
     @State private var isMyProjectsExpanded: Bool = true
     @EnvironmentObject private var appState: AppState
 
     var body: some View {
-        List(selection: $selectedSidebar) {
+        List(selection: $appState.selectedSidebar) {
             Section {
                 NavigationLink(value: "Activities") {
                     Label("Activities", systemImage: "clock")
@@ -21,6 +19,7 @@ struct SidebarView: View {
             }
             
             Section(header: Text("Projects")) {
+                // All Activities
                 HStack {
                     Label("All Activities", systemImage: "tray.full")
                     Spacer()
@@ -28,8 +27,13 @@ struct SidebarView: View {
                         .foregroundStyle(.secondary)
                         .font(.caption)
                 }
-                .tag("All Activities")
+                .contentShape(Rectangle())
+                .background(appState.isSpecialItemSelected("All Activities") ? Color.accentColor.opacity(0.2) : Color.clear)
+                .onTapGesture {
+                    appState.selectSpecialItem("All Activities")
+                }
                 
+                // Unassigned
                 HStack {
                     Label("Unassigned", systemImage: "questionmark.circle")
                     Spacer()
@@ -37,12 +41,16 @@ struct SidebarView: View {
                         .foregroundStyle(.secondary)
                         .font(.caption)
                 }
-                .tag("Unassigned")
+                .contentShape(Rectangle())
+                .background(appState.isSpecialItemSelected("Unassigned") ? Color.accentColor.opacity(0.2) : Color.clear)
+                .onTapGesture {
+                    appState.selectSpecialItem("Unassigned")
+                }
                 
                 // My Projects as a folding item
                 DisclosureGroup(isExpanded: $isMyProjectsExpanded) {
                     ForEach(appState.projectTree) { project in
-                        ProjectRowView(project: project, selectedProject: $selectedProject)
+                        ProjectRowView(project: project)
                     }
                     .onMove(perform: moveProjects)
                     .deleteDisabled(true)
@@ -51,6 +59,11 @@ struct SidebarView: View {
                         Image(systemName: "folder")
                         Text("My Projects")
                         Spacer()
+                    }
+                    .contentShape(Rectangle())
+                    .background(appState.isSpecialItemSelected("My Projects") ? Color.accentColor.opacity(0.2) : Color.clear)
+                    .onTapGesture {
+                        appState.selectSpecialItem("My Projects")
                     }
                 }
             }
