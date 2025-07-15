@@ -4,12 +4,53 @@ import SwiftUI
 struct TimelineView: View {
     @State private var timelineScale: CGFloat = 1.0
     
+    // Mock activities data - replace with real data source
+    private let activities: [Activity] = {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        
+        return [
+            Activity(appName: "Xcode", appBundleId: "com.apple.dt.Xcode", duration: 3600, 
+                    startTime: today.addingTimeInterval(9 * 3600), // 9:00 AM
+                    endTime: today.addingTimeInterval(10 * 3600), // 10:00 AM
+                    icon: "hammer"),
+            Activity(appName: "Safari", appBundleId: "com.apple.Safari", duration: 1800, 
+                    startTime: today.addingTimeInterval(10 * 3600), // 10:00 AM
+                    endTime: today.addingTimeInterval(10.5 * 3600), // 10:30 AM
+                    icon: "safari"),
+            Activity(appName: "Terminal", appBundleId: "com.apple.Terminal", duration: 900, 
+                    startTime: today.addingTimeInterval(11 * 3600), // 11:00 AM
+                    endTime: today.addingTimeInterval(11.25 * 3600), // 11:15 AM
+                    icon: "terminal"),
+            Activity(appName: "Notes", appBundleId: "com.apple.Notes", duration: 1800, 
+                    startTime: today.addingTimeInterval(14 * 3600), // 2:00 PM
+                    endTime: today.addingTimeInterval(14.5 * 3600), // 2:30 PM
+                    icon: "note.text")
+        ]
+    }()
+    
     private var timelineWidth: CGFloat {
         return 1920 * timelineScale
     }
     
     private var totalWidth: CGFloat {
         return 140 + timelineWidth
+    }
+    
+    // Helper function to get app-specific colors
+    private func colorForApp(_ bundleId: String) -> Color {
+        switch bundleId {
+        case "com.apple.dt.Xcode":
+            return .blue
+        case "com.apple.Safari":
+            return .orange
+        case "com.apple.Terminal":
+            return .green
+        case "com.apple.Notes":
+            return .yellow
+        default:
+            return .gray
+        }
     }
 
     var body: some View {
@@ -63,14 +104,18 @@ struct TimelineView: View {
                             .frame(width: timelineWidth, height: 30)
                             .cornerRadius(5)
 
-                        // Activity blocks - dynamic in real app
-                        Group {
-                            TimeBlock(color: .blue.opacity(0.6), position: 0.05, width: 0.02)
-                                .overlay(IconOverlay(iconName: "clock", color: .blue), alignment: .leading)
-                            TimeBlock(color: .green.opacity(0.6), position: 0.15, width: 0.04)
-                                .overlay(IconOverlay(iconName: "checkmark", color: .green), alignment: .leading)
-                            // more dynamic blocks here...
-                        }
+// Activity blocks positioned according to time
+Group {
+    ForEach(activities, id: \.id) { activity in
+        let start = activity.startTime.timeIntervalSinceMidnight() / 86400
+        let end = activity.endTime.timeIntervalSinceMidnight() / 86400
+        let width = end - start
+        let appColor = colorForApp(activity.appBundleId)
+        
+        TimeBlock(color: appColor.opacity(0.6), position: start, width: width)
+            .overlay(IconOverlay(iconName: activity.icon, color: appColor), alignment: .leading)
+    }
+}
                     }
                 }
                 
@@ -123,7 +168,7 @@ struct TimelineView: View {
                     .frame(width: 140, alignment: .leading)
                     .padding(.leading, 16)
                     
-// Time entries blocks
+                    // Time entries blocks
                     ZStack(alignment: .leading) {
                         // Background timeline
                         Rectangle()
@@ -224,6 +269,15 @@ struct IconOverlay: View {
                     .frame(width: 20, height: 20)
             )
             .padding(.leading, 4)
+    }
+}
+
+// Date extension for timeline calculations
+extension Date {
+    func timeIntervalSinceMidnight() -> TimeInterval {
+        let calendar = Calendar.current
+        let midnight = calendar.startOfDay(for: self)
+        return self.timeIntervalSince(midnight)
     }
 }
 
