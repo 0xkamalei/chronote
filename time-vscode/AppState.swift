@@ -9,12 +9,7 @@ class AppState: ObservableObject {
     @Published var selectedSidebar: String? = "All Activities"
 
     init() {
-        self.projects = [
-            Project(id: "workmagic", name: "workmagic", color: .red, sortOrder: 0),
-            Project(id: "side_project", name: "side_project", color: .purple, sortOrder: 1),
-            Project(id: "project1", name: "Project1", color: .green, sortOrder: 2),
-            Project(id: "sub_project", name: "Sub Project", color: .orange, parentID: "workmagic", sortOrder: 0)
-        ]
+        self.projects = MockData.projects
         
         // 初始化时设置默认选择
         self.selectedSidebar = "All Activities"

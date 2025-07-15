@@ -6,8 +6,8 @@ struct MainToolbarView: ToolbarContent {
     @Binding var isAddingProject: Bool
     @Binding var isStartingTimer: Bool
     @Binding var isAddingTimeEntry: Bool
-    @Binding var selectedDateRange: DateRange
-    @Binding var selectedPreset: DateRangePreset?
+    @Binding var selectedDateRange: AppDateRange
+    @Binding var selectedPreset: AppDateRangePreset?
     @Binding var searchText: String
 
     var body: some ToolbarContent {

@@ -143,6 +143,66 @@ struct MockData {
             startTime: Date().addingTimeInterval(-80),
             endTime: Date().addingTimeInterval(-20),
             icon: "brain.head.profile"
+        ),
+        Activity(
+            appName: "time-vscode",
+            appBundleId: "com.time.vscode",
+            duration: 30,
+            startTime: Date().addingTimeInterval(-60),
+            endTime: Date().addingTimeInterval(-30),
+            icon: "clock"
+        ),
+        Activity(
+            appName: "App Store",
+            appBundleId: "com.apple.AppStore",
+            duration: 45,
+            startTime: Date().addingTimeInterval(-45),
+            endTime: Date().addingTimeInterval(-0),
+            icon: "app.badge"
+        ),
+        Activity(
+            appName: "Snipaste",
+            appBundleId: "com.snipaste.snipaste",
+            duration: 20,
+            startTime: Date().addingTimeInterval(-20),
+            endTime: Date().addingTimeInterval(-0),
+            icon: "scissors"
+        )
+    ]
+    
+    static let projects = [
+        Project(id: "workmagic", name: "workmagic", color: .red, sortOrder: 0),
+        Project(id: "side_project", name: "side_project", color: .purple, sortOrder: 1),
+        Project(id: "project1", name: "Project1", color: .green, sortOrder: 2),
+        Project(id: "sub_project", name: "Sub Project", color: .orange, parentID: "workmagic", sortOrder: 0)
+    ]
+    
+    static let timeEntries = [
+        TimeEntry(
+            projectId: "workmagic",
+            title: "Code Review",
+            notes: "Reviewing SwiftUI implementation",
+            startTime: Date().addingTimeInterval(-7200),
+            endTime: Date().addingTimeInterval(-5400)
+        ),
+        TimeEntry(
+            projectId: "side_project",
+            title: "UI Design",
+            notes: "Working on timeline component",
+            startTime: Date().addingTimeInterval(-5400),
+            endTime: Date().addingTimeInterval(-3600)
+        ),
+        TimeEntry(
+            projectId: "project1",
+            title: "Bug Fixes",
+            startTime: Date().addingTimeInterval(-3600),
+            endTime: Date().addingTimeInterval(-1800)
+        ),
+        TimeEntry(
+            title: "Research",
+            notes: "Learning SwiftData integration",
+            startTime: Date().addingTimeInterval(-1800),
+            endTime: Date().addingTimeInterval(-900)
         )
     ]
 }

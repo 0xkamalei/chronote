@@ -69,17 +69,19 @@ struct ActivitiesView: View {
                         ) {
                             // Websites visited in this browser
                             Group {
-                                HStack {
-                                    Image(systemName: "globe")
-                                        .frame(width: 24)
-                                        .foregroundColor(.secondary)
-                                    Text("developer.apple.com")
-                                    Spacer()
-                                    Text("<1m")
-                                        .foregroundStyle(.secondary)
+                                if let appTitle = activity.appTitle {
+                                    HStack {
+                                        Image(systemName: "globe")
+                                            .frame(width: 24)
+                                            .foregroundColor(.secondary)
+                                        Text(appTitle)
+                                        Spacer()
+                                        Text(activity.durationString)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .padding(.vertical, 2)
+                                    .padding(.leading, 20) // Indent
                                 }
-                                .padding(.vertical, 2)
-                                .padding(.leading, 20) // Indent
                                 
                                 HStack {
                                     Image(systemName: "globe")
@@ -111,7 +113,7 @@ struct ActivitiesView: View {
                                     .frame(width: 24)
                                 Text(activity.appName)
                                 Spacer()
-                                Text(activity.duration)
+                                Text(activity.durationString)
                                     .foregroundStyle(.secondary)
                             }
                             .padding(.vertical, 2)
@@ -123,7 +125,7 @@ struct ActivitiesView: View {
                                 .frame(width: 24)
                             Text(activity.appName)
                             Spacer()
-                            Text(activity.duration)
+                            Text(activity.durationString)
                                 .foregroundStyle(.secondary)
                         }
                         .padding(.vertical, 2)
@@ -136,18 +138,5 @@ struct ActivitiesView: View {
 }
 
 #Preview {
-    ActivitiesView(activities: [
-        Activity(appName: "Xcode", duration: "5m", icon: "hammer", minutes: 5),
-        Activity(appName: "Folo", duration: "5m", icon: "f.cursive", minutes: 5),
-        Activity(appName: "Discord", duration: "4m", icon: "bubble.left.and.bubble.right", minutes: 4),
-        Activity(appName: "GitHub Copilot for Xcode Extension", duration: "3m", icon: "chevron.left.forwardslash.chevron.right", minutes: 3),
-        Activity(appName: "Microsoft Edge", duration: "1m", icon: "safari", minutes: 1),
-        Activity(appName: "GitHub Copilot for Xcode", duration: "1m", icon: "chevron.left.forwardslash.chevron.right", minutes: 1),
-        Activity(appName: "WeChat", duration: "1m", icon: "message", minutes: 1),
-        Activity(appName: "time-vscode", duration: "<1m", icon: "clock", minutes: 0),
-        Activity(appName: "Timing", duration: "<1m", icon: "clock", minutes: 0),
-        Activity(appName: "App Store", duration: "<1m", icon: "app.badge", minutes: 0),
-        Activity(appName: "Google Chrome", duration: "1m", icon: "globe", minutes: 1),
-        Activity(appName: "Snipaste", duration: "<1m", icon: "scissors", minutes: 0)
-    ])
+    ActivitiesView(activities: MockData.activities)
 }

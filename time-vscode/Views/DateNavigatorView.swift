@@ -2,8 +2,8 @@
 import SwiftUI
 
 struct DateNavigatorView: View {
-    @Binding var selectedDateRange: DateRange
-    @Binding var selectedPreset: DateRangePreset?
+    @Binding var selectedDateRange: AppDateRange
+    @Binding var selectedPreset: AppDateRangePreset?
     @State private var isDatePickerExpanded: Bool = false
 
     private var dateRangeText: String {
@@ -117,14 +117,14 @@ struct DateNavigatorView: View {
             else {
                 newEndDate = Date()
             }
-            selectedDateRange = DateRange(startDate: newStartDate, endDate: newEndDate)
+            selectedDateRange = AppDateRange(startDate: newStartDate, endDate: newEndDate)
         }
         
         selectedPreset = nil
     }
 }
 
-extension DateRangePreset {
+extension AppDateRangePreset {
     var isFixedDuration: Bool {
         switch self {
         case .past7Days, .past15Days, .past30Days, .past90Days, .past365Days, .lastWeek, .lastMonth:
