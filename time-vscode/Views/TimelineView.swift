@@ -10,21 +10,25 @@ struct TimelineView: View {
         let today = calendar.startOfDay(for: Date())
         
         return [
+            // Test: Exactly at 9:00 AM (should align with 09:00 marker)
             Activity(appName: "Xcode", appBundleId: "com.apple.dt.Xcode", duration: 3600,
                      startTime: today.addingTimeInterval(9 * 3600), // 9:00 AM
                      endTime: today.addingTimeInterval(10 * 3600), // 10:00 AM
                      icon: "hammer"),
+            // Test: Exactly at 12:00 PM (should align with 12:00 marker)
             Activity(appName: "Safari", appBundleId: "com.apple.Safari", duration: 1800,
-                     startTime: today.addingTimeInterval(10 * 3600), // 10:00 AM
-                     endTime: today.addingTimeInterval(10.5 * 3600), // 10:30 AM
+                     startTime: today.addingTimeInterval(12 * 3600), // 12:00 PM
+                     endTime: today.addingTimeInterval(12.5 * 3600), // 12:30 PM
                      icon: "safari"),
+            // Test: Exactly at 18:00 (should align with 18:00 marker)
             Activity(appName: "Terminal", appBundleId: "com.apple.Terminal", duration: 900,
-                     startTime: today.addingTimeInterval(11 * 3600), // 11:00 AM
-                     endTime: today.addingTimeInterval(11.25 * 3600), // 11:15 AM
+                     startTime: today.addingTimeInterval(18 * 3600), // 6:00 PM
+                     endTime: today.addingTimeInterval(18.25 * 3600), // 6:15 PM
                      icon: "terminal"),
+            // Test: Exactly at 0:00 (should align with 00:00 marker)
             Activity(appName: "Notes", appBundleId: "com.apple.Notes", duration: 1800,
-                     startTime: today.addingTimeInterval(14 * 3600), // 2:00 PM
-                     endTime: today.addingTimeInterval(14.5 * 3600), // 2:30 PM
+                     startTime: today.addingTimeInterval(0 * 3600), // 12:00 AM
+                     endTime: today.addingTimeInterval(0.5 * 3600), // 12:30 AM
                      icon: "note.text")
         ]
     }()
@@ -64,10 +68,12 @@ struct TimelineView: View {
                         .foregroundStyle(.secondary)
                         .frame(width: 140, alignment: .leading)
                         .padding(.leading, 16)
+
                     
-                    ForEach(["00:00", "01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"], id: \.self) { time in
+                    ForEach(Array(0..<24), id: \.self) { hour in
+                        let timeString = String(format: "%02d:00", hour)
                         VStack(spacing: 2) {
-                            Text(time)
+                            Text(timeString)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             
@@ -75,7 +81,7 @@ struct TimelineView: View {
                                 .fill(Color.gray.opacity(0.3))
                                 .frame(width: 1, height: 8)
                         }
-                        .frame(width: 80 * timelineScale)
+                        .frame(width: 80 * timelineScale, alignment: .leading)
                     }
                 }
                 .padding(.bottom, 8)
@@ -109,8 +115,12 @@ struct TimelineView: View {
                             ForEach(activities, id: \.id) { activity in
                                 let startSeconds = activity.startTime.timeIntervalSinceMidnight()
                                 let endSeconds = activity.endTime.timeIntervalSinceMidnight()
-                                let start = startSeconds / 86400  // Convert to 0-1 range
-                                let end = endSeconds / 86400
+                                // Convert to hours for direct pixel positioning
+                                let startHours = startSeconds / 3600
+                                let endHours = endSeconds / 3600
+                                // Calculate position and width as fractions of timeline width
+                                let start = startHours / 24.0  // 0-1 range based on 24 hours
+                                let end = endHours / 24.0
                                 let width = end - start
                                 let appColor = colorForApp(activity.appBundleId)
         
@@ -210,33 +220,37 @@ struct TimeBlock: View {
     }
     
     var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(LinearGradient(gradient: Gradient(colors: [color.opacity(0.8), color.opacity(0.4)]), startPoint: .top, endPoint: .bottom))
-                    .frame(width: width * geo.size.width, height: 30)
-                    .position(x: position * geo.size.width + (width * geo.size.width / 2), y: 15)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 4)
-                            .stroke(color.opacity(0.3), lineWidth: 1)
-                            .frame(width: width * geo.size.width, height: 30)
-                            .position(x: position * geo.size.width + (width * geo.size.width / 2), y: 15)
-                    )
-                
-                // App icon in the center
-                if let iconName = iconName {
-                    Image(systemName: iconName)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.white)
-                        .background(
-                            Circle()
-                                .fill(Color.black.opacity(0.3))
-                                .frame(width: 20, height: 20)
-                        )
-                        .position(x: position * geo.size.width + (width * geo.size.width / 2), y: 15)
-                }
-            }
-        }
+                        GeometryReader { geo in
+                            let blockWidth = width * geo.size.width
+                            let blockX = position * geo.size.width
+                            let centerX = blockX + blockWidth / 2
+                            
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(LinearGradient(gradient: Gradient(colors: [color.opacity(0.8), color.opacity(0.4)]), startPoint: .top, endPoint: .bottom))
+                                    .frame(width: blockWidth, height: 30)
+                                    .position(x: centerX, y: 15)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 4)
+                                            .stroke(color.opacity(0.3), lineWidth: 1)
+                                            .frame(width: blockWidth, height: 30)
+                                            .position(x: centerX, y: 15)
+                                    )
+                                
+                                // App icon in the center
+                                if let iconName = iconName {
+                                    Image(systemName: iconName)
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundStyle(.white)
+                                        .background(
+                                            Circle()
+                                                .fill(Color.black.opacity(0.3))
+                                                .frame(width: 20, height: 20)
+                                        )
+                                        .position(x: centerX, y: 15)
+                                }
+                            }
+                        }
         .frame(height: 30)
     }
 }
