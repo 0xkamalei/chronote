@@ -1,6 +1,6 @@
 # project spec
 
-copy to CLAUDE.md/GEMINI.md/copilot-instructions.md
+copy to CLAUDE.md/GEMINI/md/gitcopilot-instructions.md  
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -31,50 +31,57 @@ open time-vscode.xcodeproj
 
 ### Code style
 
-- 使用最新版本swiftUI，swiftData的最佳实践
+- Use best practices with the latest versions of SwiftUI and SwiftData
 
 ### Features
 
 - project
-  - project支持hierarchy，可以给project添加sub project
-  - 在创建project，“new time entiry","start timer"时都可以快捷添加subproject
-  - 在左侧sibebar展示project tree，并且可以通过拖动project改变project的显示顺序
-  - 通过点击选中左侧project，就把当前project作为"All Activity"的查询筛选条件
-  - project.title 是project下具体的一个事情；比如project是开发timing.app；project.title是编写PRD
-  - "Unassigned" 这个代表 activity 没有通过time-entry被分配到project；可以选中Unassigned只筛选Unassigned的activity
-  - "All Activities" 代表不通过project筛选；选中后在明细就要显示“Unassigned"在最上面
-  - “My Projects" 等同于查询所有分配到projects的activity
-  - 选中project 如果没有对应的activity，显示“No time traced"
-  - 在sidebar 的 project 后尾要显示 这个project 对应的activity的时间总和 UI 见 @ui/siderbar-project.png.                                    
+  - Project supports hierarchy, allowing you to add sub projects to a project
+  - When creating projects, "new time entry", or "start timer", you can quickly add subprojects
+  - Display project tree in the left sidebar, and you can change the display order of projects by dragging
+  - By clicking to select a project in the left sidebar, the current project becomes the filter condition for "All Activity" queries
+  - project.title is a specific task under a project; for example, if the project is developing timing.app, project.title would be writing PRD
+  - "Unassigned" represents activities that have not been assigned to a project through time-entry; you can select Unassigned to filter only Unassigned activities
+  - "All Activities" represents no filtering by project; when selected, "Unassigned" should be displayed at the top of the details
+  - "My Projects" is equivalent to querying all activities assigned to projects
+  - When a project is selected but has no corresponding activities, display "No time traced"
+  - At the end of each project in the sidebar, display the total time sum of activities corresponding to this project. See UI @ui/siderbar-project.    
+
+                          
 - Activity
-  - activity 打开程序后自动记录，待实现中
-  - activity 根据 application 切换事件 自动记录上一个app占用的时间
-  - activity的展示结果，可以按照多种条件筛选，时间范围，project，
-  - activity的明细展示，分为两列，一列是汇总，一列是分组展示；默认是groupby project,project.title,activity.title,
-  - activity的展示逻辑是多层的折叠列表，project -> subproject 如果有的话 -> title(timeEntry中填写的) 对于unassigned的没有title -> 时间段 -> app 图表和名称 -> app.title 相同title的activities会聚合再一起-> Activities app使用明细开始时间~结束时间;具体可以查看UI @ui/main-layout.png
+  - Activity is automatically recorded after opening the program, currently under implementation
+  - Activity automatically records the time occupied by the previous app based on application switching events
+  - Activity display results can be filtered by various conditions: time range, project
+  - Activity detail display is divided into two columns: one for summary, one for grouped display; default is group by project, project.title, activity.title
+  - Activity display logic is a multi-level collapsible list: project -> subproject (if any) -> title (filled in timeEntry, no title for unassigned) -> time period -> app icon and name -> app.title (activities with the same title are aggregated together) -> Activities app usage details start time ~ end time; see UI @ui/main-layout.png for details
+
+
 - timepicker
-  - 通过timepicker 组件可以快速选择时间范围，只支持日期选择
-  - 在使用快捷选择时间时，两个对应的日期选择也会实施计算变化，并且即时的被用来筛选数据
-  - 具体UI @ui/timepicker.png
+  - The timepicker component allows quick selection of time ranges, supporting only date selection
+  - When using quick time selection, the two corresponding date selectors will calculate and change in real-time, and are used immediately to filter data
+  - See UI @ui/timepicker.png for details
+
+
 - time entry
-  - 时间分配功能，将activity分配到对应的project or subproject
-  - time line 功能
-    - 此功能是app的核心，用来展示overview的app使用情况，project情况，以及project.title情况
-    - 可以用来展示project，activity，同时也用来快速滑动选中时间范围，还可以用于快速添加time entry,具体UI @ui/timeline.png
-    - time line 部分可以通过按住 cmd+鼠标滚轮 放大缩小
-    - time line 一共分为三行；
-    - timeline 第一行是当前设备activity，显示为应用图标，如果缩放的话显示为那段时间用时最多的app图标；鼠标悬浮在图标显示详细信息
-    - timeline 第二行是project的色块
-    - timeline 第三行是time entry,如果没有assign显示快捷按钮，点击pop up "New time entry",start-time end-time会自动添入
-- background 后台
-  - 通过 `didActivateApplicationNotification` 获取app激活通知
-  - 激活后调用 `ActivityManager.trackAppSwitch` 代码示例：
+  - Time allocation function to assign activities to corresponding projects or subprojects
+  - Timeline functionality
+    - This is the core feature of the app, used to display overview of app usage, project status, and project.title status
+    - Can be used to display projects and activities, also for quickly sliding to select time ranges, and for quickly adding time entries. See UI @ui/timeline.png for details
+    - The timeline section can be zoomed in/out by holding cmd+mouse wheel
+    - Timeline consists of three rows:
+    - Timeline first row shows current device activity, displayed as app icons; when zoomed, shows the app icon that was used most during that time period; mouse hover on icon shows detailed information
+    - Timeline second row shows project color blocks
+    - Timeline third row shows time entries; if not assigned, displays shortcut button, clicking pops up "New time entry" with start-time and end-time automatically filled in
+
+- background
+  - Get app activation notifications through `didActivateApplicationNotification`
+  - After activation, call `ActivityManager.trackAppSwitch` code example:
     ```
     NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { notification in
         print("Event didActivateApplicationNotification")
-        // 在这里执行你的回调操作
+        // Execute your callback operations here
         if let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication {
-            //print("当前激活的应用: \(app.localizedName ?? "未知")")
+            //print("Currently activated app: \(app.localizedName ?? "Unknown")")
             print(app.bundleIdentifier ?? "-")
             Task {
                 @MainActor in
@@ -92,15 +99,15 @@ open time-vscode.xcodeproj
     }
     ```
   - 
-### APP tracing 的实现逻辑
+### APP Tracing Implementation Logic
 
-监听 `didActivateApplicationNotification` ，`willSleepNotification` 事件，通过ActivityManager维护一个状态，如果切换了app，就保存上一个app的activity。
-如果 系统 sleep了就直接保存现在的app状态。
+Listen to `didActivateApplicationNotification` and `willSleepNotification` events, maintain a state through ActivityManager. If the app is switched, save the previous app's activity.
+If the system goes to sleep, directly save the current app state.
 
-要能获取到app的icon用于回显的时候使用。
+Must be able to get the app's icon for use during display.
 
-### activity 统计逻辑
-根据每个 activity 的结束时间减去开始时间计算duration，合并duration就是使用时间。可以根据分组分别统计每个分组的时间。比如如果按照project分组，就可以按照duration计算每个project的总时间。
+### Activity Statistics Logic
+Calculate duration based on each activity's end time minus start time, merge durations to get usage time. Can calculate time for each group separately based on grouping. For example, if grouped by project, you can calculate the total time for each project based on duration.
 
 ### State Management
 - **AppState**: Central `ObservableObject` managing global application state
@@ -112,7 +119,7 @@ open time-vscode.xcodeproj
 ### Data Models
 - **Project**: Hierarchical project structure with color coding, custom encoding/decoding for Color persistence
 - **Activity**: Represents app usage tracking with duration and system icons and app id
-- **TimeEntry** 对应一个project下的工作周期，由用户通过按钮开始记录和结束记录；也可根据配置由系统待机时停止记录
+- **TimeEntry** Corresponds to a work period under a project, started and ended by user through buttons; can also be stopped automatically by the system during standby based on configuration
 
 ### View Architecture
 - **NavigationSplitView**: Main layout with sidebar and detail views
