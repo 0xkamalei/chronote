@@ -10,22 +10,22 @@ struct TimelineView: View {
         let today = calendar.startOfDay(for: Date())
         
         return [
-            Activity(appName: "Xcode", appBundleId: "com.apple.dt.Xcode", duration: 3600, 
-                    startTime: today.addingTimeInterval(9 * 3600), // 9:00 AM
-                    endTime: today.addingTimeInterval(10 * 3600), // 10:00 AM
-                    icon: "hammer"),
-            Activity(appName: "Safari", appBundleId: "com.apple.Safari", duration: 1800, 
-                    startTime: today.addingTimeInterval(10 * 3600), // 10:00 AM
-                    endTime: today.addingTimeInterval(10.5 * 3600), // 10:30 AM
-                    icon: "safari"),
-            Activity(appName: "Terminal", appBundleId: "com.apple.Terminal", duration: 900, 
-                    startTime: today.addingTimeInterval(11 * 3600), // 11:00 AM
-                    endTime: today.addingTimeInterval(11.25 * 3600), // 11:15 AM
-                    icon: "terminal"),
-            Activity(appName: "Notes", appBundleId: "com.apple.Notes", duration: 1800, 
-                    startTime: today.addingTimeInterval(14 * 3600), // 2:00 PM
-                    endTime: today.addingTimeInterval(14.5 * 3600), // 2:30 PM
-                    icon: "note.text")
+            Activity(appName: "Xcode", appBundleId: "com.apple.dt.Xcode", duration: 3600,
+                     startTime: today.addingTimeInterval(9 * 3600), // 9:00 AM
+                     endTime: today.addingTimeInterval(10 * 3600), // 10:00 AM
+                     icon: "hammer"),
+            Activity(appName: "Safari", appBundleId: "com.apple.Safari", duration: 1800,
+                     startTime: today.addingTimeInterval(10 * 3600), // 10:00 AM
+                     endTime: today.addingTimeInterval(10.5 * 3600), // 10:30 AM
+                     icon: "safari"),
+            Activity(appName: "Terminal", appBundleId: "com.apple.Terminal", duration: 900,
+                     startTime: today.addingTimeInterval(11 * 3600), // 11:00 AM
+                     endTime: today.addingTimeInterval(11.25 * 3600), // 11:15 AM
+                     icon: "terminal"),
+            Activity(appName: "Notes", appBundleId: "com.apple.Notes", duration: 1800,
+                     startTime: today.addingTimeInterval(14 * 3600), // 2:00 PM
+                     endTime: today.addingTimeInterval(14.5 * 3600), // 2:30 PM
+                     icon: "note.text")
         ]
     }()
     
@@ -112,8 +112,7 @@ Group {
         let width = end - start
         let appColor = colorForApp(activity.appBundleId)
         
-        TimeBlock(color: appColor.opacity(0.6), position: start, width: width)
-            .overlay(IconOverlay(iconName: activity.icon, color: appColor), alignment: .leading)
+        TimeBlock(color: appColor.opacity(0.6), position: start, width: width, iconName: activity.icon)
     }
 }
                     }
@@ -199,19 +198,42 @@ struct TimeBlock: View {
     let color: Color
     let position: Double // 0-1 position on timeline
     let width: Double // 0-1 width on timeline
+    let iconName: String? // Optional icon name
+    
+    init(color: Color, position: Double, width: Double, iconName: String? = nil) {
+        self.color = color
+        self.position = position
+        self.width = width
+        self.iconName = iconName
+    }
     
     var body: some View {
         GeometryReader { geo in
-            RoundedRectangle(cornerRadius: 4)
-                .fill(LinearGradient(gradient: Gradient(colors: [color.opacity(0.8), color.opacity(0.4)]), startPoint: .top, endPoint: .bottom))
-                .frame(width: width * geo.size.width, height: 30)
-                .position(x: position * geo.size.width + (width * geo.size.width / 2), y: 15)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(color.opacity(0.3), lineWidth: 1)
-                        .frame(width: width * geo.size.width, height: 30)
+            ZStack {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(LinearGradient(gradient: Gradient(colors: [color.opacity(0.8), color.opacity(0.4)]), startPoint: .top, endPoint: .bottom))
+                    .frame(width: width * geo.size.width, height: 30)
+                    .position(x: position * geo.size.width + (width * geo.size.width / 2), y: 15)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(color.opacity(0.3), lineWidth: 1)
+                            .frame(width: width * geo.size.width, height: 30)
+                            .position(x: position * geo.size.width + (width * geo.size.width / 2), y: 15)
+                    )
+                
+                // App icon in the center
+                if let iconName = iconName {
+                    Image(systemName: iconName)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white)
+                        .background(
+                            Circle()
+                                .fill(Color.black.opacity(0.3))
+                                .frame(width: 20, height: 20)
+                        )
                         .position(x: position * geo.size.width + (width * geo.size.width / 2), y: 15)
-                )
+                }
+            }
         }
         .frame(height: 30)
     }
@@ -244,7 +266,7 @@ struct TimeEntryBlock: View {
                     }
                 }
                 .buttonStyle(.plain)
-                .onHover { hovering in
+                .onHover { _ in
                     // Add hover effect here if needed
                 }
                 
@@ -277,7 +299,7 @@ extension Date {
     func timeIntervalSinceMidnight() -> TimeInterval {
         let calendar = Calendar.current
         let midnight = calendar.startOfDay(for: self)
-        return self.timeIntervalSince(midnight)
+        return timeIntervalSince(midnight)
     }
 }
 
