@@ -1,9 +1,5 @@
 # Gemini Project: time-vscode
-
-This file provides guidance to Gemini when working with code in this repository.
-
-# project spec
-
+ 
 ## Project Overview
 
 This is a native macOS time tracking application built with SwiftUI and SwiftData. like timing app. The app tracks application usage, manages hierarchical projects, and provides timer functionality for focused work sessions.
@@ -45,7 +41,7 @@ open time-vscode.xcodeproj
   - "All Activities" represents no filtering by project; when selected, "Unassigned" should be displayed at the top of the details
   - "My Projects" is equivalent to querying all activities assigned to projects
   - When a project is selected but has no corresponding activities, display "No time traced"
-  - At the end of each project in the sidebar, display the total time sum of activities corresponding to this project. See UI @ui/siderbar-project.    
+  - At the end of each project in the sidebar, display the total time sum of activities corresponding to this project. 
 
                           
 - Activity
@@ -53,25 +49,34 @@ open time-vscode.xcodeproj
   - Activity automatically records the time occupied by the previous app based on application switching events
   - Activity display results can be filtered by various conditions: time range, project
   - Activity detail display is divided into two columns: one for summary, one for grouped display; default is group by project, project.title, activity.title
-  - Activity display logic is a multi-level collapsible list: project -> subproject (if any) -> title (filled in timeEntry, no title for unassigned) -> time period -> app icon and name -> app.title (activities with the same title are aggregated together) -> Activities app usage details start time ~ end time; see UI @ui/main-layout.png for details
-
-
-- timepicker
-  - The timepicker component allows quick selection of time ranges, supporting only date selection
-  - When using quick time selection, the two corresponding date selectors will calculate and change in real-time, and are used immediately to filter data
-  - See UI @ui/timepicker.png for details
-
+  - Activity display logic is a multi-level collapsible list: project -> subproject (if any) -> title (filled in timeEntry, no title for unassigned) -> time period -> app icon and name -> app.title (activities with the same title are aggregated together) -> Activities app usage details start time ~ end time; 
 
 - time entry
   - Time allocation function to assign activities to corresponding projects or subprojects
-  - Timeline functionality
-    - This is the core feature of the app, used to display overview of app usage, project status, and project.title status
-    - Can be used to display projects and activities, also for quickly sliding to select time ranges, and for quickly adding time entries. See UI @ui/timeline.png for details
-    - The timeline section can be zoomed in/out by holding cmd+mouse wheel
-    - Timeline consists of three rows:
-    - Timeline first row shows current device activity, displayed as app icons; when zoomed, shows the app icon that was used most during that time period; mouse hover on icon shows detailed information
-    - Timeline second row shows project color blocks
-    - Timeline third row shows time entries; if not assigned, displays shortcut button, clicking pops up "New time entry" with start-time and end-time automatically filled in
+  - time-entry可以手动通过“New Time Entry"添加，也可以通过“Start timer" "Stop Timer"生成
+  - 对于没有assgin time-entry的时间；在timeline组件中会显示推荐添加的按钮
+
+- project activity time-entry的关系
+  - activity 是所有自动记录的app使用时间事件,在timeline组件中device一列显示所有的activities；使用时间越长占用的色块越长，比如12:00～13:00 一直在使用app A,则在时间轴上12:00～13:00显示这个app A的图标，图标居中显示，色块是根据app绑定的
+  - 所有记录的time-entry都有关联的project；project在timeline组件的第二行显示；time-entry的title相当于project的具体活动
+  - time-entry，在timeline组件第三行显示
+
+- timepicker 
+  - The timepicker component allows quick selection of time ranges, supporting only date selection
+  - When using quick time selection, the two corresponding date selectors will calculate and change in real-time, and are used immediately to filter data
+
+
+
+
+- timeline functionality
+  - This is the core feature of the app, used to display overview of app usage, project status, and project.title status
+  - Can be used to display projects and activities, also for quickly sliding to select time ranges, and for quickly adding time entries. 
+  - The timeline section can be zoomed in/out by holding cmd+mouse wheel
+  - Timeline consists of three rows:
+  - Timeline first row shows current device activity, displayed as app icons; when zoomed, shows the app icon that was used most during that time period; mouse hover on icon shows detailed information
+  - Timeline second row shows project color blocks
+  - Timeline third row shows time entries; if not assigned, displays add icon button, clicking button pops up "New time entry" with start-time and end-time automatically filled in form
+  - 鼠标悬浮在timeline上时显示这个时间具体的信息，包括对于时间project的信息，activity的信息，time-entry的信息如果有
 
 - background
   - Get app activation notifications through `didActivateApplicationNotification`
