@@ -1,6 +1,6 @@
 # Design Document
 
-## Overview
+## 1. Overview
 
 This design implements a comprehensive ActivitiesView component that displays user activities with advanced grouping, filtering, and hierarchical display capabilities. The implementation focuses on a Unified display mode with project-based grouping, supporting a structured hierarchical display (Project → Subproject → Time Entry → Time Period → App Name → App Title → n-level directory/domain → Time Detail List) for detailed activity drill-down.
 
@@ -12,9 +12,9 @@ The solution integrates both automatic activity tracking and manual time entries
 
 **State Management Strategy**: The design employs a reactive architecture where configuration changes trigger immediate data reprocessing and UI updates. This ensures that when users toggle inclusion options (Requirements 3.1, 3.2, 3.3), the display updates instantly without user intervention (Requirement 3.4), and all time calculations are recalculated accurately across the hierarchy (Requirement 5.2).
 
-## Data Models
+## 2. Data Models
 
-### Enhanced Activity Model
+### 2.1 Enhanced Activity Model
 
 Extended activity representation that includes:
 - Original Activity properties (appName, duration, etc.)
@@ -25,7 +25,7 @@ Extended activity representation that includes:
 
 **Design Decision**: Project assignments and time entry associations are computed at runtime by matching Activity timestamps with TimeEntry time ranges, rather than being stored as direct properties. This ensures data consistency and allows for flexible time-based grouping logic.
 
-### ActivityGroup Model
+### 2.2 ActivityGroup Model
 
 Hierarchical grouping structure that represents computed aggregations from original activities. This model is necessary because:
 
@@ -45,7 +45,7 @@ Hierarchical grouping structure that represents computed aggregations from origi
 
 **Design Decision**: UI state such as expansion state and user preferences are managed separately in the view layer to maintain clean separation between data models and presentation logic.
 
-### Configuration Model
+### 2.3 Configuration Model
 
 Settings model that manages activity display and grouping preferences:
 
@@ -73,7 +73,7 @@ Settings model that manages activity display and grouping preferences:
 
 **Design Decision**: The Configuration model separates persistent settings (grouping and inclusion options) from transient UI state (expansion states) to enable proper state management and user preference persistence.
 
-### Time Calculation and Aggregation Model
+### 2.4 Time Calculation and Aggregation Model
 
 The system implements sophisticated time calculation logic as part of the data processing layer:
 
@@ -91,7 +91,7 @@ The system implements sophisticated time calculation logic as part of the data p
 - Handles activities spanning multiple periods
 - Maintains temporal accuracy in calculations
 
-## Architecture
+## 3. Architecture
 
 The implementation follows a modular SwiftUI architecture with clear separation of concerns:
 
@@ -103,9 +103,9 @@ The implementation follows a modular SwiftUI architecture with clear separation 
 
 **Design Decision**: The initial implementation uses a fixed configuration (Unified mode with project grouping) to establish the core functionality before adding configuration flexibility. This approach allows for thorough testing of the hierarchical display and data processing logic without the complexity of dynamic configuration management.
 
-## Components and Interfaces
+## 4. Components and Interfaces
 
-### ActivitiesView (Main Container)
+### 4.1 ActivitiesView (Main Container)
 
 The main view component that:
 - Displays activities in fixed Unified mode with project-based grouping (Requirements 1.1, 1.6, 2.1, 2.7)
@@ -116,7 +116,7 @@ The main view component that:
 - Maintains consistent visual styling and interaction patterns across all states (Requirement 1.5)
 - Coordinates with ActivityDataProcessor for data processing and merging
 
-### ActivityDataProcessor
+### 4.2 ActivityDataProcessor
 
 Core data processing engine that:
 - Merges activities from MockData.activities and MockData.timeEntries (Requirements 3.1, 3.5)
@@ -128,7 +128,7 @@ Core data processing engine that:
 - Ensures immediate updates when inclusion options are toggled (Requirement 3.4)
 - Implements proper merging and deduplication of related entries when multiple inclusion options are active (Requirement 3.5)
 
-### ActivityHierarchyBuilder
+### 4.3 ActivityHierarchyBuilder
 
 Specialized data processing utility class responsible for transforming flat activity data into the required 6+ level hierarchical structure. This utility takes raw activities and time entries and organizes them into a tree structure that matches the display requirements:
 
@@ -159,9 +159,7 @@ Specialized data processing utility class responsible for transforming flat acti
 - Maintains data integrity during hierarchy construction
 - Optimizes structure for efficient rendering by HierarchicalActivityRow component
 
-
-
-### HierarchicalActivityRow
+### 4.4 HierarchicalActivityRow
 
 SwiftUI view component that recursively renders individual rows in the activity hierarchy tree:
 - **Displays any hierarchy level**: Can render projects, subprojects, time entries, time periods, app names, or nested app titles
@@ -171,9 +169,9 @@ SwiftUI view component that recursively renders individual rows in the activity 
 - **Handles user interactions**: Responds to tap gestures for expansion/collapse and selection
 - **Recursive rendering**: Calls itself to render child rows when a group is expanded, creating the nested tree structure
 
-## Display Mode and Grouping Implementation
+## 5. Display Mode and Grouping Implementation
 
-### Unified Mode with Project-Based Grouping
+### 5.1 Unified Mode with Project-Based Grouping
 
 The initial implementation combines display mode and grouping logic in a unified approach:
 
@@ -191,7 +189,7 @@ The initial implementation combines display mode and grouping logic in a unified
 
 **Design Decision**: The initial implementation focuses solely on Unified mode with project-based grouping to establish core functionality. By Category and Chronological modes, along with additional grouping options (device-based, website, file path), will be added in future iterations once the foundational hierarchy and data processing logic is proven stable.
 
-### Future Grouping Options (Architecture Foundation)
+### 5.2 Future Grouping Options (Architecture Foundation)
 
 The design maintains architectural support for future grouping implementations:
 
@@ -199,11 +197,9 @@ The design maintains architectural support for future grouping implementations:
 
 **Website and File Path Grouping**: Will provide advanced options to separate websites from browser applications, group websites by URL path structure, handle file paths independently from applications, and create directory-based hierarchies for file activities.
 
+## 6. Error Handling and Edge Cases
 
-
-## Error Handling and Edge Cases
-
-### Data Validation
+### 6.1 Data Validation
 
 Robust error handling for:
 - Missing or invalid activity data
@@ -211,7 +207,7 @@ Robust error handling for:
 - Malformed project relationships
 - Configuration conflicts and invalid states
 
-### Performance Optimization
+### 6.2 Performance Optimization
 
 Efficient processing through:
 - **ActivityGroup Caching**: Computed ActivityGroup structures are cached and only recalculated when underlying data or inclusion settings change, preventing unnecessary recomputation on UI updates
@@ -221,7 +217,7 @@ Efficient processing through:
 - **Data Change Detection**: Smart diffing algorithms detect actual data changes vs. UI state changes to minimize unnecessary processing
 - **Memory Management**: Large activity datasets use pagination and memory-efficient data structures to prevent performance degradation
 
-### Empty States
+### 6.3 Empty States
 
 Appropriate handling of:
 - No activities in selected time period
