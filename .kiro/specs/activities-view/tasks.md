@@ -12,7 +12,7 @@
   - _Design: 2.2_
   - _Requirements: Requirement 4.1, Requirement 5.1_
 
-- [ ] 2. Enhance MockData with comprehensive test data for hierarchy testing
+- [x] 2. Enhance MockData with comprehensive test data for hierarchy testing
   - Expand MockData.activities to include more diverse app types and titles covering all hierarchy levels
   - Add time entries that overlap with activity time ranges for project assignment testing
   - Include activities with nested app titles (websites with domains/paths, files with directory structures)
