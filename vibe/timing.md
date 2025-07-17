@@ -1,6 +1,6 @@
-这是一个关于Timing应用的视频介绍。Timing是一个用于记录Mac中应用程序使用时间的APP。在应用的左侧，有一个“New Project”按钮和三个主要页面：Activities、Status、Reporter。Activities用于展示所有活动，Status提供活动数据统计，不过这个功能我们暂不实现。Reporter用于生成并导出活动报告，这个功能我们也暂不实现。
+这是一个关于Timing应用的介绍。Timing是一个用于记录Mac中应用程序使用时间的APP。在应用的左侧，有一个“New Project”按钮和三个主要页面：Activities、Status、Reporter。Activities用于展示所有活动，Status提供活动数据统计，不过这个功能我们暂不实现。Reporter用于生成并导出活动报告，这个功能我们也暂不实现。
 
-在活动页面下，可以查看所有项目以及子项目。例如，所有创建的项目可以放在“My Project”下，子项目则放在更下级的目录中。两个特殊目录为“All Activities”和“Unassigned Activities”。前者显示所有活动，包括未分配的活动；后者则显示未分配的活动。
+在左侧sidebar可以查看所有项目以及子项目。例如，所有创建的项目可以放在“My Project”下，子项目则放在更下级的目录中。两个特殊目录为“All Activities”和“Unassigned Activities”。前者显示所有活动，包括未分配的活动；后者则显示未分配的活动。
 
 需要新建项目时，可以填写项目名称、备注、颜色和一些规则。在右侧，可以通过点击“New Time Entry”按钮来手动记录某个项目的任务用时，包括填写项目、标题、备注、开始和结束时间。
 
