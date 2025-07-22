@@ -40,7 +40,7 @@
   - _Design: 4.3, 2.4_
   - _Requirements: Requirement 2.1, Requirement 4.1, Requirement 4.2, Requirement 4.3, Requirement 4.4, Requirement 4.5, Requirement 4.6, Requirement 4.8_
   
-- [ ] 5. Create HierarchicalActivityRow SwiftUI component
+- [x] 5. Create HierarchicalActivityRow SwiftUI component
   - Create new HierarchicalActivityRow SwiftUI view for recursive rendering of hierarchy rows
   - Implement expansion/collapse functionality with @State management for expanded groups
   - Add visual hierarchy styling with appropriate indentation and icons for each level
