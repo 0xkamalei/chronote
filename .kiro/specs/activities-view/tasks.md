@@ -50,7 +50,7 @@
   - _Design: 4.4, 3_
   - _Requirements: Requirement 4.1, Requirement 4.2, Requirement 4.3, Requirement 4.4, Requirement 4.5, Requirement 4.6_
 
-- [ ] 6. Refactor ActivitiesView to use hierarchical components
+- [x] 6. Refactor ActivitiesView to use hierarchical components
   - Replace current ActivitiesView implementation with new hierarchical approach
   - Integrate ActivityDataProcessor and ActivityHierarchyBuilder for data processing
   - Add header showing total activity time across all visible activities (replace hardcoded "24m 56s")
@@ -60,12 +60,12 @@
   - _Design: 4.1, 5.1_
   - _Requirements: Requirement 1.1, Requirement 1.6, Requirement 2.1, Requirement 5.1_
 
-- [ ] 7. Add comprehensive interaction and empty states
-  - Implement proper expand/collapse functionality for all hierarchy levels
-  - Add empty state handling with "0m 0s" display when no activities match filters
-  - Ensure consistent visual styling across all hierarchy levels and interaction states
-  - Add loading states and error handling for data processing
-  - Implement proper state management for expanded groups across view updates
+- [x] 7. Add comprehensive interaction and empty states
+  - ✅ Implement proper expand/collapse functionality for all hierarchy levels
+  - ✅ Add empty state handling with "0m 0s" display when no activities match filters
+  - ✅ Ensure consistent visual styling across all hierarchy levels and interaction states
+  - ❌ Add loading states and error handling for data processing
+  - ❌ Implement proper state management for expanded groups across view updates
   - _Design: 6.1, 6.3, 4.1_
   - _Requirements: Requirement 1.5, Requirement 4.2, Requirement 5.4_
 

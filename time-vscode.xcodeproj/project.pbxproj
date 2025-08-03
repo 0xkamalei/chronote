@@ -76,11 +76,11 @@
 			isa = PBXGroup;
 			children = (
 				14550FC72E2401D800BACDC0 /* ui */,
-				14550FBC2E24006900BACDC0 /* CLAUDE.md */,
 				14F7E02D2E141361000CB627 /* time-vscode */,
-				14F7E02C2E141361000CB627 /* Products */,
 				14550FD42E24B04800BACDC0 /* GEMINI.md */,
+				14550FBC2E24006900BACDC0 /* CLAUDE.md */,
 				14E24CA92E3EFA6B00BC442E /* prompt */,
+				14F7E02C2E141361000CB627 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
