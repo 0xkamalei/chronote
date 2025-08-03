@@ -9,20 +9,31 @@
 /* Begin PBXBuildFile section */
 		14550FBD2E24006900BACDC0 /* CLAUDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 14550FBC2E24006900BACDC0 /* CLAUDE.md */; };
 		14550FD52E24B04800BACDC0 /* GEMINI.md in Resources */ = {isa = PBXBuildFile; fileRef = 14550FD42E24B04800BACDC0 /* GEMINI.md */; };
+		14E24CAA2E3EFA6B00BC442E /* TODO.md in Resources */ = {isa = PBXBuildFile; fileRef = 14E24CA72E3EFA6B00BC442E /* TODO.md */; };
+		14E24CAB2E3EFA6B00BC442E /* SEO.md in Resources */ = {isa = PBXBuildFile; fileRef = 14E24CA22E3EFA6B00BC442E /* SEO.md */; };
+		14E24CAC2E3EFA6B00BC442E /* UI.md in Resources */ = {isa = PBXBuildFile; fileRef = 14E24CA82E3EFA6B00BC442E /* UI.md */; };
+		14E24CAD2E3EFA6B00BC442E /* timing.md in Resources */ = {isa = PBXBuildFile; fileRef = 14E24CA52E3EFA6B00BC442E /* timing.md */; };
+		14E24CAE2E3EFA6B00BC442E /* CODE.md in Resources */ = {isa = PBXBuildFile; fileRef = 14E24CA12E3EFA6B00BC442E /* CODE.md */; };
+		14E24CAF2E3EFA6B00BC442E /* TASK.md in Resources */ = {isa = PBXBuildFile; fileRef = 14E24CA42E3EFA6B00BC442E /* TASK.md */; };
+		14E24CB02E3EFA6B00BC442E /* Timing App PRD.markdown in Resources */ = {isa = PBXBuildFile; fileRef = 14E24CA62E3EFA6B00BC442E /* Timing App PRD.markdown */; };
+		14E24CB12E3EFA6B00BC442E /* SPEC.md in Resources */ = {isa = PBXBuildFile; fileRef = 14E24CA32E3EFA6B00BC442E /* SPEC.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		14550FBC2E24006900BACDC0 /* CLAUDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CLAUDE.md; sourceTree = "<group>"; };
 		14550FD42E24B04800BACDC0 /* GEMINI.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = GEMINI.md; sourceTree = "<group>"; };
+		14E24CA12E3EFA6B00BC442E /* CODE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CODE.md; sourceTree = "<group>"; };
+		14E24CA22E3EFA6B00BC442E /* SEO.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SEO.md; sourceTree = "<group>"; };
+		14E24CA32E3EFA6B00BC442E /* SPEC.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SPEC.md; sourceTree = "<group>"; };
+		14E24CA42E3EFA6B00BC442E /* TASK.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = TASK.md; sourceTree = "<group>"; };
+		14E24CA52E3EFA6B00BC442E /* timing.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = timing.md; sourceTree = "<group>"; };
+		14E24CA62E3EFA6B00BC442E /* Timing App PRD.markdown */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Timing App PRD.markdown"; sourceTree = "<group>"; };
+		14E24CA72E3EFA6B00BC442E /* TODO.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = TODO.md; sourceTree = "<group>"; };
+		14E24CA82E3EFA6B00BC442E /* UI.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = UI.md; sourceTree = "<group>"; };
 		14F7E02B2E141361000CB627 /* time-vscode.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "time-vscode.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		14550FC02E2401B800BACDC0 /* vibe */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = vibe;
-			sourceTree = "<group>";
-		};
 		14550FC72E2401D800BACDC0 /* ui */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = ui;
@@ -46,15 +57,30 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		14E24CA92E3EFA6B00BC442E /* prompt */ = {
+			isa = PBXGroup;
+			children = (
+				14E24CA12E3EFA6B00BC442E /* CODE.md */,
+				14E24CA22E3EFA6B00BC442E /* SEO.md */,
+				14E24CA32E3EFA6B00BC442E /* SPEC.md */,
+				14E24CA42E3EFA6B00BC442E /* TASK.md */,
+				14E24CA52E3EFA6B00BC442E /* timing.md */,
+				14E24CA62E3EFA6B00BC442E /* Timing App PRD.markdown */,
+				14E24CA72E3EFA6B00BC442E /* TODO.md */,
+				14E24CA82E3EFA6B00BC442E /* UI.md */,
+			);
+			path = prompt;
+			sourceTree = "<group>";
+		};
 		14F7E0222E141361000CB627 = {
 			isa = PBXGroup;
 			children = (
 				14550FC72E2401D800BACDC0 /* ui */,
-				14550FC02E2401B800BACDC0 /* vibe */,
 				14550FBC2E24006900BACDC0 /* CLAUDE.md */,
 				14F7E02D2E141361000CB627 /* time-vscode */,
 				14F7E02C2E141361000CB627 /* Products */,
 				14550FD42E24B04800BACDC0 /* GEMINI.md */,
+				14E24CA92E3EFA6B00BC442E /* prompt */,
 			);
 			sourceTree = "<group>";
 		};
@@ -82,7 +108,6 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				14550FC02E2401B800BACDC0 /* vibe */,
 				14550FC72E2401D800BACDC0 /* ui */,
 				14F7E02D2E141361000CB627 /* time-vscode */,
 			);
@@ -133,6 +158,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				14550FBD2E24006900BACDC0 /* CLAUDE.md in Resources */,
+				14E24CAA2E3EFA6B00BC442E /* TODO.md in Resources */,
+				14E24CAB2E3EFA6B00BC442E /* SEO.md in Resources */,
+				14E24CAC2E3EFA6B00BC442E /* UI.md in Resources */,
+				14E24CAD2E3EFA6B00BC442E /* timing.md in Resources */,
+				14E24CAE2E3EFA6B00BC442E /* CODE.md in Resources */,
+				14E24CAF2E3EFA6B00BC442E /* TASK.md in Resources */,
+				14E24CB02E3EFA6B00BC442E /* Timing App PRD.markdown in Resources */,
+				14E24CB12E3EFA6B00BC442E /* SPEC.md in Resources */,
 				14550FD52E24B04800BACDC0 /* GEMINI.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

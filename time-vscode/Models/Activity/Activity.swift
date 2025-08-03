@@ -1,7 +1,7 @@
 import SwiftUI
 import Foundation
 
-struct Activity: Identifiable {
+struct Activity: Identifiable, Equatable {
     let id = UUID()
     let appName: String
     let appBundleId: String
@@ -10,6 +10,10 @@ struct Activity: Identifiable {
     let startTime: Date
     let endTime: Date
     let icon: String
+    
+    static func == (lhs: Activity, rhs: Activity) -> Bool {
+        return lhs.id == rhs.id
+    }
     
     var durationString: String {
         let minutes = Int(duration / 60)

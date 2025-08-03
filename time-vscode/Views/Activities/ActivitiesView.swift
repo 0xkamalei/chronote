@@ -2,138 +2,93 @@ import SwiftUI
 
 struct ActivitiesView: View {
     let activities: [Activity]
-    @State private var sortMode: SortMode = .chronological
-    @State private var expandedGroups: Set<String> = ["Google Chrome"] // Default expanded items
+    @State private var hierarchyGroups: [ActivityGroup] = []
+    @State private var totalDuration: TimeInterval = 0
     
-    enum SortMode: String, CaseIterable {
-        case unfiled = "Unfiled"
-        case category = "By Category"
-        case chronological = "Chronological"
-    }
+    // Fixed configuration for MVP - Unified mode with project grouping
+    private let displayMode = "Unified"
+    private let groupByProject = true
     
-    // Group activities based on app type
-    var groupedActivities: [Activity] {
-        // For this demo, we're keeping the same activities but marking browsers for special handling
-        return activities
-    }
+    // Data inclusion options (for future implementation)
+    @State private var includeTimeEntries = true
+    @State private var includeAppUsage = true
+    @State private var includeTitles = true
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            // Header with total activity time
             HStack {
-                Text("All Activities: 24m 56s")
+                Text("All Activities: \(formattedTotalDuration)")
                     .font(.headline)
                 
                 Spacer()
                 
-                Picker(selection: $sortMode, label: Image(systemName: "gearshape")) {
-                    ForEach(SortMode.allCases, id: \.self) { mode in
-                        Text(mode.rawValue).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 300)
+                // Fixed display mode indicator
+                Text(displayMode)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 4)
+                    .background(Color.secondary.opacity(0.1))
+                    .clipShape(Capsule())
             }
             .padding(.horizontal)
             .padding(.top, 8)
             .padding(.bottom, 8)
             
+            // Hierarchical activity list
             List {
-                HStack {
-                    Image(systemName: "circle")
-                        .foregroundStyle(.secondary)
-                        .frame(width: 24)
-                    Text("(Unassigned)")
-                        .font(.subheadline)
-                    Spacer()
-                    Text("24m")
-                        .foregroundStyle(.secondary)
-                        .font(.subheadline)
-                }
-                .padding(.vertical, 4)
-                .listRowInsets(EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12))
-                
-                ForEach(groupedActivities) { activity in
-                    if activity.appName == "Google Chrome" {
-                        // Special handling for browsers with foldable website list
-                        DisclosureGroup(
-                            isExpanded: Binding(
-                                get: { expandedGroups.contains(activity.appName) },
-                                set: { isExpanded in
-                                    if isExpanded {
-                                        expandedGroups.insert(activity.appName)
-                                    } else {
-                                        expandedGroups.remove(activity.appName)
-                                    }
-                                }
-                            )
-                        ) {
-                            // Websites visited in this browser
-                            Group {
-                                if let appTitle = activity.appTitle {
-                                    HStack {
-                                        Image(systemName: "globe")
-                                            .frame(width: 24)
-                                            .foregroundColor(.secondary)
-                                        Text(appTitle)
-                                        Spacer()
-                                        Text(activity.durationString)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                    .padding(.vertical, 2)
-                                    .padding(.leading, 20) // Indent
-                                }
-                                
-                                HStack {
-                                    Image(systemName: "globe")
-                                        .frame(width: 24)
-                                        .foregroundColor(.secondary)
-                                    Text("copilot.microsoft.com")
-                                    Spacer()
-                                    Text("<1m")
-                                        .foregroundStyle(.secondary)
-                                }
-                                .padding(.vertical, 2)
-                                .padding(.leading, 20) // Indent
-                                
-                                HStack {
-                                    Image(systemName: "globe")
-                                        .frame(width: 24)
-                                        .foregroundColor(.secondary)
-                                    Text("www.google.com")
-                                    Spacer()
-                                    Text("<1m")
-                                        .foregroundStyle(.secondary)
-                                }
-                                .padding(.vertical, 2)
-                                .padding(.leading, 20) // Indent
-                            }
-                        } label: {
-                            HStack {
-                                Image(systemName: activity.icon)
-                                    .frame(width: 24)
-                                Text(activity.appName)
-                                Spacer()
-                                Text(activity.durationString)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .padding(.vertical, 2)
-                        }
-                    } else {
-                        // Regular activities without folding
-                        HStack {
-                            Image(systemName: activity.icon)
-                                .frame(width: 24)
-                            Text(activity.appName)
-                            Spacer()
-                            Text(activity.durationString)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 2)
+                if hierarchyGroups.isEmpty {
+                    // Empty state
+                    HStack {
+                        Image(systemName: "clock")
+                            .foregroundStyle(.secondary)
+                            .frame(width: 24)
+                        Text("No activities found")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text("0m 0s")
+                            .foregroundStyle(.secondary)
+                            .font(.subheadline)
+                    }
+                    .padding(.vertical, 4)
+                    .listRowInsets(EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12))
+                } else {
+                    ForEach(hierarchyGroups) { group in
+                        HierarchicalActivityRow(group: group)
+                            .listRowInsets(EdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 12))
                     }
                 }
             }
             .listStyle(.plain)
         }
+        .onAppear {
+            buildHierarchy()
+        }
+        .onChange(of: activities) { _ in
+            buildHierarchy()
+        }
+    }
+    
+    // MARK: - Private Methods
+    
+    /// Builds the hierarchical structure using ActivityDataProcessor and ActivityHierarchyBuilder
+    private func buildHierarchy() {
+        // Use ActivityHierarchyBuilder to create the hierarchy
+        hierarchyGroups = ActivityHierarchyBuilder.buildHierarchy(
+            activities: activities,
+            timeEntries: MockData.timeEntries,
+            projects: MockData.projects
+        )
+        
+        // Calculate total duration across all visible activities
+        totalDuration = ActivityDataProcessor.calculateTotalDurationForActivities(activities)
+    }
+    
+    /// Formats the total duration for display in the header
+    private var formattedTotalDuration: String {
+        return ActivityDataProcessor.formatDuration(totalDuration)
     }
 }
 

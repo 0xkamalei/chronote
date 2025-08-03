@@ -83,22 +83,25 @@ class ActivityDataProcessor {
     
     // MARK: - Sorting Logic
     
-    /// Sorts activities based on the specified sort mode
-    /// - Parameters:
-    ///   - activities: Array of activities to sort
-    ///   - sortMode: The sorting mode to apply
+    /// Sorts activities chronologically (most recent first)
+    /// - Parameter activities: Array of activities to sort
     /// - Returns: Sorted array of activities
-    static func sortActivities(_ activities: [Activity], by sortMode: ActivitiesView.SortMode) -> [Activity] {
-        switch sortMode {
-        case .chronological:
-            return activities.sorted { $0.startTime > $1.startTime }
-        case .unfiled:
-            // Sort by duration descending for unfiled mode
-            return activities.sorted { $0.duration > $1.duration }
-        case .category:
-            // Sort by app name for category mode
-            return activities.sorted { $0.appName < $1.appName }
-        }
+    static func sortActivitiesChronologically(_ activities: [Activity]) -> [Activity] {
+        return activities.sorted { $0.startTime > $1.startTime }
+    }
+    
+    /// Sorts activities by duration (longest first)
+    /// - Parameter activities: Array of activities to sort
+    /// - Returns: Sorted array of activities
+    static func sortActivitiesByDuration(_ activities: [Activity]) -> [Activity] {
+        return activities.sorted { $0.duration > $1.duration }
+    }
+    
+    /// Sorts activities by app name alphabetically
+    /// - Parameter activities: Array of activities to sort
+    /// - Returns: Sorted array of activities
+    static func sortActivitiesByAppName(_ activities: [Activity]) -> [Activity] {
+        return activities.sorted { $0.appName < $1.appName }
     }
     
     /// Groups activities by category (application type)
