@@ -30,7 +30,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
   - Add logging for migration process monitoring
   - _Requirements: 2.2, 2.3, 4.5_
 
-- [ ] 3. Create ActivityManager singleton class
+- [x] 3. Create ActivityManager singleton class
   - Create new file `time-vscode/Models/ActivityManager.swift`
   - Implement @MainActor class with ObservableObject conformance
   - Add static shared instance for singleton pattern
