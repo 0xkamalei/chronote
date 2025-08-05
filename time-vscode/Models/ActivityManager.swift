@@ -166,11 +166,8 @@ class ActivityManager: ObservableObject {
                     current.duration = 0
                 }
                 
-                // Insert the finished activity into database and save
-                modelContext.insert(current)
-                try modelContext.save()
-                
-                print("ActivityManager: Finished and saved activity - \(current.appName) (\(current.duration)s)")
+                // Save the finished activity using the new saveActivity method
+                try saveActivity(current, modelContext: modelContext)
             }
             
             // Create new activity for the activated app
@@ -197,16 +194,135 @@ class ActivityManager: ObservableObject {
         }
     }
     
-    /// Get the currently active activity
+    // MARK: - SwiftData Persistence Operations
+    
+    /// Save an activity to the database with proper error handling
+    func saveActivity(_ activity: Activity, modelContext: ModelContext) throws {
+        // Validate activity data before persistence
+        try validateActivity(activity)
+        
+        do {
+            // Insert activity into context
+            modelContext.insert(activity)
+            
+            // Save to database
+            try modelContext.save()
+            
+            print("ActivityManager: Successfully saved activity - \(activity.appName) (\(activity.duration)s)")
+            
+        } catch {
+            print("ActivityManager: Error saving activity - \(error.localizedDescription)")
+            throw ActivityManagerError.saveFailed(error)
+        }
+    }
+    
+    /// Save multiple activities in a batch operation for performance optimization
+    func batchSaveActivities(_ activities: [Activity], modelContext: ModelContext) throws {
+        guard !activities.isEmpty else {
+            print("ActivityManager: No activities to save in batch")
+            return
+        }
+        
+        do {
+            // Validate all activities before batch operation
+            for activity in activities {
+                try validateActivity(activity)
+            }
+            
+            // Insert all activities into context
+            for activity in activities {
+                modelContext.insert(activity)
+            }
+            
+            // Save all at once for better performance
+            try modelContext.save()
+            
+            print("ActivityManager: Successfully batch saved \(activities.count) activities")
+            
+        } catch {
+            print("ActivityManager: Error in batch save operation - \(error.localizedDescription)")
+            throw ActivityManagerError.batchSaveFailed(error)
+        }
+    }
+    
+    /// Get the currently active activity (always returns in-memory state)
     func getCurrentActivity() -> Activity? {
-        // TODO: Implement current activity retrieval
+        // Always return the in-memory current activity reference
+        // This is dynamic and reflects the real-time state of activity tracking
         return currentActivity
     }
     
-    /// Get recent activities with specified limit
-    func getRecentActivities(limit: Int) -> [Activity] {
-        // TODO: Implement recent activities retrieval
-        return []
+
+    
+    // MARK: - Data Validation
+    
+    /// Validate activity data before persistence
+    private func validateActivity(_ activity: Activity) throws {
+        // Validate app name is not empty
+        guard !activity.appName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw ActivityManagerError.invalidData("App name cannot be empty")
+        }
+        
+        // Validate bundle ID is not empty
+        guard !activity.appBundleId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw ActivityManagerError.invalidData("App bundle ID cannot be empty")
+        }
+        
+        // Validate start time is not in the future
+        let now = Date()
+        guard activity.startTime <= now else {
+            throw ActivityManagerError.invalidData("Start time cannot be in the future")
+        }
+        
+        // If endTime exists, validate it's after startTime
+        if let endTime = activity.endTime {
+            guard endTime >= activity.startTime else {
+                throw ActivityManagerError.invalidData("End time must be after start time")
+            }
+            
+            // Validate duration matches calculated duration
+            let calculatedDuration = endTime.timeIntervalSince(activity.startTime)
+            let tolerance: TimeInterval = 1.0 // Allow 1 second tolerance
+            
+            guard abs(activity.duration - calculatedDuration) <= tolerance else {
+                throw ActivityManagerError.invalidData("Duration does not match calculated time difference")
+            }
+        }
+        
+        // Validate duration is not negative
+        guard activity.duration >= 0 else {
+            throw ActivityManagerError.invalidData("Duration cannot be negative")
+        }
+        
+        // For active activities (endTime == nil), ensure only one exists
+        if activity.endTime == nil {
+            // Check in-memory current activity to ensure only one active activity exists
+            if let existing = currentActivity, existing.id != activity.id {
+                throw ActivityManagerError.invalidData("Only one active activity can exist at a time")
+            }
+        }
+    }
+    
+    // MARK: - Error Types
+    
+    enum ActivityManagerError: LocalizedError {
+        case saveFailed(Error)
+        case batchSaveFailed(Error)
+        case invalidData(String)
+        case noModelContext
+        
+        var errorDescription: String? {
+            switch self {
+            case .saveFailed(let error):
+                return "Failed to save activity: \(error.localizedDescription)"
+            case .batchSaveFailed(let error):
+                return "Failed to batch save activities: \(error.localizedDescription)"
+            case .invalidData(let message):
+                return "Invalid activity data: \(message)"
+            case .noModelContext:
+                return "No model context available for database operations"
+            }
+        }
     }
     
     // MARK: - Private Methods
@@ -338,11 +454,9 @@ class ActivityManager: ObservableObject {
                     current.duration = 0
                 }
                 
-                // Insert and save to database if model context is available
+                // Save to database if model context is available
                 if let context = modelContext {
-                    context.insert(current)
-                    try context.save()
-                    print("ActivityManager: Saved current activity before sleep - \(current.appName) (\(current.duration)s)")
+                    try saveActivity(current, modelContext: context)
                 }
                 
                 currentActivity = nil
