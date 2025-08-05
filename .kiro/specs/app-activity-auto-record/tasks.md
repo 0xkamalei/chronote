@@ -57,7 +57,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
   - Add error handling for invalid app data
   - _Requirements: 1.1, 1.2, 1.5, 4.1_
 
-- [ ] 6. Implement SwiftData persistence operations
+- [x] 6. Implement SwiftData persistence operations
   - Add database write operations using ModelContext
   - Implement saveActivity method with proper error handling
   - Add getCurrentActivity method to query activity where endTime is nil
