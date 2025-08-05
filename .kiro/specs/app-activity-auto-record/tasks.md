@@ -66,7 +66,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
   - Implement data validation before persistence
   - _Requirements: 2.1, 2.2, 2.4, 4.2, 5.2_
 
-- [ ] 7. Implement system sleep/wake handling
+- [x] 7. Implement system sleep/wake handling
   - Add handleSystemSleep method that stops current tracking
   - Ensure all pending data is saved before system sleep
   - Implement handleSystemWake method that resumes monitoring

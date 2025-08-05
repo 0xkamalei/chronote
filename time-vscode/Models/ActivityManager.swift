@@ -19,6 +19,9 @@ class ActivityManager: ObservableObject {
     private var notificationObservers: [NSObjectProtocol] = []
     private var modelContext: ModelContext?
     
+    // Sleep/wake state management
+    private var sleepStartTime: Date?
+    
     // MARK: - Initialization
     private init() {
         // Private initializer for singleton pattern
@@ -78,6 +81,25 @@ class ActivityManager: ObservableObject {
     
     /// Stop tracking app activity
     func stopTracking(modelContext: ModelContext) {
+        // Finish current activity if one exists before stopping
+        if let current = currentActivity {
+            do {
+                current.endTime = Date()
+                current.duration = current.calculatedDuration
+                
+                // Validate duration is positive
+                if current.duration < 0 {
+                    print("ActivityManager: Warning - Negative duration detected during stop, setting to 0")
+                    current.duration = 0
+                }
+                
+                try saveActivity(current, modelContext: modelContext)
+                print("ActivityManager: Saved final activity before stopping: \(current.appName)")
+            } catch {
+                print("ActivityManager: Error saving final activity during stop - \(error.localizedDescription)")
+            }
+        }
+        
         // Remove all notification observers
         let notificationCenter = NSWorkspace.shared.notificationCenter
         
@@ -87,10 +109,12 @@ class ActivityManager: ObservableObject {
         
         notificationObservers.removeAll()
         
-        // Clear model context reference
+        // Clear all state references
         self.modelContext = nil
+        currentActivity = nil
+        sleepStartTime = nil
         
-        print("ActivityManager: Stopped tracking, removed \(notificationObservers.count) observers")
+        print("ActivityManager: Stopped tracking, removed all observers and cleared state")
     }
     
  
@@ -254,6 +278,8 @@ class ActivityManager: ObservableObject {
     
 
     
+
+    
     // MARK: - Data Validation
     
     /// Validate activity data before persistence
@@ -310,6 +336,8 @@ class ActivityManager: ObservableObject {
         case batchSaveFailed(Error)
         case invalidData(String)
         case noModelContext
+        case sleepHandlingFailed(Error)
+        case wakeHandlingFailed(Error)
         
         var errorDescription: String? {
             switch self {
@@ -321,6 +349,10 @@ class ActivityManager: ObservableObject {
                 return "Invalid activity data: \(message)"
             case .noModelContext:
                 return "No model context available for database operations"
+            case .sleepHandlingFailed(let error):
+                return "Failed to handle system sleep: \(error.localizedDescription)"
+            case .wakeHandlingFailed(let error):
+                return "Failed to handle system wake: \(error.localizedDescription)"
             }
         }
     }
@@ -438,54 +470,68 @@ class ActivityManager: ObservableObject {
         trackAppSwitch(notification: notification, modelContext: context)
     }
     
-    /// Handle system sleep event
+    /// Handle system sleep event - stops current tracking and saves pending data
     private func handleSystemSleep() {
         do {
             print("ActivityManager: System going to sleep")
             
+            // Record sleep start time for logging
+            sleepStartTime = Date()
+            
             // Finish current activity if one exists
             if let current = currentActivity {
-                current.endTime = Date()
+                let sleepTime = Date()
+                current.endTime = sleepTime
                 current.duration = current.calculatedDuration
                 
                 // Validate duration is positive
                 if current.duration < 0 {
-                    print("ActivityManager: Warning - Negative duration detected, setting to 0")
+                    print("ActivityManager: Warning - Negative duration detected during sleep, setting to 0")
                     current.duration = 0
                 }
                 
-                // Save to database if model context is available
+                // Ensure all pending data is saved before system sleep
                 if let context = modelContext {
                     try saveActivity(current, modelContext: context)
+                    
+                    // Force save any pending changes to ensure data persistence
+                    try context.save()
+                    print("ActivityManager: Successfully saved activity before sleep: \(current.appName)")
+                } else {
+                    print("ActivityManager: Warning - No model context available to save activity before sleep")
                 }
                 
+                // Clear current activity to prevent stale references
                 currentActivity = nil
             }
             
+            print("ActivityManager: Sleep handling completed - tracking stopped")
+            
         } catch {
             print("ActivityManager: Error handling system sleep - \(error.localizedDescription)")
+            
+            // Even if save fails, ensure we're in consistent state
+            sleepStartTime = Date()
+            currentActivity = nil
+            
+            // Log the specific error for debugging
+            if let activityError = error as? ActivityManagerError {
+                print("ActivityManager: Sleep handling error details - \(activityError.errorDescription ?? "Unknown error")")
+            }
         }
     }
     
-    /// Handle system wake event
+    /// Handle system wake event - clears sleep state and prepares for normal tracking
     private func handleSystemWake() {
         print("ActivityManager: System woke from sleep")
         
-        // Clear any stale current activity reference
-        currentActivity = nil
         
-        // Get the currently active application to resume tracking
-        if let activeApp = NSWorkspace.shared.frontmostApplication,
-           activeApp.bundleIdentifier != nil {
-            let appInfo = resolveAppInfo(from: activeApp)
-            print("ActivityManager: Resuming tracking for active app - \(appInfo.name)")
-            
-            // Track the currently active app with detailed information
-            guard let context = modelContext else {
-                print("ActivityManager: No model context available for wake tracking")
-                return
-            }
-            trackAppSwitch(appInfo: appInfo, modelContext: context)
-        }
+        // TODO: Add user preference/setting to determine whether to continue tracking 
+        // the same time-entry that was active before sleep or start fresh.
+        // This will be implemented at the time-entry level, not activity level.
+        
+        // Normal app activation events will handle starting new tracking automatically
+        
+        print("ActivityManager: Wake handling completed - ready for new app activation events")
     }
 }
