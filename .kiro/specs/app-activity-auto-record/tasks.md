@@ -39,7 +39,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
   - Add proper SwiftData and AppKit imports
   - _Requirements: 1.1, 1.4, 4.1_
 
-- [ ] 4. Implement NSWorkspace notification monitoring
+- [x] 4. Implement NSWorkspace notification monitoring
   - Add startTracking method that registers NSWorkspace notification observers
   - Implement didActivateApplicationNotification observer for app switches
   - Implement willSleepNotification observer for system sleep events
