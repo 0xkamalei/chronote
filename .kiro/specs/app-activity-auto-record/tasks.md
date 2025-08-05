@@ -48,7 +48,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
   - Add proper error handling and thread safety for notification processing
   - _Requirements: 1.1, 1.2, 3.1, 3.2_
 
-- [ ] 5. Implement app switch tracking logic
+- [x] 5. Implement app switch tracking logic
   - Create trackAppSwitch method that handles new app activation
   - Implement logic to finish current activity (set endTime, calculate duration)
   - Create new Activity record for the newly activated app (with endTime = nil)
