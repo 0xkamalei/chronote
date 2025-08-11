@@ -105,7 +105,7 @@ class ActivityManager: ObservableObject {
         }
         notificationObservers.append(wakeObserver)
 
-        logger.info("Started tracking with \(notificationObservers.count) observers")
+        logger.info("Started tracking with \(self.notificationObservers.count) observers")
         logHealthMetrics()
     }
 
@@ -569,7 +569,7 @@ class ActivityManager: ObservableObject {
         // Check if we should mark storage as unavailable
         if consecutiveFailures >= maxConsecutiveFailures {
             isStorageAvailable = false
-            logger.critical("Storage marked as unavailable after \(consecutiveFailures) consecutive failures")
+            logger.critical("Storage marked as unavailable after \(self.consecutiveFailures) consecutive failures")
 
             // Schedule storage availability check
             Task {
@@ -591,7 +591,7 @@ class ActivityManager: ObservableObject {
         // Check if we should mark storage as unavailable
         if consecutiveFailures >= maxConsecutiveFailures {
             isStorageAvailable = false
-            logger.critical("Storage marked as unavailable after \(consecutiveFailures) consecutive failures")
+            logger.critical("Storage marked as unavailable after \(self.consecutiveFailures) consecutive failures")
         }
 
         // Add all activities to pending queue
@@ -605,7 +605,7 @@ class ActivityManager: ObservableObject {
     private func processPendingActivities(modelContext: ModelContext) async {
         guard !pendingActivities.isEmpty, isStorageAvailable else { return }
 
-        logger.info("Processing \(pendingActivities.count) pending activities")
+        logger.info("Processing \(self.pendingActivities.count) pending activities")
 
         let activitiesToProcess = pendingActivities
         pendingActivities.removeAll()
@@ -716,11 +716,11 @@ class ActivityManager: ObservableObject {
 
         logger.info("""
         ActivityManager Health Metrics:
-        - Storage Available: \(isStorageAvailable)
-        - Consecutive Failures: \(consecutiveFailures)
-        - Pending Activities: \(pendingActivities.count)
+        - Storage Available: \(self.isStorageAvailable)
+        - Consecutive Failures: \(self.consecutiveFailures)
+        - Pending Activities: \(self.pendingActivities.count)
         - Time Since Last Success: \(abs(timeSinceLastSuccess))s
-        - Current Activity: \(currentActivity?.appName ?? "None")
+        - Current Activity: \(self.currentActivity?.appName ?? "None")
         """)
     }
 
@@ -971,7 +971,7 @@ class ActivityManager: ObservableObject {
 
             // Process any remaining pending activities before sleep
             if !pendingActivities.isEmpty, isStorageAvailable {
-                logger.info("Processing \(pendingActivities.count) pending activities before sleep")
+                logger.info("Processing \(self.pendingActivities.count) pending activities before sleep")
                 if let context = modelContext {
                     Task {
                         await processPendingActivities(modelContext: context)
@@ -1019,7 +1019,7 @@ class ActivityManager: ObservableObject {
 
         // Process any pending activities if storage is available
         if !pendingActivities.isEmpty, isStorageAvailable {
-            logger.info("Processing \(pendingActivities.count) pending activities after wake")
+            logger.info("Processing \(self.pendingActivities.count) pending activities after wake")
             if let context = modelContext {
                 Task {
                     await processPendingActivities(modelContext: context)

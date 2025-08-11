@@ -17,6 +17,7 @@
 		14E24CAF2E3EFA6B00BC442E /* TASK.md in Resources */ = {isa = PBXBuildFile; fileRef = 14E24CA42E3EFA6B00BC442E /* TASK.md */; };
 		14E24CB02E3EFA6B00BC442E /* Timing App PRD.markdown in Resources */ = {isa = PBXBuildFile; fileRef = 14E24CA62E3EFA6B00BC442E /* Timing App PRD.markdown */; };
 		14E24CB12E3EFA6B00BC442E /* SPEC.md in Resources */ = {isa = PBXBuildFile; fileRef = 14E24CA32E3EFA6B00BC442E /* SPEC.md */; };
+		14F7E0512E1420A8000CB627 /* ActivityDataProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14F7E0502E1420A8000CB627 /* ActivityDataProcessorTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +32,8 @@
 		14E24CA72E3EFA6B00BC442E /* TODO.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = TODO.md; sourceTree = "<group>"; };
 		14E24CA82E3EFA6B00BC442E /* UI.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = UI.md; sourceTree = "<group>"; };
 		14F7E02B2E141361000CB627 /* time.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = time.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		14F7E04D2E1420A8000CB627 /* timeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = timeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		14F7E0502E1420A8000CB627 /* ActivityDataProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityDataProcessorTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -48,6 +51,13 @@
 
 /* Begin PBXFrameworksBuildPhase section */
 		14F7E0282E141361000CB627 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		14F7E04A2E1420A8000CB627 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -77,6 +87,7 @@
 			children = (
 				14550FC72E2401D800BACDC0 /* ui */,
 				14F7E02D2E141361000CB627 /* time */,
+				14F7E0602E142100000CB627 /* timeTests */,
 				14550FD42E24B04800BACDC0 /* GEMINI.md */,
 				14550FBC2E24006900BACDC0 /* CLAUDE.md */,
 				14E24CA92E3EFA6B00BC442E /* prompt */,
@@ -88,8 +99,17 @@
 			isa = PBXGroup;
 			children = (
 				14F7E02B2E141361000CB627 /* time.app */,
+				14F7E04D2E1420A8000CB627 /* timeTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		14F7E0602E142100000CB627 /* timeTests */ = {
+			isa = PBXGroup;
+			children = (
+				14F7E0502E1420A8000CB627 /* ActivityDataProcessorTests.swift */,
+			);
+			path = timeTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -118,7 +138,34 @@
 			productReference = 14F7E02B2E141361000CB627 /* time.app */;
 			productType = "com.apple.product-type.application";
 		};
+		14F7E04B2E1420A8000CB627 /* timeTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 14F7E0532E1420A8000CB627 /* Build configuration list for PBXNativeTarget "timeTests" */;
+			buildPhases = (
+				14F7E0492E1420A8000CB627 /* Sources */,
+				14F7E04A2E1420A8000CB627 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				14F7E0552E1420C4000CB627 /* PBXTargetDependency */,
+			);
+			name = timeTests;
+			productName = timeTests;
+			productReference = 14F7E04D2E1420A8000CB627 /* timeTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
+
+/* Begin PBXContainerItemProxy section */
+		14F7E0542E1420C4000CB627 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 14F7E0232E141361000CB627 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 14F7E02A2E141361000CB627;
+			remoteInfo = time;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXProject section */
 		14F7E0232E141361000CB627 /* Project object */ = {
@@ -148,6 +195,7 @@
 			projectRoot = "";
 			targets = (
 				14F7E02A2E141361000CB627 /* time */,
+				14F7E04B2E1420A8000CB627 /* timeTests */,
 			);
 		};
 /* End PBXProject section */
@@ -180,7 +228,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		14F7E0492E1420A8000CB627 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				14F7E0512E1420A8000CB627 /* ActivityDataProcessorTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		14F7E0552E1420C4000CB627 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 14F7E02A2E141361000CB627 /* time */;
+			targetProxy = 14F7E0542E1420C4000CB627 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		14F7E0372E141363000CB627 /* Debug */ = {
@@ -308,7 +372,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "time-vscode/time_vscode.entitlements";
+				CODE_SIGN_ENTITLEMENTS = time/time.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -336,7 +400,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "time-vscode/time_vscode.entitlements";
+				CODE_SIGN_ENTITLEMENTS = time/time.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -359,6 +423,48 @@
 			};
 			name = Release;
 		};
+		14F7E04E2E1420A8000CB627 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = K8BQ5976GL;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.5;
+				BUNDLE_LOADER = "$(BUILT_PRODUCTS_DIR)/time.app/Contents/MacOS/time";
+				TEST_HOST = "$(BUNDLE_LOADER)";
+				PRODUCT_BUNDLE_IDENTIFIER = io.leilog.timeTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		14F7E04F2E1420A8000CB627 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = K8BQ5976GL;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.5;
+				BUNDLE_LOADER = "$(BUILT_PRODUCTS_DIR)/time.app/Contents/MacOS/time";
+				TEST_HOST = "$(BUNDLE_LOADER)";
+				PRODUCT_BUNDLE_IDENTIFIER = io.leilog.timeTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -376,6 +482,15 @@
 			buildConfigurations = (
 				14F7E03A2E141363000CB627 /* Debug */,
 				14F7E03B2E141363000CB627 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		14F7E0532E1420A8000CB627 /* Build configuration list for PBXNativeTarget "timeTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				14F7E04E2E1420A8000CB627 /* Debug */,
+				14F7E04F2E1420A8000CB627 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
