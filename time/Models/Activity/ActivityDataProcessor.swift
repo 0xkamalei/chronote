@@ -224,11 +224,11 @@ class ActivityDataProcessor {
     ///   - timeEntries: Array of time entries with project associations
     ///   - projects: Array of available projects
     /// - Returns: Array of project activity groups
-    static func createProjectActivityGroups(_ activities: [Activity], timeEntries: [TimeEntry], projects: [Project]) -> [ProjectActivityGroup] {
+    static func createProjectActivityGroups(_ activities: [Activity], timeEntries: [TimeEntry], projects: [Project]) -> [ProjectTimeEntryGroup] {
         let projectsById = Dictionary(uniqueKeysWithValues: projects.map { ($0.id, $0) })
         let activityMatches = matchActivitiesToTimeEntries(activities, timeEntries)
         
-        var groups: [ProjectActivityGroup] = []
+        var groups: [ProjectTimeEntryGroup] = []
         var assignedActivities: Set<UUID> = []
         
         // Group activities by their assigned projects
@@ -252,7 +252,7 @@ class ActivityDataProcessor {
         
         // Create groups for assigned activities
         for (_, projectData) in activitiesByProject {
-            groups.append(ProjectActivityGroup.assigned(
+            groups.append(ProjectTimeEntryGroup.assigned(
                 project: projectData.project,
                 timeEntry: projectData.timeEntry,
                 activities: projectData.activities
@@ -262,7 +262,7 @@ class ActivityDataProcessor {
         // Create group for unassigned activities
         let unassignedActivities = activities.filter { !assignedActivities.contains($0.id) }
         if !unassignedActivities.isEmpty {
-            groups.append(ProjectActivityGroup.unassigned(activities: unassignedActivities))
+            groups.append(ProjectTimeEntryGroup.unassigned(activities: unassignedActivities))
         }
         
         return groups

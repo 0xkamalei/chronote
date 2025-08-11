@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-struct MockData {
+enum MockData {
     static let activities = [
         // Development Activities - High duration, detailed titles
         Activity(
@@ -25,7 +25,7 @@ struct MockData {
         Activity(
             appName: "Visual Studio Code",
             appBundleId: "com.microsoft.VSCode",
-            appTitle: "~/Projects/time-vscode/Models/ActivityGroup.swift",
+            appTitle: "~/Projects/time-vscode/Models/ActivityHierarchyGroup.swift",
             duration: 67 * 60,
             startTime: Date().addingTimeInterval(-13800),
             endTime: Date().addingTimeInterval(-9780),
@@ -49,7 +49,7 @@ struct MockData {
             endTime: Date().addingTimeInterval(-4500),
             icon: "chevron.left.forwardslash.chevron.right"
         ),
-        
+
         // Web Development & Research - Browser activities with detailed URLs
         Activity(
             appName: "Google Chrome",
@@ -87,7 +87,7 @@ struct MockData {
             endTime: Date().addingTimeInterval(-8160),
             icon: "safari"
         ),
-        
+
         // Communication - Various messaging apps
         Activity(
             appName: "Slack",
@@ -125,7 +125,7 @@ struct MockData {
             endTime: Date().addingTimeInterval(-3480),
             icon: "paperplane"
         ),
-        
+
         // Design & Planning
         Activity(
             appName: "Figma",
@@ -154,7 +154,7 @@ struct MockData {
             endTime: Date().addingTimeInterval(-7140),
             icon: "doc.text"
         ),
-        
+
         // Testing & Debugging
         Activity(
             appName: "iOS Simulator",
@@ -174,7 +174,7 @@ struct MockData {
             endTime: Date().addingTimeInterval(-2460),
             icon: "chart.line.uptrend.xyaxis"
         ),
-        
+
         // Productivity & Utilities
         Activity(
             appName: "Terminal",
@@ -203,7 +203,7 @@ struct MockData {
             endTime: Date().addingTimeInterval(-1500),
             icon: "arrow.triangle.branch"
         ),
-        
+
         // Short duration activities for edge case testing
         Activity(
             appName: "Spotlight",
@@ -222,7 +222,7 @@ struct MockData {
             endTime: Date().addingTimeInterval(-1080),
             icon: "gearshape"
         ),
-        
+
         // Activities without titles (edge case)
         Activity(
             appName: "Calculator",
@@ -240,7 +240,7 @@ struct MockData {
             endTime: Date().addingTimeInterval(-7200),
             icon: "music.note"
         ),
-        
+
         // Recent activities for current time testing
         Activity(
             appName: "time-vscode",
@@ -250,8 +250,8 @@ struct MockData {
             startTime: Date().addingTimeInterval(-1500),
             endTime: Date().addingTimeInterval(0),
             icon: "clock"
-        )
-    ]    
+        ),
+    ]
 
     static let projects = [
         // Top-level projects
@@ -260,33 +260,33 @@ struct MockData {
         Project(id: "client_work", name: "Client Work", color: .blue, sortOrder: 2),
         Project(id: "learning", name: "Learning & Research", color: .green, sortOrder: 3),
         Project(id: "personal", name: "Personal", color: .orange, sortOrder: 4),
-        
+
         // Sub-projects under WorkMagic
         Project(id: "time_tracker", name: "Time Tracker App", color: .red, parentID: "workmagic", sortOrder: 0),
         Project(id: "activities_view", name: "Activities View", color: .pink, parentID: "time_tracker", sortOrder: 0),
         Project(id: "timeline_view", name: "Timeline View", color: .red, parentID: "time_tracker", sortOrder: 1),
         Project(id: "project_management", name: "Project Management", color: .red, parentID: "workmagic", sortOrder: 1),
-        
+
         // Sub-projects under Side Projects
         Project(id: "ios_experiments", name: "iOS Experiments", color: .purple, parentID: "side_project", sortOrder: 0),
         Project(id: "swiftui_components", name: "SwiftUI Components", color: .indigo, parentID: "ios_experiments", sortOrder: 0),
         Project(id: "web_portfolio", name: "Web Portfolio", color: .purple, parentID: "side_project", sortOrder: 1),
-        
+
         // Sub-projects under Client Work
         Project(id: "client_a", name: "Client A - Mobile App", color: .blue, parentID: "client_work", sortOrder: 0),
         Project(id: "client_b", name: "Client B - Dashboard", color: .cyan, parentID: "client_work", sortOrder: 1),
         Project(id: "maintenance", name: "Maintenance Tasks", color: .blue, parentID: "client_work", sortOrder: 2),
-        
+
         // Sub-projects under Learning
         Project(id: "swiftui_learning", name: "SwiftUI Advanced", color: .green, parentID: "learning", sortOrder: 0),
         Project(id: "architecture_patterns", name: "Architecture Patterns", color: .mint, parentID: "learning", sortOrder: 1),
         Project(id: "performance_optimization", name: "Performance Optimization", color: .green, parentID: "learning", sortOrder: 2),
-        
+
         // Sub-projects under Personal
         Project(id: "health_fitness", name: "Health & Fitness", color: .orange, parentID: "personal", sortOrder: 0),
-        Project(id: "home_automation", name: "Home Automation", color: .yellow, parentID: "personal", sortOrder: 1)
+        Project(id: "home_automation", name: "Home Automation", color: .yellow, parentID: "personal", sortOrder: 1),
     ]
-    
+
     static let timeEntries = [
         // Activities View project entries (overlapping with activity times for hierarchy testing)
         TimeEntry(
@@ -324,7 +324,7 @@ struct MockData {
             startTime: Date().addingTimeInterval(-7200),
             endTime: Date().addingTimeInterval(-5400)
         ),
-        
+
         // Timeline View project entries
         TimeEntry(
             projectId: "timeline_view",
@@ -340,7 +340,7 @@ struct MockData {
             startTime: Date().addingTimeInterval(-4500),
             endTime: Date().addingTimeInterval(-3600)
         ),
-        
+
         // SwiftUI Learning entries
         TimeEntry(
             projectId: "swiftui_learning",
@@ -356,7 +356,7 @@ struct MockData {
             startTime: Date().addingTimeInterval(-2700),
             endTime: Date().addingTimeInterval(-1800)
         ),
-        
+
         // Client work entries
         TimeEntry(
             projectId: "client_a",
@@ -372,7 +372,7 @@ struct MockData {
             startTime: Date().addingTimeInterval(-1200),
             endTime: Date().addingTimeInterval(-600)
         ),
-        
+
         // Unassigned time entries (no project)
         TimeEntry(
             title: "General research and exploration",
@@ -386,7 +386,7 @@ struct MockData {
             startTime: Date().addingTimeInterval(-300),
             endTime: Date().addingTimeInterval(0)
         ),
-        
+
         // Overlapping entries for testing edge cases
         TimeEntry(
             projectId: "swiftui_components",
@@ -402,7 +402,7 @@ struct MockData {
             startTime: Date().addingTimeInterval(-4800),
             endTime: Date().addingTimeInterval(-4200)
         ),
-        
+
         // Short duration entries
         TimeEntry(
             projectId: "maintenance",
@@ -411,7 +411,7 @@ struct MockData {
             startTime: Date().addingTimeInterval(-2400),
             endTime: Date().addingTimeInterval(-2280)
         ),
-        
+
         // Personal project entries
         TimeEntry(
             projectId: "health_fitness",
@@ -426,6 +426,6 @@ struct MockData {
             notes: "Researching HomeKit integration possibilities",
             startTime: Date().addingTimeInterval(-1500),
             endTime: Date().addingTimeInterval(-900)
-        )
+        ),
     ]
 }
