@@ -16,7 +16,7 @@ class ActivityHierarchyBuilder {
         activities: [Activity],
         timeEntries: [TimeEntry],
         projects: [Project]
-    ) -> [ActivityGroup] {
+    ) -> [ActivityHierarchyGroup] {
         
         // Step 1: Create project associations using existing logic
         let projectGroups = ActivityDataProcessor.createProjectActivityGroups(
@@ -26,7 +26,7 @@ class ActivityHierarchyBuilder {
         )
         
         // Step 2: Build hierarchy for each project group
-        var hierarchyGroups: [ActivityGroup] = []
+        var hierarchyGroups: [ActivityHierarchyGroup] = []
         
         for projectGroup in projectGroups {
             let projectHierarchy = buildProjectHierarchy(projectGroup: projectGroup, projects: projects)
@@ -40,9 +40,9 @@ class ActivityHierarchyBuilder {
     
     /// Builds the hierarchy for a single project group
     private static func buildProjectHierarchy(
-        projectGroup: ProjectActivityGroup,
+        projectGroup: ProjectTimeEntryGroup,
         projects: [Project]
-    ) -> ActivityGroup {
+    ) -> ActivityHierarchyGroup {
         
         // Level 1: Project
         let projectName = projectGroup.displayName
@@ -50,7 +50,7 @@ class ActivityHierarchyBuilder {
         
         // Find subprojects if this is a parent project
         let subprojects = findSubprojects(for: projectGroup.project, in: projects)
-        var children: [ActivityGroup] = []
+        var children: [ActivityHierarchyGroup] = []
         
         if !subprojects.isEmpty {
             // Level 2: Subprojects
@@ -83,7 +83,7 @@ class ActivityHierarchyBuilder {
             children.append(contentsOf: timeEntryHierarchy)
         }
         
-        return ActivityGroup(
+        return ActivityHierarchyGroup(
             name: projectName,
             level: .project,
             children: children,
@@ -96,7 +96,7 @@ class ActivityHierarchyBuilder {
         subproject: Project,
         activities: [Activity],
         timeEntry: TimeEntry?
-    ) -> [ActivityGroup] {
+    ) -> [ActivityHierarchyGroup] {
         
         // For MVP, we'll create a simple subproject structure
         // In a full implementation, we'd filter activities by subproject
@@ -111,7 +111,7 @@ class ActivityHierarchyBuilder {
             timeEntry: timeEntry
         )
         
-        let subprojectGroup = ActivityGroup(
+        let subprojectGroup = ActivityHierarchyGroup(
             name: subproject.name,
             level: .subproject,
             children: timeEntryHierarchy,
@@ -125,13 +125,13 @@ class ActivityHierarchyBuilder {
     private static func buildTimeEntryHierarchy(
         activities: [Activity],
         timeEntry: TimeEntry?
-    ) -> [ActivityGroup] {
+    ) -> [ActivityHierarchyGroup] {
         
         if let timeEntry = timeEntry {
             // Level 3: Time Entry
             let timePeriodHierarchy = buildTimePeriodHierarchy(activities: activities)
             
-            let timeEntryGroup = ActivityGroup(
+            let timeEntryGroup = ActivityHierarchyGroup(
                 name: timeEntry.title,
                 level: .timeEntry,
                 children: timePeriodHierarchy,
@@ -146,16 +146,16 @@ class ActivityHierarchyBuilder {
     }
     
     /// Builds time period level hierarchy with segmentation logic
-    private static func buildTimePeriodHierarchy(activities: [Activity]) -> [ActivityGroup] {
+    private static func buildTimePeriodHierarchy(activities: [Activity]) -> [ActivityHierarchyGroup] {
         
         // Level 4: Time Period - Segment activities into meaningful time periods
         let timePeriods = segmentActivitiesIntoTimePeriods(activities)
-        var timePeriodGroups: [ActivityGroup] = []
+        var timePeriodGroups: [ActivityHierarchyGroup] = []
         
         for (periodName, periodActivities) in timePeriods {
             let appNameHierarchy = buildAppNameHierarchy(activities: periodActivities)
             
-            let timePeriodGroup = ActivityGroup(
+            let timePeriodGroup = ActivityHierarchyGroup(
                 name: periodName,
                 level: .timePeriod,
                 children: appNameHierarchy,
@@ -169,16 +169,16 @@ class ActivityHierarchyBuilder {
     }
     
     /// Builds app name level hierarchy
-    private static func buildAppNameHierarchy(activities: [Activity]) -> [ActivityGroup] {
+    private static func buildAppNameHierarchy(activities: [Activity]) -> [ActivityHierarchyGroup] {
         
         // Level 5: App Name - Group by application
         let activitiesByApp = Dictionary(grouping: activities) { $0.appName }
-        var appNameGroups: [ActivityGroup] = []
+        var appNameGroups: [ActivityHierarchyGroup] = []
         
         for (appName, appActivities) in activitiesByApp {
             let appTitleHierarchy = buildAppTitleHierarchy(activities: appActivities)
             
-            let appNameGroup = ActivityGroup(
+            let appNameGroup = ActivityHierarchyGroup(
                 name: appName,
                 level: .appName,
                 children: appTitleHierarchy,
@@ -192,14 +192,14 @@ class ActivityHierarchyBuilder {
     }
     
     /// Builds app title level hierarchy with grouping logic
-    private static func buildAppTitleHierarchy(activities: [Activity]) -> [ActivityGroup] {
+    private static func buildAppTitleHierarchy(activities: [Activity]) -> [ActivityHierarchyGroup] {
         
         // Level 6: App Title - Group activities with the same app title under single entries
         let activitiesByTitle = groupActivitiesByAppTitle(activities)
-        var appTitleGroups: [ActivityGroup] = []
+        var appTitleGroups: [ActivityHierarchyGroup] = []
         
         for (titleKey, titleActivities) in activitiesByTitle {
-            let appTitleGroup = ActivityGroup(
+            let appTitleGroup = ActivityHierarchyGroup(
                 name: titleKey,
                 level: .appTitle,
                 children: [],

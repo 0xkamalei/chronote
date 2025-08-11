@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ActivitiesView: View {
     let activities: [Activity]
-    @State private var hierarchyGroups: [ActivityGroup] = []
+    @State private var hierarchyGroups: [ActivityHierarchyGroup] = []
     @State private var totalDuration: TimeInterval = 0
     
     // Fixed configuration for MVP - Unified mode with project grouping

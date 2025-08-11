@@ -3,7 +3,7 @@ import SwiftUI
 /// SwiftUI component for recursive rendering of hierarchical activity rows
 /// Supports all 6 hierarchy levels with expansion/collapse functionality
 struct HierarchicalActivityRow: View {
-    let group: ActivityGroup
+    let group: ActivityHierarchyGroup
     @State private var isExpanded: Bool = false
     
     // Visual styling constants for different hierarchy levels
@@ -217,27 +217,27 @@ struct ActivityLeafRow: View {
         icon: "safari"
     )
     
-    let sampleGroup = ActivityGroup(
+    let sampleGroup = ActivityHierarchyGroup(
         name: "Development Project",
         level: .project,
         children: [
-            ActivityGroup(
+            ActivityHierarchyGroup(
                 name: "Web Development",
                 level: .subproject,
                 children: [
-                    ActivityGroup(
+                    ActivityHierarchyGroup(
                         name: "Morning Session",
                         level: .timeEntry,
                         children: [
-                            ActivityGroup(
+                            ActivityHierarchyGroup(
                                 name: "9:00 AM - 10:00 AM",
                                 level: .timePeriod,
                                 children: [
-                                    ActivityGroup(
+                                    ActivityHierarchyGroup(
                                         name: "Safari",
                                         level: .appName,
                                         children: [
-                                            ActivityGroup(
+                                            ActivityHierarchyGroup(
                                                 name: "github.com",
                                                 level: .appTitle,
                                                 activities: [sampleActivity]
