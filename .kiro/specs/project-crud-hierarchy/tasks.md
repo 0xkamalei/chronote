@@ -8,35 +8,35 @@
   - _Requirements: 1.6, 2.5, 4.4_
 
 - [ ] 2. Create comprehensive ProjectManager service
-  - [ ] 2.1 Implement core CRUD operations with async/await
+  - [x] 2.1 Implement core CRUD operations with async/await
     - Write createProject method with validation and unique ID generation
     - Implement updateProject method with hierarchy validation
     - Create deleteProject method with complex deletion strategies
     - Add getProject lookup method with error handling
     - _Requirements: 1.1, 1.2, 1.3, 2.1, 2.2, 3.1_
 
-  - [ ] 2.2 Implement hierarchy management operations
+  - [x] 2.2 Implement hierarchy management operations
     - Write buildProjectTree method for tree structure creation
     - Create moveProject method for parent changes
     - Implement reorderProject method for sort order updates
     - Add validateHierarchyMove method for circular reference prevention
     - _Requirements: 2.3, 2.6, 4.1, 4.5, 5.3, 5.4_
 
-  - [ ] 2.3 Add project reordering support methods
+  - [x] 2.3 Add project reordering support methods
     - Implement manual project reordering within same parent
     - Create sort order management for project siblings
     - Add validation for reorder operations
     - Write helper methods for sort order updates
     - _Requirements: 5.4, 5.5_
 
-  - [ ] 2.4 Implement deletion logic with time entry handling
+  - [x] 2.4 Implement deletion logic with time entry handling
     - Create canDeleteProject method checking for active timers and time entries
     - Implement handleActiveTimerForProject method to stop active timers
     - Write reassignTimeEntries method for time entry migration
     - Add deletion confirmation dialog data preparation
     - _Requirements: 3.2, 3.3, 3.4, 3.5_
 
-  - [ ] 2.5 Add persistence and auto-save functionality
+  - [x] 2.5 Add persistence and auto-save functionality
     - Implement saveProjects method with error handling
     - Create loadProjects method with data validation
     - Add autoSave background functionality

@@ -1,20 +1,54 @@
 import SwiftUI
+import SwiftData
+import Foundation
+#if canImport(UIKit)
+import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
 
-class Project: ObservableObject, Identifiable, Hashable {
-    let id: String
-    @Published var name: String
-    @Published var color: Color
-    @Published var children: [Project] = []
-    @Published var parentID: String?
-    @Published var sortOrder: Int
-    @Published var isExpanded: Bool = true
+@Model
+final class Project {
+    @Attribute(.unique) var id: String
+    var name: String
+    var colorData: Data?
+    var parentID: String?
+    var sortOrder: Int
+    var isExpanded: Bool = true
+    
+    // Computed property for SwiftUI Color
+    var color: Color {
+        get {
+            guard let colorData = colorData else { return .blue }
+            #if canImport(UIKit)
+            if let uiColor = try? NSKeyedUnarchiver.unarchivedObject(ofClass: UIColor.self, from: colorData) {
+                return Color(uiColor)
+            }
+            #elseif canImport(AppKit)
+            if let nsColor = try? NSKeyedUnarchiver.unarchivedObject(ofClass: NSColor.self, from: colorData) {
+                return Color(nsColor)
+            }
+            #endif
+            return .blue
+        }
+        set {
+            #if canImport(UIKit)
+            colorData = try? NSKeyedArchiver.archivedData(withRootObject: UIColor(newValue), requiringSecureCoding: false)
+            #elseif canImport(AppKit)
+            colorData = try? NSKeyedArchiver.archivedData(withRootObject: NSColor(newValue), requiringSecureCoding: false)
+            #endif
+        }
+    }
+    
+    // Transient property for children (computed from all projects)
+    @Transient var children: [Project] = []
 
-    init(id: String, name: String, color: Color, parentID: String? = nil, sortOrder: Int = 0) {
+    init(id: String = UUID().uuidString, name: String = "", color: Color = .blue, parentID: String? = nil, sortOrder: Int = 0) {
         self.id = id
         self.name = name
-        self.color = color
         self.parentID = parentID
         self.sortOrder = sortOrder
+        self.color = color // This will set colorData through the setter
     }
     
     // MARK: - Hashable Conformance
@@ -112,8 +146,44 @@ class Project: ObservableObject, Identifiable, Hashable {
     // MARK: - Tree Traversal and Manipulation Helpers
     
     /// Checks if this project is an ancestor of the given project
+    /// This method works by checking if the target project has this project as an ancestor
     func isAncestorOf(_ project: Project) -> Bool {
-        return project.hasAncestor(withID: self.id)
+        return Project.isAncestor(self, of: project)
+    }
+    
+    /// Static method to check if one project is an ancestor of another
+    /// - Parameters:
+    ///   - ancestor: The potential ancestor project
+    ///   - descendant: The potential descendant project
+    /// - Returns: True if ancestor is an ancestor of descendant
+    static func isAncestor(_ ancestor: Project, of descendant: Project) -> Bool {
+        var current = descendant
+        var visited = Set<String>()
+        
+        // Traverse up the parent chain
+        while let parentID = current.parentID {
+            // Prevent infinite loops
+            if visited.contains(current.id) {
+                return false
+            }
+            visited.insert(current.id)
+            
+            // Check if we found the ancestor
+            if parentID == ancestor.id {
+                return true
+            }
+            
+            // Find the parent in the current project's context
+            // This is a simplified check - in practice, ProjectManager would provide the full tree
+            if let parent = current.children.first(where: { $0.id == parentID }) {
+                current = parent
+            } else {
+                // Cannot find parent, break the chain
+                break
+            }
+        }
+        
+        return false
     }
     
     /// Checks if this project is a descendant of the given project
@@ -164,6 +234,65 @@ class Project: ObservableObject, Identifiable, Hashable {
         return allProjects.filter { $0.parentID == self.parentID && $0.id != self.id }
     }
     
+    // MARK: - Reordering Support Methods
+    
+    /// Checks if this project can be reordered within its current parent
+    var canBeReordered: Bool {
+        // Projects can always be reordered unless they are the only child
+        return true
+    }
+    
+    /// Gets the current position within siblings (0-based index)
+    func getCurrentPosition(in allProjects: [Project]) -> Int? {
+        let siblings = getSiblingsFromTree(allProjects)
+        let allSiblingsIncludingSelf = siblings + [self]
+        let sortedSiblings = allSiblingsIncludingSelf.sorted { $0.sortOrder < $1.sortOrder }
+        
+        return sortedSiblings.firstIndex(where: { $0.id == self.id })
+    }
+    
+    /// Checks if this project can move up in the sort order
+    func canMoveUp(in allProjects: [Project]) -> Bool {
+        guard let position = getCurrentPosition(in: allProjects) else { return false }
+        return position > 0
+    }
+    
+    /// Checks if this project can move down in the sort order
+    func canMoveDown(in allProjects: [Project]) -> Bool {
+        let siblings = getSiblingsFromTree(allProjects)
+        guard let position = getCurrentPosition(in: allProjects) else { return false }
+        return position < siblings.count // siblings.count because we're not including self in siblings
+    }
+    
+    /// Validates if this project can be inserted at a specific position within a parent
+    /// - Parameters:
+    ///   - index: The target index position
+    ///   - parentID: The target parent ID
+    ///   - allProjects: All projects for validation
+    /// - Returns: ValidationResult indicating success or failure
+    func validateInsertionAt(index: Int, in parentID: String?, allProjects: [Project]) -> ValidationResult {
+        // Check if moving to a different parent would create circular reference
+        if let targetParentID = parentID, targetParentID != self.parentID {
+            if let targetParent = allProjects.first(where: { $0.id == targetParentID }) {
+                if !targetParent.canBeParentOf(self) {
+                    return .failure(.circularReference)
+                }
+            }
+        }
+        
+        // Get siblings in target parent
+        let targetSiblings = allProjects.filter { 
+            $0.parentID == parentID && $0.id != self.id 
+        }
+        
+        // Validate index bounds
+        if index < 0 || index > targetSiblings.count {
+            return .failure(.invalidName("Invalid insertion index"))
+        }
+        
+        return .success
+    }
+    
     // MARK: - Private Helper Methods
     
     private func getDepth(from parentID: String, visited: Set<String>) -> Int {
@@ -175,9 +304,8 @@ class Project: ObservableObject, Identifiable, Hashable {
         var newVisited = visited
         newVisited.insert(parentID)
         
-        // This would need to be implemented with access to all projects
-        // For now, we'll return a basic calculation
-        // The ProjectManager will provide the full implementation
+        // For now, return a basic calculation
+        // This will be enhanced when we have access to ProjectManager
         return 1
     }
     
@@ -196,8 +324,14 @@ class Project: ObservableObject, Identifiable, Hashable {
         var newVisited = visited
         newVisited.insert(self.id)
         
-        // This would need access to all projects to traverse up the tree
-        // The ProjectManager will provide the full implementation
+        // Check parent's ancestors recursively through the parent object
+        // This requires the parent to be properly linked in the tree structure
+        for child in children {
+            if child.hasAncestor(withID: ancestorID, visited: newVisited) {
+                return true
+            }
+        }
+        
         return false
     }
     
@@ -209,8 +343,8 @@ class Project: ObservableObject, Identifiable, Hashable {
             return name
         }
         
-        // This would need access to all projects to build the full path
-        // The ProjectManager will provide the full implementation
+        // For now, return just the name
+        // This will be enhanced when we have proper parent references
         return name
     }
 }
@@ -245,5 +379,72 @@ enum ProjectError: LocalizedError {
         case .hierarchyTooDeep:
             return "Project hierarchy is too deep (maximum 5 levels)"
         }
+    }
+}
+
+    /// Updates this project's sort order and maintains sibling order consistency
+    /// - Parameters:
+    ///   - newSortOrder: The new sort order value
+    ///   - allProjects: All projects for sibling management
+    func updateSortOrder(to newSortOrder: Int, in allProjects: [Project]) {
+        let oldSortOrder = self.sortOrder
+        self.sortOrder = newSortOrder
+        
+        // Update siblings' sort orders if necessary
+        let siblings = getSiblingsFromTree(allProjects)
+        
+        if newSortOrder > oldSortOrder {
+            // Moving down: shift siblings up
+            for sibling in siblings {
+                if sibling.sortOrder > oldSortOrder && sibling.sortOrder <= newSortOrder {
+                    sibling.sortOrder -= 1
+                }
+            }
+        } else if newSortOrder < oldSortOrder {
+            // Moving up: shift siblings down
+            for sibling in siblings {
+                if sibling.sortOrder >= newSortOrder && sibling.sortOrder < oldSortOrder {
+                    sibling.sortOrder += 1
+                }
+            }
+        }
+    }
+    
+    /// Checks if this project can be moved to a specific parent
+    /// - Parameters:
+    ///   - targetParentID: The target parent ID
+    ///   - allProjects: All projects for validation
+    /// - Returns: True if the move is valid
+    func canMoveTo(parentID targetParentID: String?, in allProjects: [Project]) -> Bool {
+        // Can always move to root level
+        if targetParentID == nil {
+            return true
+        }
+        
+        // Find target parent
+        guard let targetParent = allProjects.first(where: { $0.id == targetParentID }) else {
+            return false
+        }
+        
+        // Check if target parent can accept this project
+        return targetParent.canBeParentOf(self)
+    }
+    
+    /// Gets the maximum sort order among siblings
+    /// - Parameter allProjects: All projects for sibling lookup
+    /// - Returns: The maximum sort order, or -1 if no siblings
+    func getMaxSortOrderAmongSiblings(in allProjects: [Project]) -> Int {
+        let siblings = getSiblingsFromTree(allProjects)
+        let allSiblingsIncludingSelf = siblings + [self]
+        return allSiblingsIncludingSelf.map { $0.sortOrder }.max() ?? -1
+    }
+    
+    /// Gets the minimum sort order among siblings
+    /// - Parameter allProjects: All projects for sibling lookup
+    /// - Returns: The minimum sort order, or 0 if no siblings
+    func getMinSortOrderAmongSiblings(in allProjects: [Project]) -> Int {
+        let siblings = getSiblingsFromTree(allProjects)
+        let allSiblingsIncludingSelf = siblings + [self]
+        return allSiblingsIncludingSelf.map { $0.sortOrder }.min() ?? 0
     }
 }

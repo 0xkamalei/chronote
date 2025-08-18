@@ -19,6 +19,9 @@ struct ContentView: View {
     // Activity Manager integration
     @StateObject private var activityManager = ActivityManager.shared
     
+    // Project Manager with SwiftData integration
+    @StateObject private var projectManager = ProjectManager()
+    
     // 移除本地状态管理，使用全局AppState
     @State private var searchText: String = ""
     @State private var isDatePickerExpanded: Bool = false
@@ -108,9 +111,13 @@ struct ContentView: View {
             // 设置查询管理器的ModelContext
             activityQueryManager.setModelContext(modelContext)
             
+            // 设置项目管理器的ModelContext
+            projectManager.setModelContext(modelContext)
+            
             // AppState已经在init中设置了默认选择，这里不需要额外处理
             print("🚀 App launched - Using global AppState for selection management")
             print("📊 Using ActivityQueryManager for filtered data loading")
+            print("📁 ProjectManager initialized with SwiftData")
             
             // Log current activity status
             if let currentActivity = activityManager.getCurrentActivity() {
