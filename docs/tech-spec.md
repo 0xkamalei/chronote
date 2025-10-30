@@ -53,13 +53,13 @@ open time-vscode.xcodeproj
 
 - time entry
   - Time allocation function to assign activities to corresponding projects or subprojects
-  - time-entry可以手动通过“New Time Entry"添加，也可以通过“Start timer" "Stop Timer"生成
-  - 对于没有assgin time-entry的时间；在timeline组件中会显示推荐添加的按钮
+  - time-entry can be manually added through "New Time Entry" or generated through "Start timer" and "Stop Timer"
+  - For time that doesn't have an assigned time-entry, a recommendation button to add it will be displayed in the timeline component
 
-- project activity time-entry的关系
-  - activity 是所有自动记录的app使用时间事件,在timeline组件中device一列显示所有的activities；使用时间越长占用的色块越长，比如12:00～13:00 一直在使用app A,则在时间轴上12:00～13:00显示这个app A的图标，图标居中显示，色块是根据app绑定的
-  - 所有记录的time-entry都有关联的project；project在timeline组件的第二行显示；time-entry的title相当于project的具体活动
-  - time-entry，在timeline组件第三行显示
+- Project Activity Time-Entry Relationship
+  - activity represents all automatically recorded app usage time events, displayed in the device column of all activities in the timeline component; the longer the usage time, the longer the color block occupied. For example, if app A is used continuously from 12:00~13:00, the app A icon will be displayed on the timeline from 12:00~13:00, with the icon centered and the color block bound to the app
+  - All recorded time-entries have associated projects; projects are displayed on the second row of the timeline component; time-entry title is equivalent to the specific activity of the project
+  - time-entry is displayed on the third row of the timeline component
 
 - timepicker 
   - The timepicker component allows quick selection of time ranges, supporting only date selection
@@ -77,7 +77,7 @@ open time-vscode.xcodeproj
   - Timeline first row shows current device activity, displayed as app icons; when zoomed, shows the app icon that was used most during that time period; mouse hover on icon shows detailed information
   - Timeline second row shows project color blocks
   - Timeline third row shows time entries; if not assigned, displays add icon button, clicking button pops up "New time entry" with start-time and end-time automatically filled in form
-  - 鼠标悬浮在timeline上时显示这个时间具体的信息，包括对于时间project的信息，activity的信息，time-entry的信息如果有
+  - When mouse hovers over the timeline, it displays specific information for that time, including project information for the time, activity information, and time-entry information if available
 
 - background
   - Get app activation notifications through `didActivateApplicationNotification`

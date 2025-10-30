@@ -1,13 +1,20 @@
 {
-	"servers": {
-		"XcodeBuildMCP": {
-			"type": "stdio",
-			"command": "npx",
-			"args": [
-				"-y",
-				"xcodebuildmcp@latest"
-			]
-		}
-	},
-	"inputs": []
+  "servers": {
+    "XcodeBuildMCP": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "xcodebuildmcp@latest"]
+    },
+    "macos-ui-automation": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/Users/seven/dev/macos-ui-automation-mcp",
+        "run",
+        "macos-ui-automation-mcp"
+      ],
+      "disabled": false
+    }
+  },
+  "inputs": []
 }

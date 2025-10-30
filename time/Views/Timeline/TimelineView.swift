@@ -99,7 +99,7 @@ struct TimelineView: View {
     private var timeScaleHeaders: some View {
         switch viewModel.timeScale {
         case .hours:
-            ForEach(0 ..< 24, id: \.self) { hour in
+            ForEach(0..<24, id: \.self) { (hour: Int) in
                 let timeString = String(format: "%02d:00", hour)
                 VStack(spacing: 2) {
                     Text(timeString)
@@ -114,13 +114,11 @@ struct TimelineView: View {
             }
 
         case .days:
-            ForEach(0 ..< 7, id: \.self) { day in
+            ForEach(0..<7, id: \.self) { (day: Int) in
                 let date = Calendar.current.date(byAdding: .day, value: day, to: viewModel.selectedDateRange.start) ?? viewModel.selectedDateRange.start
-                let dayFormatter = DateFormatter()
-                dayFormatter.dateFormat = "E d"
 
                 VStack(spacing: 2) {
-                    Text(dayFormatter.string(from: date))
+                    Text(date, format: .dateTime.weekday(.abbreviated).day())
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
@@ -132,17 +130,15 @@ struct TimelineView: View {
             }
 
         case .weeks:
-            ForEach(0..<4, id: \.self) { week in
+            ForEach(0..<4, id: \.self) { (week: Int) in
                 let date = Calendar.current.date(byAdding: .weekOfYear, value: week, to: viewModel.selectedDateRange.start) ?? viewModel.selectedDateRange.start
-                let weekFormatter = DateFormatter()
-                weekFormatter.dateFormat = "MMM d"
 
                 VStack(spacing: 2) {
                     Text("Week \(week + 1)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
-                    Text(weekFormatter.string(from: date))
+                    Text(date, format: .dateTime.month(.abbreviated).day())
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
 

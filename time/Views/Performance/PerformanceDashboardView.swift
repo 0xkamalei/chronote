@@ -91,7 +91,7 @@ struct PerformanceDashboardView: View {
             }
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(Color(nsColor: .windowBackgroundColor))
         .cornerRadius(12)
         .shadow(radius: 2)
     }
@@ -133,7 +133,7 @@ struct PerformanceDashboardView: View {
             }
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(Color(nsColor: .windowBackgroundColor))
         .cornerRadius(12)
         .shadow(radius: 2)
     }
@@ -161,7 +161,7 @@ struct PerformanceDashboardView: View {
             .foregroundColor(.secondary)
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(Color(nsColor: .windowBackgroundColor))
         .cornerRadius(12)
         .shadow(radius: 2)
     }
@@ -230,7 +230,7 @@ struct PerformanceDashboardView: View {
             }
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(Color(nsColor: .windowBackgroundColor))
         .cornerRadius(12)
         .shadow(radius: 2)
     }
@@ -288,7 +288,7 @@ struct PerformanceDashboardView: View {
             }
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(Color(nsColor: .windowBackgroundColor))
         .cornerRadius(12)
         .shadow(radius: 2)
     }
@@ -326,7 +326,7 @@ struct PerformanceDashboardView: View {
             }
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(Color(nsColor: .windowBackgroundColor))
         .cornerRadius(12)
         .shadow(radius: 2)
     }
@@ -388,7 +388,7 @@ struct PerformanceDashboardView: View {
                 .padding()
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(Color(nsColor: .windowBackgroundColor))
         .cornerRadius(12)
         .shadow(radius: 2)
     }
@@ -434,7 +434,7 @@ struct PerformanceDashboardView: View {
             }
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(Color(nsColor: .windowBackgroundColor))
         .cornerRadius(12)
         .shadow(radius: 2)
     }
@@ -489,9 +489,8 @@ struct PerformanceAlertsView: View {
                 .padding(.vertical, 4)
             }
             .navigationTitle("Performance Alerts")
-            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .automatic) {
                     Button("Done") {
                         dismiss()
                     }

@@ -394,10 +394,7 @@ class SearchManager: ObservableObject {
         // Project filter
         if !activeFilters.selectedProjects.isEmpty {
             let projectPredicate = #Predicate<TimeEntry> { entry in
-                if let projectId = entry.projectId {
-                    return activeFilters.selectedProjects.contains(projectId)
-                }
-                return false
+                entry.projectId != nil && activeFilters.selectedProjects.contains(entry.projectId!)
             }
             predicates.append(projectPredicate)
         }
