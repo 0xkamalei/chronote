@@ -11,6 +11,8 @@ struct ContentView: View {
     @StateObject private var projectManager = ProjectManager.shared
     @StateObject private var activityQueryManager = ActivityQueryManager.shared
     @StateObject private var activityManager = ActivityManager.shared
+    @StateObject private var timeEntryManager = TimeEntryManager.shared
+    @StateObject private var notificationManager = NotificationManager()
 
     @State private var searchText: String = ""
     @State private var isDatePickerExpanded: Bool = false
@@ -22,12 +24,18 @@ struct ContentView: View {
     @State private var isAddingTimeEntry: Bool = false
 
     private var detailView: some View {
-        VStack(spacing: 0) {
-            currentActivityStatusBar
-            filterStatusIndicator
-            TimelineView()
-            Divider()
-            ActivitiesView(activities: activityQueryManager.activities)
+        Group {
+            if appState.selectedSidebar == "Time Entries" {
+                TimeEntryListView()
+            } else {
+                VStack(spacing: 0) {
+                    currentActivityStatusBar
+                    filterStatusIndicator
+                    TimelineView()
+                    Divider()
+                    ActivitiesView(activities: activityQueryManager.activities)
+                }
+            }
         }
         .frame(minWidth: 600, minHeight: 400)
         .sheet(isPresented: $isAddingProject) {
@@ -99,9 +107,11 @@ struct ContentView: View {
             columnVisibility: .constant(.all),
             sidebar: {
                 SidebarView()
+                    .accessibilityIdentifier("view.sidebar")
             },
             detail: {
                 detailView
+                    .accessibilityIdentifier("view.detail")
             }
         )
         .navigationSplitViewStyle(.balanced)
@@ -112,7 +122,8 @@ struct ContentView: View {
                 isAddingTimeEntry: $isAddingTimeEntry,
                 selectedDateRange: $selectedDateRange,
                 selectedPreset: $selectedPreset,
-                searchText: $searchText
+                searchText: $searchText,
+                modelContext: modelContext
             )
         }
         .environmentObject(projectManager)
@@ -120,6 +131,10 @@ struct ContentView: View {
             // Initialize managers with modelContext
             projectManager.setModelContext(modelContext)
             activityQueryManager.setModelContext(modelContext)
+            timeEntryManager.setModelContext(modelContext)
+            appState.timerManager.setModelContext(modelContext)
+            appState.timerManager.setNotificationManager(notificationManager)
+            appState.idleRecoveryManager.setModelContext(modelContext)
         }
         .onChange(of: appState.selectedProject) { _, newProject in
             activityQueryManager.setProjectFilter(newProject)
@@ -137,6 +152,18 @@ struct ContentView: View {
         .onChange(of: searchText) { _, newSearchText in
             activityQueryManager.setSearchText(newSearchText)
             Logger.ui.debug("Search text changed: \(newSearchText, privacy: .private)")
+        }
+        .sheet(isPresented: $appState.idleRecoveryManager.isShowingRecoveryDialog) {
+            if let recovery = appState.idleRecoveryManager.pendingIdleRecovery {
+                IdleRecoveryView(
+                    idleStartTime: recovery.idleStartTime,
+                    idleDuration: recovery.idleDuration,
+                    onComplete: { action in
+                        appState.idleRecoveryManager.processIdleRecoveryAction(action)
+                    }
+                )
+                .interactiveDismissDisabled(true)
+            }
         }
     }
 }

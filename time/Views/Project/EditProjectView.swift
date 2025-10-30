@@ -47,7 +47,7 @@ struct EditProjectView: View {
         var notes: String = ""
         var rating: Double = 0.5
         var archived: Bool = false
-        var rules: [Rule] = [Rule()]
+        var rules: [Rule] = []
         var ruleGroupCondition: RuleGroupCondition = .all
 
         var nameError: String? = nil
@@ -152,6 +152,7 @@ struct EditProjectView: View {
                                 }
                                 .accessibilityLabel("Project Name")
                                 .accessibilityHint("Enter a unique name for this project")
+                                .accessibilityIdentifier("projectForm.nameField")
 
                             if let nameError = formData.nameError {
                                 Label(nameError, systemImage: "exclamationmark.triangle.fill")
@@ -387,6 +388,7 @@ struct EditProjectView: View {
                     )
                     .keyboardShortcut(.defaultAction)
                     .disabled(!isFormValid)
+                    .accessibilityIdentifier("projectForm.submitButton")
                 }
             }
             .padding()

@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 /// Simplified ActivityGroup model for MVP basic grouping functionality
-/// Represents a hierarchical grouping structure for organizing activities
+/// Represents a hierarchical grouping structure for organizing activities and time entries
 struct ActivityHierarchyGroup: Identifiable {
     let id = UUID()
     let name: String
@@ -11,6 +11,7 @@ struct ActivityHierarchyGroup: Identifiable {
     let itemCount: Int
     let children: [ActivityHierarchyGroup]
     let activities: [Activity]
+    let timeEntries: [TimeEntry]
 
     /// Hierarchy levels supported in the MVP
     enum HierarchyLevel: String, CaseIterable {
@@ -42,28 +43,45 @@ struct ActivityHierarchyGroup: Identifiable {
     }
 
     /// Initialize an ActivityGroup with basic properties
-    init(name: String, level: HierarchyLevel, children: [ActivityHierarchyGroup] = [], activities: [Activity] = []) {
+    init(name: String, level: HierarchyLevel, children: [ActivityHierarchyGroup] = [], activities: [Activity] = [], timeEntries: [TimeEntry] = []) {
         self.name = name
         self.level = level
         self.children = children
         self.activities = activities
+        self.timeEntries = timeEntries
 
         let childrenDuration = children.reduce(0) { $0 + $1.totalDuration }
         let activitiesDuration = activities.reduce(0) { $0 + $1.duration }
-        totalDuration = childrenDuration + activitiesDuration
+        let timeEntriesDuration = timeEntries.reduce(0) { $0 + $1.duration }
+        totalDuration = childrenDuration + activitiesDuration + timeEntriesDuration
 
         let childrenCount = children.reduce(0) { $0 + $1.itemCount }
-        itemCount = childrenCount + activities.count
+        itemCount = childrenCount + activities.count + timeEntries.count
     }
 
-    /// Check if this group has any child groups or activities
+    /// Check if this group has any child groups, activities, or time entries
     var hasChildren: Bool {
-        return !children.isEmpty || !activities.isEmpty
+        return !children.isEmpty || !activities.isEmpty || !timeEntries.isEmpty
     }
 
     /// Check if this group is empty (no duration or items)
     var isEmpty: Bool {
         return totalDuration == 0 && itemCount == 0
+    }
+
+    /// Check if this group contains only time entries (no activities)
+    var hasOnlyTimeEntries: Bool {
+        return activities.isEmpty && !timeEntries.isEmpty
+    }
+
+    /// Check if this group contains only activities (no time entries)
+    var hasOnlyActivities: Bool {
+        return !activities.isEmpty && timeEntries.isEmpty
+    }
+
+    /// Check if this group contains both activities and time entries
+    var hasMixedContent: Bool {
+        return !activities.isEmpty && !timeEntries.isEmpty
     }
 }
 

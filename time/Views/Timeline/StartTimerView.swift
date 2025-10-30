@@ -33,9 +33,11 @@ struct StartTimerView: View {
                             }
                         }
                         .labelsHidden()
+                        .accessibilityIdentifier("startTimer.projectPicker")
 
                         if isAddingSubproject {
                             TextField("New Subproject Name", text: $newSubprojectName)
+                                .accessibilityIdentifier("startTimer.newSubprojectField")
                                 .onSubmit {
                                     if !newSubprojectName.isEmpty, let parent = selectedProject {
                                         Task {
@@ -55,6 +57,7 @@ struct StartTimerView: View {
                             Button("New Subproject...") {
                                 isAddingSubproject = true
                             }
+                            .accessibilityIdentifier("startTimer.newSubprojectButton")
                         }
                     }
                 }
@@ -62,18 +65,21 @@ struct StartTimerView: View {
                 HStack {
                     Text("Title:").frame(width: 120, alignment: .leading)
                     TextField("", text: $title)
+                        .accessibilityIdentifier("startTimer.titleField")
                 }
 
                 HStack(alignment: .top) {
                     Text("Notes:").frame(width: 120, alignment: .leading)
                     TextField("", text: $notes, axis: .vertical)
                         .lineLimit(3...)
+                        .accessibilityIdentifier("startTimer.notesField")
                 }
 
                 HStack {
                     Text("Start Time:").frame(width: 120, alignment: .leading)
                     DatePicker("", selection: $startTime)
                         .labelsHidden()
+                        .accessibilityIdentifier("startTimer.startTimePicker")
                 }
 
                 HStack {
@@ -84,6 +90,7 @@ struct StartTimerView: View {
                         }
                     }
                     .labelsHidden()
+                    .accessibilityIdentifier("startTimer.durationPicker")
                 }
 
                 Text("We'll send a notification once this has elapsed, to help you remember stopping the timer.")
@@ -93,6 +100,7 @@ struct StartTimerView: View {
 
                 Toggle("Play a sound when notifying", isOn: $playSound)
                     .padding(.leading, 128)
+                    .accessibilityIdentifier("startTimer.playSoundToggle")
             }
 
             HStack {
@@ -100,14 +108,40 @@ struct StartTimerView: View {
                     isPresented = false
                 }
                 .keyboardShortcut(.cancelAction)
+                .accessibilityIdentifier("startTimer.cancelButton")
 
                 Spacer()
 
                 Button("Start Tracking") {
-                    appState.isTimerActive = true
+                    // Parse estimated duration
+                    let parsedEstimatedDuration: TimeInterval = {
+                        switch estimatedDuration {
+                        case "30 Minutes":
+                            return 30 * 60
+                        case "1 Hour":
+                            return 60 * 60
+                        case "2 Hours":
+                            return 2 * 60 * 60
+                        case "4 Hours":
+                            return 4 * 60 * 60
+                        default:
+                            return 2 * 60 * 60 // Default to 2 hours
+                        }
+                    }()
+
+                    // Update TimerManager's estimated duration
+                    appState.timerManager.defaultEstimatedDuration = parsedEstimatedDuration
+                    appState.timerManager.enableSounds = playSound
+
+                    appState.startTimer(
+                        project: selectedProject,
+                        title: title.isEmpty ? nil : title,
+                        notes: notes.isEmpty ? nil : notes
+                    )
                     isPresented = false
                 }
                 .keyboardShortcut(.defaultAction)
+                .accessibilityIdentifier("startTimer.startButton")
             }
         }
         .padding()

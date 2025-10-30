@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "name": "Swift Code Formatter",
+  "description": "Automatically runs swiftformat to format Swift code whenever Swift files are updated in the project",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "time/**/*.swift",
+      "timeTests/**/*.swift"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Run `/usr/local/bin/swiftformat` on the modified Swift files to ensure consistent code formatting. Focus on the files that were just changed and format them according to the project's Swift style guidelines."
+  }
+}

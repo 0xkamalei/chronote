@@ -21,9 +21,21 @@ struct HierarchicalActivityRow: View {
         switch group.level {
         case .project: return "folder"
         case .subproject: return "folder.badge.plus"
-        case .timeEntry: return "clock"
+        case .timeEntry: 
+            if group.hasOnlyTimeEntries {
+                return "clock.fill"
+            } else if group.hasMixedContent {
+                return "clock.badge.checkmark"
+            } else {
+                return "clock"
+            }
         case .timePeriod: return "calendar"
-        case .appName: return "app"
+        case .appName: 
+            if group.name == "Manual Time Entries" {
+                return "pencil.circle"
+            } else {
+                return "app"
+            }
         case .appTitle: return "doc.text"
         }
     }
@@ -114,6 +126,10 @@ struct HierarchicalActivityRow: View {
                     ForEach(group.activities) { activity in
                         ActivityLeafRow(activity: activity, indentationLevel: indentationLevel + 20)
                     }
+                    
+                    ForEach(group.timeEntries) { timeEntry in
+                        TimeEntryLeafRow(timeEntry: timeEntry, indentationLevel: indentationLevel + 20)
+                    }
                 }
             }
         }
@@ -134,9 +150,21 @@ struct HierarchicalActivityRow: View {
         switch group.level {
         case .project: return .blue
         case .subproject: return .green
-        case .timeEntry: return .orange
+        case .timeEntry: 
+            if group.hasOnlyTimeEntries {
+                return .orange
+            } else if group.hasMixedContent {
+                return .yellow
+            } else {
+                return .orange
+            }
         case .timePeriod: return .purple
-        case .appName: return .red
+        case .appName: 
+            if group.name == "Manual Time Entries" {
+                return .orange
+            } else {
+                return .red
+            }
         case .appTitle: return .gray
         }
     }
@@ -187,6 +215,58 @@ struct ActivityLeafRow: View {
     }
 }
 
+/// Leaf row component for individual time entries
+struct TimeEntryLeafRow: View {
+    let timeEntry: TimeEntry
+    let indentationLevel: CGFloat
+    
+    var body: some View {
+        HStack {
+            Spacer()
+                .frame(width: indentationLevel)
+            
+            Spacer()
+                .frame(width: 12)
+            
+            Image(systemName: "clock.fill")
+                .font(.system(size: 10))
+                .foregroundColor(.orange)
+                .frame(width: 20)
+            
+            VStack(alignment: .leading, spacing: 1) {
+                Text(timeEntry.title)
+                    .font(.caption2)
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                
+                if let notes = timeEntry.notes, !notes.isEmpty {
+                    Text(notes)
+                        .font(.caption2)
+                        .foregroundColor(Color.secondary.opacity(0.6))
+                        .lineLimit(1)
+                }
+            }
+            
+            Spacer()
+            
+            VStack(alignment: .trailing, spacing: 1) {
+                Text(timeEntry.durationString)
+                    .font(.caption2)
+                    .foregroundColor(.orange)
+                    .monospacedDigit()
+                
+                Text("Manual")
+                    .font(.caption2)
+                    .foregroundColor(Color.secondary.opacity(0.6))
+                    .italic()
+            }
+        }
+        .padding(.vertical, 2)
+        .background(Color.orange.opacity(0.05))
+        .cornerRadius(4)
+    }
+}
+
 #Preview {
     let sampleActivity = Activity(
         appName: "Safari",
@@ -196,6 +276,14 @@ struct ActivityLeafRow: View {
         startTime: Date(),
         endTime: Date().addingTimeInterval(300),
         icon: "safari"
+    )
+    
+    let sampleTimeEntry = TimeEntry(
+        projectId: "project1",
+        title: "Code Review Session",
+        notes: "Reviewing pull requests",
+        startTime: Date(),
+        endTime: Date().addingTimeInterval(1800) // 30 minutes
     )
     
     let sampleGroup = ActivityHierarchyGroup(
@@ -222,6 +310,17 @@ struct ActivityLeafRow: View {
                                                 name: "github.com",
                                                 level: .appTitle,
                                                 activities: [sampleActivity]
+                                            )
+                                        ]
+                                    ),
+                                    ActivityHierarchyGroup(
+                                        name: "Manual Time Entries",
+                                        level: .appName,
+                                        children: [
+                                            ActivityHierarchyGroup(
+                                                name: "Code Review Session",
+                                                level: .appTitle,
+                                                timeEntries: [sampleTimeEntry]
                                             )
                                         ]
                                     )

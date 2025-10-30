@@ -1,14 +1,17 @@
 import Foundation
 
-/// Represents a group of activities associated with a project and time entry
+/// Represents a group of activities and time entries associated with a project
 struct ProjectTimeEntryGroup {
     let project: Project?
     let timeEntry: TimeEntry?
     let activities: [Activity]
+    let timeEntries: [TimeEntry]
 
-    /// Total duration of all activities in this group
+    /// Total duration of all activities and time entries in this group
     var totalDuration: TimeInterval {
-        return activities.reduce(0) { $0 + $1.duration }
+        let activitiesDuration = activities.reduce(0) { $0 + $1.duration }
+        let timeEntriesDuration = timeEntries.reduce(0) { $0 + $1.duration }
+        return activitiesDuration + timeEntriesDuration
     }
 
     /// Formatted total duration string
@@ -19,6 +22,16 @@ struct ProjectTimeEntryGroup {
     /// Number of activities in this group
     var activityCount: Int {
         return activities.count
+    }
+    
+    /// Number of time entries in this group
+    var timeEntryCount: Int {
+        return timeEntries.count
+    }
+    
+    /// Total number of items (activities + time entries) in this group
+    var totalItemCount: Int {
+        return activities.count + timeEntries.count
     }
 
     /// Indicates whether this group is assigned to a project
@@ -52,30 +65,43 @@ struct ProjectTimeEntryGroup {
 // MARK: - Convenience Initializers
 
 extension ProjectTimeEntryGroup {
-    /// Creates a group for assigned activities (with project and time entry)
-    static func assigned(project: Project, timeEntry: TimeEntry?, activities: [Activity]) -> ProjectTimeEntryGroup {
+    /// Creates a group for assigned activities and time entries (with project)
+    static func assigned(project: Project, timeEntry: TimeEntry?, activities: [Activity], timeEntries: [TimeEntry] = []) -> ProjectTimeEntryGroup {
         return ProjectTimeEntryGroup(
             project: project,
             timeEntry: timeEntry,
-            activities: activities
+            activities: activities,
+            timeEntries: timeEntries
         )
     }
 
-    /// Creates a group for unassigned activities
-    static func unassigned(activities: [Activity]) -> ProjectTimeEntryGroup {
+    /// Creates a group for unassigned activities and time entries
+    static func unassigned(activities: [Activity], timeEntries: [TimeEntry] = []) -> ProjectTimeEntryGroup {
         return ProjectTimeEntryGroup(
             project: nil,
             timeEntry: nil,
-            activities: activities
+            activities: activities,
+            timeEntries: timeEntries
         )
     }
 
     /// Creates a group for activities with time entry but no project
-    static func timeEntryOnly(timeEntry: TimeEntry, activities: [Activity]) -> ProjectTimeEntryGroup {
+    static func timeEntryOnly(timeEntry: TimeEntry, activities: [Activity], timeEntries: [TimeEntry] = []) -> ProjectTimeEntryGroup {
         return ProjectTimeEntryGroup(
             project: nil,
             timeEntry: timeEntry,
-            activities: activities
+            activities: activities,
+            timeEntries: timeEntries
+        )
+    }
+    
+    /// Creates a group specifically for project-assigned time entries
+    static func projectTimeEntries(project: Project, timeEntries: [TimeEntry]) -> ProjectTimeEntryGroup {
+        return ProjectTimeEntryGroup(
+            project: project,
+            timeEntry: nil,
+            activities: [],
+            timeEntries: timeEntries
         )
     }
 }

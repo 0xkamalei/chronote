@@ -41,6 +41,8 @@ struct time_vscodeApp: App {
             Item.self,
             Activity.self,
             Project.self,
+            TimeEntry.self,
+            TimerSession.self,
         ])
         
         let modelConfiguration = ModelConfiguration(
@@ -58,7 +60,13 @@ struct time_vscodeApp: App {
             
             SchemaMigration.performMigrationIfNeeded(modelContext: context)
             
-            DatabaseConfiguration.optimizeDatabase(modelContext: context)
+            Task {
+                do {
+                    try await DatabaseConfiguration.optimizeDatabase(modelContext: context)
+                } catch {
+                    logger.error("Failed to optimize database: \(error)")
+                }
+            }
             
             if !DatabaseConfiguration.validateSchema(modelContext: context) {
                 logger.error("Schema validation failed during initialization")
@@ -80,6 +88,7 @@ struct time_vscodeApp: App {
                 .environmentObject(appState)
                 .onAppear {
                     appDelegate.modelContainer = sharedModelContainer
+                    setupAppState()
                     startActivityTracking()
                 }
         }
@@ -91,6 +100,17 @@ struct time_vscodeApp: App {
                 }
                 .keyboardShortcut("q", modifiers: .command)
             }
+        }
+    }
+    
+    // MARK: - App Setup
+    
+    /// Set up AppState with model context and notification integration
+    private func setupAppState() {
+        Task { @MainActor in
+            let context = sharedModelContainer.mainContext
+            appState.setModelContext(context)
+            Self.logger.info("AppState configured with model context and notifications")
         }
     }
     

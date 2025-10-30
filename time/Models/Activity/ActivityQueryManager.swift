@@ -102,7 +102,7 @@ class ActivityQueryManager: ObservableObject {
 
             activities = filteredActivities
 
-            logger.info("Refreshed activities: \(filteredActivities.count) loaded, \(totalCount) total matching filters")
+            logger.info("Refreshed activities: \(filteredActivities.count) loaded, \(self.totalCount) total matching filters")
 
         } catch {
             logger.error("Failed to refresh activities: \(error.localizedDescription)")

@@ -10,7 +10,9 @@ enum MockData {
             duration: 85 * 60,
             startTime: Date().addingTimeInterval(-14400),
             endTime: Date().addingTimeInterval(-9300),
-            icon: "hammer"
+            icon: "hammer",
+            windowTitle: "time-vscode.xcodeproj - ActivitiesView.swift",
+            documentPath: "/Users/developer/Projects/time-vscode/Views/Activities/ActivitiesView.swift"
         ),
         Activity(
             appName: "Xcode",
@@ -19,7 +21,9 @@ enum MockData {
             duration: 42 * 60,
             startTime: Date().addingTimeInterval(-9000),
             endTime: Date().addingTimeInterval(-6480),
-            icon: "hammer"
+            icon: "hammer",
+            windowTitle: "time-vscode.xcodeproj - MockData.swift",
+            documentPath: "/Users/developer/Projects/time-vscode/Models/MockData.swift"
         ),
         Activity(
             appName: "Visual Studio Code",
@@ -28,7 +32,9 @@ enum MockData {
             duration: 67 * 60,
             startTime: Date().addingTimeInterval(-13800),
             endTime: Date().addingTimeInterval(-9780),
-            icon: "chevron.left.forwardslash.chevron.right"
+            icon: "chevron.left.forwardslash.chevron.right",
+            windowTitle: "ActivityHierarchyGroup.swift - time-vscode - Visual Studio Code",
+            documentPath: "/Users/developer/Projects/time-vscode/Models/ActivityHierarchyGroup.swift"
         ),
         Activity(
             appName: "Visual Studio Code",
@@ -37,7 +43,9 @@ enum MockData {
             duration: 38 * 60,
             startTime: Date().addingTimeInterval(-8400),
             endTime: Date().addingTimeInterval(-6120),
-            icon: "chevron.left.forwardslash.chevron.right"
+            icon: "chevron.left.forwardslash.chevron.right",
+            windowTitle: "ActivitiesView.swift - time-vscode - Visual Studio Code",
+            documentPath: "/Users/developer/Projects/time-vscode/Views/Activities/ActivitiesView.swift"
         ),
         Activity(
             appName: "Visual Studio Code",
@@ -46,7 +54,9 @@ enum MockData {
             duration: 15 * 60,
             startTime: Date().addingTimeInterval(-5400),
             endTime: Date().addingTimeInterval(-4500),
-            icon: "chevron.left.forwardslash.chevron.right"
+            icon: "chevron.left.forwardslash.chevron.right",
+            windowTitle: "README.md - time-vscode - Visual Studio Code",
+            documentPath: "/Users/developer/Projects/time-vscode/README.md"
         ),
 
         Activity(
@@ -56,7 +66,9 @@ enum MockData {
             duration: 52 * 60,
             startTime: Date().addingTimeInterval(-12600),
             endTime: Date().addingTimeInterval(-9480),
-            icon: "globe"
+            icon: "globe",
+            windowTitle: "Hierarchical Views | Apple Developer Documentation",
+            url: "https://developer.apple.com/documentation/swiftui/hierarchical-views"
         ),
         Activity(
             appName: "Google Chrome",
@@ -65,7 +77,9 @@ enum MockData {
             duration: 28 * 60,
             startTime: Date().addingTimeInterval(-8100),
             endTime: Date().addingTimeInterval(-6420),
-            icon: "globe"
+            icon: "globe",
+            windowTitle: "SwiftUI List hierarchy implementation - Stack Overflow",
+            url: "https://stackoverflow.com/questions/swiftui-list-hierarchy"
         ),
         Activity(
             appName: "Safari",
@@ -74,7 +88,9 @@ enum MockData {
             duration: 35 * 60,
             startTime: Date().addingTimeInterval(-7200),
             endTime: Date().addingTimeInterval(-5100),
-            icon: "safari"
+            icon: "safari",
+            windowTitle: "Add hierarchical activity view by user · Pull Request #42",
+            url: "https://github.com/user/time-vscode/pull/42"
         ),
         Activity(
             appName: "Microsoft Edge",
@@ -83,7 +99,9 @@ enum MockData {
             duration: 44 * 60,
             startTime: Date().addingTimeInterval(-10800),
             endTime: Date().addingTimeInterval(-8160),
-            icon: "safari"
+            icon: "safari",
+            windowTitle: "Activities Hierarchy Mockup - Figma",
+            url: "https://figma.com/design/activities-hierarchy-mockup"
         ),
 
         Activity(

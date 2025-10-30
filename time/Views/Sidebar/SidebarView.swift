@@ -1,6 +1,7 @@
 import SwiftUI
 
 import os
+
 struct SidebarView: View {
     @State private var isMyProjectsExpanded: Bool = true
     @State private var showingCreateProject = false
@@ -13,14 +14,21 @@ struct SidebarView: View {
                 NavigationLink(value: "Activities") {
                     Label("Activities", systemImage: "clock")
                 }
+                .accessibilityIdentifier("sidebar.activities")
+                NavigationLink(value: "Time Entries") {
+                    Label("Time Entries", systemImage: "list.bullet.clipboard")
+                }
+                .accessibilityIdentifier("sidebar.timeEntries")
                 NavigationLink(value: "Stats") {
                     Label("Stats", systemImage: "chart.bar")
                 }
+                .accessibilityIdentifier("sidebar.stats")
                 NavigationLink(value: "Reports") {
                     Label("Reports", systemImage: "doc.text")
                 }
+                .accessibilityIdentifier("sidebar.reports")
             }
-            
+
             Section(header: Text("Projects")) {
                 HStack {
                     Label("All Activities", systemImage: "tray.full")
@@ -34,7 +42,8 @@ struct SidebarView: View {
                 .onTapGesture {
                     appState.selectSpecialItem("All Activities")
                 }
-                
+                .accessibilityIdentifier("sidebar.allActivities")
+
                 HStack {
                     Label("Unassigned", systemImage: "questionmark.circle")
                     Spacer()
@@ -47,7 +56,8 @@ struct SidebarView: View {
                 .onTapGesture {
                     appState.selectSpecialItem("Unassigned")
                 }
-                
+                .accessibilityIdentifier("sidebar.unassigned")
+
                 DisclosureGroup(isExpanded: $isMyProjectsExpanded) {
                     ForEach(projectManager.buildProjectTree()) { project in
                         ProjectRowView(project: project, level: 0)
@@ -59,8 +69,8 @@ struct SidebarView: View {
                         Image(systemName: "folder")
                         Text("My Projects")
                         Spacer()
-                        Button(action: { 
-                            showingCreateProject = true 
+                        Button(action: {
+                            showingCreateProject = true
                         }) {
                             Image(systemName: "plus.circle.fill")
                                 .foregroundColor(.accentColor)
@@ -69,13 +79,16 @@ struct SidebarView: View {
                         .accessibilityLabel("Create New Project")
                         .accessibilityHint("Creates a new project at the root level")
                         .help("Create New Project")
+                        .accessibilityIdentifier("sidebar.createProjectButton")
                     }
                     .contentShape(Rectangle())
                     .background(appState.isSpecialItemSelected("My Projects") ? Color.accentColor.opacity(0.2) : Color.clear)
                     .onTapGesture {
                         appState.selectSpecialItem("My Projects")
                     }
+                    .accessibilityIdentifier("sidebar.myProjects")
                 }
+                .accessibilityIdentifier("sidebar.myProjectsDisclosure")
             }
         }
         .listStyle(SidebarListStyle())
@@ -84,7 +97,6 @@ struct SidebarView: View {
             EditProjectView(mode: .create(parentID: nil), isPresented: $showingCreateProject)
         }
         .onAppear {
-            
             Task {
                 do {
                     try await projectManager.loadProjects()
@@ -94,8 +106,7 @@ struct SidebarView: View {
                 }
             }
         }
-        .onReceive(projectManager.$projects) { projects in
-            
+        .onReceive(projectManager.$projects) { _ in
             appState.validateCurrentSelection()
         }
         .onReceive(NotificationCenter.default.publisher(for: .projectDidChange)) { notification in
@@ -105,10 +116,10 @@ struct SidebarView: View {
             appState.validateCurrentSelection()
         }
     }
-    
+
     private func moveProjects(from source: IndexSet, to destination: Int) {
         let rootProjects = projectManager.buildProjectTree()
-        
+
         Task {
             do {
                 for index in source {

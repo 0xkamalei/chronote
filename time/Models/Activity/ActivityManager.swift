@@ -139,8 +139,55 @@ class ActivityManager: ObservableObject {
         await trackAppSwitch(appInfo: appInfo, modelContext: modelContext)
     }
 
+    /// Track app switch with additional context data
+    func trackAppSwitchWithContext(
+        notification: Notification,
+        windowTitle: String? = nil,
+        url: String? = nil,
+        documentPath: String? = nil,
+        contextData: Data? = nil,
+        modelContext: ModelContext
+    ) async {
+        guard let userInfo = notification.userInfo,
+              let app = userInfo[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+              app.bundleIdentifier != nil
+        else {
+            logger.error("Invalid app activation notification")
+            return
+        }
+
+        let appInfo = resolveAppInfo(from: app)
+        await trackAppSwitchWithContext(
+            appInfo: appInfo,
+            windowTitle: windowTitle,
+            url: url,
+            documentPath: documentPath,
+            contextData: contextData,
+            modelContext: modelContext
+        )
+    }
+
     /// Track app switch to new application with app information
     private func trackAppSwitch(appInfo: AppInfo, modelContext: ModelContext) async {
+        await trackAppSwitchWithContext(
+            appInfo: appInfo,
+            windowTitle: nil,
+            url: nil,
+            documentPath: nil,
+            contextData: nil,
+            modelContext: modelContext
+        )
+    }
+
+    /// Track app switch with context data
+    private func trackAppSwitchWithContext(
+        appInfo: AppInfo,
+        windowTitle: String? = nil,
+        url: String? = nil,
+        documentPath: String? = nil,
+        contextData: Data? = nil,
+        modelContext: ModelContext
+    ) async {
         do {
             let now = Date()
 
@@ -164,7 +211,11 @@ class ActivityManager: ObservableObject {
                     duration: 0, // Will be calculated when activity ends
                     startTime: now,
                     endTime: nil, // nil indicates this is the active activity
-                    icon: appInfo.icon
+                    icon: appInfo.icon,
+                    windowTitle: windowTitle,
+                    url: url,
+                    documentPath: documentPath,
+                    contextData: contextData
                 )
 
                 currentActivity = newActivity
@@ -196,7 +247,11 @@ class ActivityManager: ObservableObject {
                 duration: 0, // Will be calculated when activity ends
                 startTime: now,
                 endTime: nil, // nil indicates this is the active activity
-                icon: appInfo.icon
+                icon: appInfo.icon,
+                windowTitle: windowTitle,
+                url: url,
+                documentPath: documentPath,
+                contextData: contextData
             )
 
             currentActivity = newActivity
@@ -368,6 +423,8 @@ class ActivityManager: ObservableObject {
 
     /// Validate activity data before persistence with comprehensive rules
     private func validateActivity(_ activity: Activity) throws {
+        // Validate new context data fields first
+        try activity.validateContextData()
         let trimmedAppName = activity.appName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedAppName.isEmpty else {
             throw ActivityManagerError.invalidData("App name cannot be empty")
@@ -907,5 +964,88 @@ class ActivityManager: ObservableObject {
 
         logger.info("Wake handling completed - ready for new app activation events")
         logHealthMetrics()
+    }
+    
+    /// End the current activity at a specific time (used for idle detection)
+    func endCurrentActivityAt(time: Date, modelContext: ModelContext) {
+        guard let current = currentActivity else {
+            logger.debug("No current activity to end at specified time")
+            return
+        }
+        
+        logger.info("Ending current activity '\(current.appName)' at \(time)")
+        
+        current.endTime = time
+        current.duration = current.calculatedDuration
+        
+        if current.duration < 0 {
+            logger.warning("Negative duration detected when ending activity at specific time, setting to 0")
+            current.duration = 0
+        }
+        
+        Task {
+            do {
+                try await saveActivity(current, modelContext: modelContext)
+                logger.info("Successfully saved activity ended at specific time: \(current.appName)")
+            } catch {
+                logger.error("Error saving activity ended at specific time: \(error)")
+            }
+        }
+        
+        currentActivity = nil
+    }
+    
+    // MARK: - Data Conflict Resolution Support
+    
+    /// Get all activities from the database for conflict resolution
+    func getAllActivities() async -> [Activity] {
+        guard let modelContext = modelContext else {
+            logger.error("No model context available for getAllActivities")
+            return []
+        }
+        
+        do {
+            let descriptor = FetchDescriptor<Activity>(
+                sortBy: [SortDescriptor(\.startTime, order: .reverse)]
+            )
+            let activities = try modelContext.fetch(descriptor)
+            logger.info("Retrieved \(activities.count) activities for conflict resolution")
+            return activities
+        } catch {
+            logger.error("Failed to fetch all activities: \(error.localizedDescription)")
+            return []
+        }
+    }
+    
+    /// Update an activity for conflict resolution
+    func updateActivity(_ activity: Activity) async {
+        guard let modelContext = modelContext else {
+            logger.error("No model context available for updateActivity")
+            return
+        }
+        
+        do {
+            try validateActivity(activity)
+            try modelContext.save()
+            logger.info("Updated activity: \(activity.appName)")
+        } catch {
+            logger.error("Failed to update activity: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Delete an activity for conflict resolution
+    func deleteActivity(_ activity: Activity) async {
+        guard let modelContext = modelContext else {
+            logger.error("No model context available for deleteActivity")
+            return
+        }
+        
+        do {
+            modelContext.delete(activity)
+            try modelContext.save()
+            logger.info("Deleted activity: \(activity.appName)")
+        } catch {
+            logger.error("Failed to delete activity: \(error.localizedDescription)")
+        }
     }
 }

@@ -12,13 +12,30 @@ struct ActivitiesView: View {
     @State private var includeAppUsage = true
     @State private var includeTitles = true
 
+    @ObservedObject private var timeEntryManager = TimeEntryManager.shared
+    @ObservedObject private var projectManager = ProjectManager.shared
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text("All Activities: \(formattedTotalDuration)")
                     .font(.headline)
+                    .accessibilityIdentifier("activities.header.total")
 
                 Spacer()
+
+                // Toggle controls
+                HStack(spacing: 12) {
+                    Toggle("Time Entries", isOn: $includeTimeEntries)
+                        .toggleStyle(.checkbox)
+                        .font(.caption)
+                        .accessibilityIdentifier("activities.toggle.timeEntries")
+
+                    Toggle("App Usage", isOn: $includeAppUsage)
+                        .toggleStyle(.checkbox)
+                        .font(.caption)
+                        .accessibilityIdentifier("activities.toggle.appUsage")
+                }
 
                 Text(displayMode)
                     .font(.subheadline)
@@ -48,19 +65,39 @@ struct ActivitiesView: View {
                     }
                     .padding(.vertical, 4)
                     .listRowInsets(EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12))
+                    .accessibilityIdentifier("activities.emptyState")
                 } else {
                     ForEach(hierarchyGroups) { group in
                         HierarchicalActivityRow(group: group)
                             .listRowInsets(EdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 12))
+                            .accessibilityIdentifier("activities.row.\(group.id)")
                     }
                 }
             }
             .listStyle(.plain)
+            .accessibilityIdentifier("activities.list")
         }
         .onAppear {
             buildHierarchy()
         }
         .onChange(of: activities) {
+            buildHierarchy()
+        }
+        .onChange(of: includeTimeEntries) {
+            buildHierarchy()
+        }
+        .onChange(of: includeAppUsage) {
+            buildHierarchy()
+        }
+        .onChange(of: timeEntryManager.timeEntries) {
+            buildHierarchy()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .timeEntryDidChange)) { _ in
+            // Rebuild hierarchy when time entries change
+            buildHierarchy()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .timeEntryWasDeleted)) { _ in
+            // Rebuild hierarchy when time entries are deleted
             buildHierarchy()
         }
     }
@@ -69,13 +106,20 @@ struct ActivitiesView: View {
 
     /// Builds the hierarchical structure using ActivityDataProcessor
     private func buildHierarchy() {
+        let filteredActivities = includeAppUsage ? activities : []
+        let timeEntries = includeTimeEntries ? timeEntryManager.timeEntries : []
+
         hierarchyGroups = ActivityDataProcessor.buildHierarchy(
-            activities: activities,
-            timeEntries: MockData.timeEntries,
-            projects: MockData.projects
+            activities: filteredActivities,
+            timeEntries: timeEntries,
+            projects: projectManager.projects,
+            includeTimeEntries: includeTimeEntries
         )
 
-        totalDuration = ActivityDataProcessor.calculateTotalDurationForActivities(activities)
+        // Calculate total duration including time entries if enabled
+        let activitiesDuration = ActivityDataProcessor.calculateTotalDurationForActivities(filteredActivities)
+        let timeEntriesDuration = timeEntries.reduce(0) { $0 + $1.duration }
+        totalDuration = activitiesDuration + timeEntriesDuration
     }
 
     /// Formats the total duration for display in the header

@@ -91,7 +91,7 @@ class ProjectManager: ObservableObject {
 
         updateProjectTree()
 
-        Logger.projectManager.info("Loaded \(projects.count) projects")
+        Logger.projectManager.info("Loaded \(self.projects.count) projects")
     }
 
     /// Loads projects from persistent storage (SwiftData, Core Data, etc.)
@@ -220,7 +220,9 @@ class ProjectManager: ObservableObject {
     /// Sets up periodic cache cleanup to prevent memory bloat
     private func setupPeriodicCacheCleanup() {
         cacheInvalidationTimer = Timer.scheduledTimer(withTimeInterval: 300.0, repeats: true) { [weak self] _ in
-            self?.performCacheCleanup()
+            Task { @MainActor in
+                self?.performCacheCleanup()
+            }
         }
     }
 
@@ -245,7 +247,7 @@ class ProjectManager: ObservableObject {
         }
 
         cacheNeedsUpdate = false
-        Logger.projectManager.debug("Rebuilt project lookup cache with \(projectLookupCache.count) entries")
+        Logger.projectManager.debug("Rebuilt project lookup cache with \(self.projectLookupCache.count) entries")
     }
 
     /// Sends the actual project change notifications
@@ -263,7 +265,7 @@ class ProjectManager: ObservableObject {
             ]
         )
 
-        Logger.projectManager.info("Project change notification sent - \(projects.count) projects")
+        Logger.projectManager.info("Project change notification sent - \(self.projects.count) projects")
     }
 
     /// Notifies observers of a specific project selection change
@@ -427,10 +429,6 @@ class ProjectManager: ObservableObject {
 
         notifyProjectsChanged()
 
-        let changeName = name != nil ? "name" : ""
-        let changeColor = color != nil ? "color" : ""
-        let changeParent = parentID != nil ? "parent" : ""
-        let changes = [changeName, changeColor, changeParent].filter { !$0.isEmpty }.joined(separator: ", ")
         markAsChanged()
     }
 
@@ -644,23 +642,18 @@ class ProjectManager: ObservableObject {
             return
         }
 
-        if let currentActivity = ActivityManager.shared.getCurrentActivity() {
-            let now = Date()
-            currentActivity.endTime = now
-            currentActivity.duration = currentActivity.calculatedDuration
+        // Send notification to stop timer - AppState will handle this
+        NotificationCenter.default.post(
+            name: .timerShouldStop,
+            object: nil,
+            userInfo: [
+                "projectId": project.id,
+                "reason": "projectDeletion",
+                "createTimeEntry": false,
+            ]
+        )
 
-            if let modelContext = modelContext {
-                try await ActivityManager.shared.saveActivity(currentActivity, modelContext: modelContext)
-            }
-
-            NotificationCenter.default.post(
-                name: .timerDidStop,
-                object: nil,
-                userInfo: ["projectId": project.id]
-            )
-
-            Logger.projectManager.info("Stopped active timer for project: \(project.name)")
-        }
+        Logger.projectManager.info("Requested timer stop for project: \(project.name)")
     }
 
     /// Reassigns time entries from one project to another or to unassigned
@@ -681,15 +674,11 @@ class ProjectManager: ObservableObject {
             }
         }
 
-        _ = targetProject?.id
-        var reassignedCount = 0
-
-        for _ in timeEntries {
-            reassignedCount += 1
-        }
+        // Use TimeEntryManager to handle the reassignment
+        try await TimeEntryManager.shared.reassignTimeEntries(from: sourceProject, to: targetProject)
 
         let targetName = targetProject?.name ?? "Unassigned"
-        Logger.projectManager.info("Reassigned \(reassignedCount) time entries from '\(sourceProject.name)' to '\(targetName)'")
+        Logger.projectManager.info("Reassigned \(timeEntries.count) time entries from '\(sourceProject.name)' to '\(targetName)'")
     }
 
     /// Prepares deletion confirmation dialog data with comprehensive information
@@ -745,21 +734,28 @@ class ProjectManager: ObservableObject {
     /// - Parameter project: The project to check
     /// - Returns: True if project has an active timer
     private func hasActiveTimer(for _: Project) -> Bool {
+        // Check if there's an active activity (timer) for this project
+        if ActivityManager.shared.getCurrentActivity() != nil {
+            // For now, we'll return false since we don't have direct access to AppState
+            // In a full implementation, we'd track project association with activities
+            // or use a notification-based approach
+            return false
+        }
         return false
     }
 
     /// Gets the count of time entries for a project
     /// - Parameter project: The project to count time entries for
     /// - Returns: Number of time entries
-    private func getTimeEntryCount(for _: Project) -> Int {
-        return 0
+    private func getTimeEntryCount(for project: Project) -> Int {
+        return TimeEntryManager.shared.getTimeEntries(for: project).count
     }
 
     /// Gets all time entries for a project
     /// - Parameter project: The project to get time entries for
     /// - Returns: Array of time entries
-    private func getTimeEntries(for _: Project) -> [TimeEntry] {
-        return []
+    private func getTimeEntries(for project: Project) -> [TimeEntry] {
+        return TimeEntryManager.shared.getTimeEntries(for: project)
     }
 
     /// Gets children projects that have deletion issues (active timers or time entries)
@@ -1606,8 +1602,6 @@ class ProjectManager: ObservableObject {
     /// - Parameter operations: Array of drag operations to perform
     func performBatchDragOperations(_ operations: [(Project, Project, DropPosition)]) async -> [Bool] {
         var results: [Bool] = []
-
-        let originalDebounceInterval = debounceInterval
 
         for (draggedProject, targetProject, position) in operations {
             let result = await handleDrop(draggedProject: draggedProject, targetProject: targetProject, position: position)

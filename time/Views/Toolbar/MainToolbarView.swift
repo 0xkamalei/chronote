@@ -1,14 +1,54 @@
 
 import SwiftUI
+import SwiftData
+import AppKit
 
 struct MainToolbarView: ToolbarContent {
     @EnvironmentObject private var appState: AppState
+    @Environment(\.modelContext) private var modelContext
     @Binding var isAddingProject: Bool
     @Binding var isStartingTimer: Bool
     @Binding var isAddingTimeEntry: Bool
     @Binding var selectedDateRange: AppDateRange
     @Binding var selectedPreset: AppDateRangePreset?
     @Binding var searchText: String
+    
+    @StateObject private var searchManager: SearchManager
+    
+    init(
+        isAddingProject: Binding<Bool>,
+        isStartingTimer: Binding<Bool>,
+        isAddingTimeEntry: Binding<Bool>,
+        selectedDateRange: Binding<AppDateRange>,
+        selectedPreset: Binding<AppDateRangePreset?>,
+        searchText: Binding<String>,
+        modelContext: ModelContext
+    ) {
+        self._isAddingProject = isAddingProject
+        self._isStartingTimer = isStartingTimer
+        self._isAddingTimeEntry = isAddingTimeEntry
+        self._selectedDateRange = selectedDateRange
+        self._selectedPreset = selectedPreset
+        self._searchText = searchText
+        self._searchManager = StateObject(wrappedValue: SearchManager(modelContext: modelContext))
+    }
+
+    private func openSettingsWindow() {
+        let settingsWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
+            styleMask: [.titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        
+        settingsWindow.title = "Settings"
+        settingsWindow.contentView = NSHostingView(rootView: 
+            SettingsView()
+                .environmentObject(appState)
+        )
+        settingsWindow.center()
+        settingsWindow.makeKeyAndOrderFront(nil)
+    }
 
     var body: some ToolbarContent {
         ToolbarItem(placement: .navigation) {
@@ -20,41 +60,58 @@ struct MainToolbarView: ToolbarContent {
                     Text("New Project")
                 }
             }
+            .accessibilityIdentifier("toolbar.newProjectButton")
         }
-        
-        ToolbarItem(placement: .navigation) {
-            Button(action: {
-                isAddingTimeEntry = true
-            }) {
-                HStack {
-                    Image(systemName: "plus.circle")
-                    Text("New Time Entry")
+
+        if appState.selectedSidebar == "Time Entries" {
+            ToolbarItem(placement: .navigation) {
+                Button(action: {
+                    isAddingTimeEntry = true
+                }) {
+                    HStack {
+                        Image(systemName: "plus.circle")
+                        Text("New Time Entry")
+                    }
                 }
+                .accessibilityIdentifier("toolbar.newTimeEntryButton")
             }
         }
-        
+
         ToolbarItem(placement: .navigation) {
-            Button(action: {
+            HStack {
+                Button(action: {
+                    if appState.isTimerActive {
+                        Task {
+                            await appState.stopTimer()
+                        }
+                    } else {
+                        isStartingTimer.toggle()
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: appState.isTimerActive ? "stop.circle" : "play.circle")
+                        Text(appState.isTimerActive ? "Stop Timer" : "Start Timer")
+                    }
+                }
+                .accessibilityIdentifier("toolbar.timerButton")
+                .popover(isPresented: $isStartingTimer) {
+                    StartTimerView(isPresented: $isStartingTimer)
+                }
+
+                // Show timer display when active
                 if appState.isTimerActive {
-                    appState.isTimerActive = false
-                } else {
-                    isStartingTimer.toggle()
+                    Divider()
+                        .frame(height: 20)
+
+                    TimerDisplayView()
                 }
-            }) {
-                HStack {
-                    Image(systemName: appState.isTimerActive ? "stop.circle" : "play.circle")
-                    Text(appState.isTimerActive ? "Stop Timer" : "Start Timer")
-                }
-            }
-            .popover(isPresented: $isStartingTimer) {
-                StartTimerView(isPresented: $isStartingTimer)
             }
         }
-        
+
         ToolbarItem(placement: .principal) {
             DateNavigatorView(selectedDateRange: $selectedDateRange, selectedPreset: $selectedPreset)
         }
-        
+
         ToolbarItem(placement: .primaryAction) {
             Button(action: {}) {
                 HStack {
@@ -63,7 +120,7 @@ struct MainToolbarView: ToolbarContent {
                 }
             }
         }
-        
+
         ToolbarItem(placement: .primaryAction) {
             Button(action: {}) {
                 HStack {
@@ -72,18 +129,21 @@ struct MainToolbarView: ToolbarContent {
                 }
             }
         }
+
+        ToolbarItem(placement: .primaryAction) {
+            CompactSearchBarView(searchManager: searchManager)
+                .frame(width: 180)
+                .accessibilityIdentifier("toolbar.searchField")
+        }
         
         ToolbarItem(placement: .primaryAction) {
-            HStack {
-                Image(systemName: "magnifyingglass")
-                    .foregroundColor(.secondary)
-                
-                TextField("Search", text: $searchText)
-                    .textFieldStyle(.plain)
-                    .frame(width: 140)
+            Button(action: {
+                openSettingsWindow()
+            }) {
+                Image(systemName: "gear")
             }
-            .padding(5)
-            .cornerRadius(8)
+            .help("Settings")
+            .accessibilityIdentifier("toolbar.settingsButton")
         }
     }
 }
