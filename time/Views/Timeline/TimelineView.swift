@@ -456,8 +456,7 @@ struct TimelineSelectionToolbar: View {
             .shadow(radius: 2)
         }
     }
-}
-    
+
     // MARK: - Timeline Rows
     
     private var timeHeaderRow: some View {
@@ -680,6 +679,8 @@ struct TimelineSelectionToolbar: View {
             }
         }
     }
+}
+
 struct TimeBlock: View {
     let color: Color
     let position: Double // 0-1 position on timeline
