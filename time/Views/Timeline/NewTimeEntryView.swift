@@ -343,11 +343,7 @@ struct NewTimeEntryView: View {
             } catch {
                 await MainActor.run {
                     isCreating = false
-                    if let timeEntryError = error as? TimeEntryError {
-                        errorMessage = timeEntryError.localizedDescription
-                    } else {
-                        errorMessage = "Failed to create time entry: \(error.localizedDescription)"
-                    }
+                    errorMessage = "Failed to create time entry: \(error.localizedDescription)"
                     logger.error("Failed to create time entry: \(error)")
                 }
             }

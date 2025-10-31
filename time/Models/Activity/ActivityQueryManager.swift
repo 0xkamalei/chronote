@@ -117,11 +117,9 @@ class ActivityQueryManager: ObservableObject {
     private func applyInMemoryFilters(_ activities: [Activity]) -> [Activity] {
         var filtered = activities
 
-        if !currentSearchText.isEmpty, currentDateRange == nil {
-        } else if !currentSearchText.isEmpty {
+        if !currentSearchText.isEmpty {
             filtered = filtered.filter { activity in
-                activity.appName.localizedStandardContains(currentSearchText) ||
-                    (activity.appTitle?.localizedStandardContains(currentSearchText) ?? false)
+                activity.appName.localizedStandardContains(currentSearchText)
             }
         }
 
@@ -186,10 +184,9 @@ class ActivityQueryManager: ObservableObject {
         }
 
         else if !currentSearchText.isEmpty {
-            let searchText = currentSearchText // 避免闭包中的self引用
+            let searchText = currentSearchText
             let searchPredicate = #Predicate<Activity> { activity in
-                activity.appName.localizedStandardContains(searchText) ||
-                    (activity.appTitle?.localizedStandardContains(searchText) ?? false)
+                activity.appName.localizedStandardContains(searchText)
             }
             descriptor.predicate = searchPredicate
         }

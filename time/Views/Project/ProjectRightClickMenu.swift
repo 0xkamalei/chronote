@@ -54,10 +54,9 @@ struct ProjectRightClickMenu: View {
         }
     }
 
-    /// Available projects for time entry reassignment (excludes the project being deleted and its descendants)
+    /// Available projects for time entry reassignment (excludes the project being deleted)
     private var availableProjectsForReassignment: [Project] {
-        let excludedIds = Set([project.id] + project.descendants.map { $0.id })
-        return projectManager.projects.filter { !excludedIds.contains($0.id) }
+        return projectManager.projects.filter { $0.id != project.id }
     }
 
     private func deleteProject() {

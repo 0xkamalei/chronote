@@ -58,32 +58,9 @@ class SchemaMigration {
         logger.info("No existing activities found. Database initialized with empty state.")
     }
 
-    /// Migrates existing activities to include new context data fields
+    /// Migrates existing activities (no-op for MVP version)
     private static func migrateActivityContextData(activities: [Activity], modelContext: ModelContext) throws {
-        logger.info("Migrating existing activities to include context data fields...")
-
-        var migratedCount = 0
-        for activity in activities {
-            // Check if activity already has the new fields (they would be nil if not migrated)
-            // Since SwiftData handles schema evolution automatically, we just need to validate
-            do {
-                try activity.validateContextData()
-                migratedCount += 1
-            } catch {
-                logger.warning("Activity \(activity.id) failed context data validation: \(error.localizedDescription)")
-                // Reset invalid context data to nil
-                activity.windowTitle = nil
-                activity.url = nil
-                activity.documentPath = nil
-                activity.contextData = nil
-                migratedCount += 1
-            }
-        }
-
-        if migratedCount > 0 {
-            try modelContext.save()
-            logger.info("Successfully migrated context data for \(migratedCount) activities")
-        }
+        logger.info("Activity migration check completed")
     }
 
     /// Fetches existing activities to check for duplicates
@@ -120,18 +97,11 @@ class SchemaMigration {
 
             // Validate TimeEntries
             let timeEntries = try fetchExistingTimeEntries(modelContext: modelContext)
-            var repairedEntries = 0
 
             for timeEntry in timeEntries {
-                if !timeEntry.isValid {
-                    let validationResult = timeEntry.validateTimeEntry()
-                    if case let .failure(error) = validationResult {
-                        validationErrors.append("Invalid time entry \(timeEntry.id): \(error.localizedDescription)")
-                    }
-
-                    // Attempt to repair the time entry
-                    timeEntry.repairDataIntegrity()
-                    repairedEntries += 1
+                // Basic validation: check if end time is after start time
+                if timeEntry.endTime <= timeEntry.startTime {
+                    validationErrors.append("Invalid time entry \(timeEntry.id): endTime before startTime")
                 }
 
                 // Check for orphaned time entries (invalid project references)
@@ -156,11 +126,6 @@ class SchemaMigration {
                 if case let .failure(error) = session.validate() {
                     validationErrors.append("Invalid timer session \(session.id): \(error.localizedDescription)")
                 }
-            }
-
-            if repairedEntries > 0 {
-                try modelContext.save()
-                logger.info("Repaired \(repairedEntries) time entries with data integrity issues")
             }
 
             if validationErrors.isEmpty {
