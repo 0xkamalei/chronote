@@ -10,7 +10,9 @@
       "Bash(git branch:*)",
       "Bash(git init:*)",
       "Bash(pgrep -f \"time.app\")",
-      "Bash(killall -9 time)"
+      "Bash(killall -9 time)",
+      "Bash(rm -rf /Users/seven/dev/mytimingapp/time-vibe/time/Models/ErrorHandling)",
+      "Bash(rm -rf /Users/seven/dev/mytimingapp/time-vibe/time/Models/Rule)"
     ],
     "deny": []
   },
