@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 struct ActivitiesView: View {
@@ -129,5 +130,26 @@ struct ActivitiesView: View {
 }
 
 #Preview {
-    ActivitiesView(activities: MockData.activities)
+    let sampleActivities = [
+        Activity(
+            appName: "Xcode",
+            appBundleId: "com.apple.dt.Xcode",
+            appTitle: "TimeVibe Project",
+            duration: 3600,
+            startTime: Date().addingTimeInterval(-7200),
+            endTime: Date().addingTimeInterval(-3600),
+            icon: "hammer"
+        ),
+        Activity(
+            appName: "Safari",
+            appBundleId: "com.apple.Safari",
+            appTitle: "SwiftData Documentation",
+            duration: 1800,
+            startTime: Date().addingTimeInterval(-3600),
+            endTime: Date().addingTimeInterval(-1800),
+            icon: "safari"
+        )
+    ]
+
+    ActivitiesView(activities: sampleActivities)
 }

@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 import os
@@ -7,6 +8,26 @@ struct SidebarView: View {
     @State private var showingCreateProject = false
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var projectManager: ProjectManager
+
+    @Query(sort: \Project.sortOrder) private var projects: [Project]
+
+    private var rootProjects: [Project] {
+        let roots = projects.filter { $0.parentID == nil }
+        return roots.map { root in
+            let project = root
+            project.children = buildChildren(for: root.id)
+            return project
+        }
+    }
+
+    private func buildChildren(for parentID: String) -> [Project] {
+        let children = projects.filter { $0.parentID == parentID }
+        return children.map { child in
+            let project = child
+            project.children = buildChildren(for: child.id)
+            return project
+        }
+    }
 
     var body: some View {
         List(selection: $appState.selectedSidebar) {
@@ -59,7 +80,7 @@ struct SidebarView: View {
                 .accessibilityIdentifier("sidebar.unassigned")
 
                 DisclosureGroup(isExpanded: $isMyProjectsExpanded) {
-                    ForEach(projectManager.buildProjectTree()) { project in
+                    ForEach(rootProjects) { project in
                         ProjectRowView(project: project, level: 0)
                     }
                     .onMove(perform: moveProjects)
@@ -97,16 +118,6 @@ struct SidebarView: View {
             EditProjectView(mode: .create(parentID: nil), isPresented: $showingCreateProject)
         }
         .onAppear {
-            Task {
-                do {
-                    try await projectManager.loadProjects()
-                    appState.validateCurrentSelection()
-                } catch {
-                    Logger.ui.error("️ Failed to load projects: \(error.localizedDescription)")
-                }
-            }
-        }
-        .onReceive(projectManager.$projects) { _ in
             appState.validateCurrentSelection()
         }
         .onReceive(NotificationCenter.default.publisher(for: .projectDidChange)) { notification in
@@ -118,8 +129,6 @@ struct SidebarView: View {
     }
 
     private func moveProjects(from source: IndexSet, to destination: Int) {
-        let rootProjects = projectManager.buildProjectTree()
-
         Task {
             do {
                 for index in source {

@@ -27,7 +27,12 @@
         "run",
         "macos-ui-automation-mcp"
       ],
-      "disabled": false
+      "disabled": false,
+      "autoApprove": [
+        "get_app_overview",
+        "check_accessibility_permissions",
+        "list_running_applications"
+      ]
     }
   }
 }

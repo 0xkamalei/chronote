@@ -55,28 +55,7 @@ class SchemaMigration {
             return
         }
 
-        var migratedCount = 0
-        for mockActivity in MockData.activities {
-            let activity = Activity(
-                appName: mockActivity.appName,
-                appBundleId: mockActivity.appBundleId,
-                appTitle: mockActivity.appTitle,
-                duration: mockActivity.duration,
-                startTime: mockActivity.startTime,
-                endTime: mockActivity.endTime,
-                icon: mockActivity.icon,
-                windowTitle: nil, // New context fields start as nil
-                url: nil,
-                documentPath: nil,
-                contextData: nil
-            )
-
-            modelContext.insert(activity)
-            migratedCount += 1
-        }
-
-        try modelContext.save()
-        logger.info("Successfully migrated \(migratedCount) activities from MockData")
+        logger.info("No existing activities found. Database initialized with empty state.")
     }
 
     /// Migrates existing activities to include new context data fields

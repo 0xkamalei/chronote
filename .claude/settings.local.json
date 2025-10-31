@@ -8,7 +8,9 @@
       "Bash(git commit:*)",
       "Bash(git add:*)",
       "Bash(git branch:*)",
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "Bash(pgrep -f \"time.app\")",
+      "Bash(killall -9 time)"
     ],
     "deny": []
   },

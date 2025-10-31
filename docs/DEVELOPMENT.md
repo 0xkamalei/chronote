@@ -127,13 +127,44 @@ NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willSleep
   - 具有父/子关系的项目层级
   - 计时器状态和活动追踪
   - 通过基于索引的系统重新排序项目
-- 项目在内存中管理，计划集成 SwiftData
+- 所有数据通过 SwiftData 持久化存储
 
 ### 数据模型
 
-- **Project**: 分层项目结构，带有颜色编码，自定义 Color 持久化的编码/解码
-- **Activity**: 表示应用使用追踪，包含持续时间、系统图标和应用 ID
-- **TimeEntry**: 对应项目下的工作时段，由用户通过按钮启动和结束；也可以根据配置在待机期间由系统自动停止
+所有数据模型都已集成 SwiftData，作为 `@Model` 进行持久化：
+
+- **Project**: 分层项目结构，带有颜色编码，自定义 Color 持久化的编码/解码，支持拖放重排
+- **Activity**: 应用使用追踪，包含：
+  - 基本信息：应用名称、bundle ID、持续时间、开始/结束时间
+  - 上下文数据：窗口标题、URL（浏览器）、文档路径
+  - 标志：空闲时间检测标记
+- **TimeEntry**: 用户手动或定时器自动生成的时间条目，关联到项目
+- **TimerSession**: 计时器会话追踪，记录用户的工作会话
+
+### SwiftData 集成
+
+所有 UI 组件已通过以下方式集成真实数据源：
+
+- **ModelContainer**: 在 `time_vscodeApp` 中创建并配置，使用内存持久化（可配置）
+- **ModelContext**: 通过 `@Environment(\.modelContext)` 注入到需要的视图
+- **数据管理器**: 专用管理器处理数据操作：
+  - `ProjectManager`: 管理项目 CRUD 和层级操作，包括自动保存
+  - `ActivityManager`: 管理应用追踪和活动记录
+  - `TimeEntryManager`: 管理时间条目的创建、更新、删除
+  - `TimerManager`: 管理计时器会话
+- **@Query 实时查询**: 以下视图使用 `@Query` 宏直接查询并实时响应数据变化：
+  - `SidebarView`: 实时显示项目树结构
+  - `TimelineView`: 实时显示 Activities、TimeEntries、Projects
+  - `IdleRecoveryView`: 实时显示项目列表
+- **数据迁移**: `SchemaMigration` 处理初始数据库初始化和版本控制
+
+### Mock 数据使用
+
+- **MockData** 仅用于：
+  - 预览（#Preview）中的演示
+  - 初始数据库迁移时的示例数据
+  - 开发和测试用途
+- 所有生产代码完全使用 SwiftData 真实数据源
 
 ### 视图架构
 
@@ -154,17 +185,27 @@ NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willSleep
 ### 项目管理
 
 - 在更新文件前使用 git commit 保存所有更改
-- 目前使用模拟数据进行开发和测试
+- 所有数据操作通过 SwiftData 进行，确保数据持久化
 
 ### 状态流
 
-- AppState 作为项目数据的单一数据源
+- AppState 作为全局应用状态的中央管理器，不持有数据本身
+- 各专用管理器（ProjectManager、ActivityManager 等）持有数据并负责 SwiftData 操作
 - Published 属性自动更新 SwiftUI 视图
 - 计时器状态集中管理以确保视图间的一致性
 - Sheet 展示状态在 ContentView 中管理以协调模态对话框
+
+### SwiftData 最佳实践
+
+- 始终通过管理器操作数据，而不是直接操作 ModelContext
+- 使用 `@Environment(\.modelContext)` 注入 ModelContext
+- 在 App 启动时初始化 ModelContainer 并传递给所有需要的管理器
+- 使用 `SchemaMigration.performMigrationIfNeeded()` 处理数据库版本控制
+- 异步保存数据以避免阻止 UI（使用 `async`/`await`）
 
 ### UI 模式
 
 - 颜色编码的项目用于视觉组织
 - 用于可展开项目层级的 Disclosure groups
 - NavigationLink 和选择绑定用于侧边栏导航
+- 预览使用 MockData，生产代码使用真实数据源

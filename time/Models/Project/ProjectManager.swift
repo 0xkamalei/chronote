@@ -74,7 +74,7 @@ class ProjectManager: ObservableObject {
 
     // MARK: - Persistence and Loading
 
-    /// Loads projects from persistent storage with fallback to MockData
+    /// Loads projects from persistent storage
     /// - Throws: ProjectError if loading fails completely
     func loadProjects() async throws {
         isLoading = true
@@ -85,8 +85,8 @@ class ProjectManager: ObservableObject {
         } catch {
             Logger.projectManager.error("️ Failed to load projects from persistence: \(error.localizedDescription)")
 
-            Logger.projectManager.debug("Using MockData as fallback")
-            projects = MockData.projects
+            Logger.projectManager.debug("Initializing with empty projects array")
+            projects = []
         }
 
         updateProjectTree()

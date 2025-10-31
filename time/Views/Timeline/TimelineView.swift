@@ -7,6 +7,24 @@ struct TimelineView: View {
     @StateObject private var selectionManager = TimelineSelectionManager()
     @Environment(\.modelContext) private var modelContext
 
+    @Query(sort: \Activity.startTime) private var allActivities: [Activity]
+    @Query(sort: \TimeEntry.startTime) private var allTimeEntries: [TimeEntry]
+    @Query(sort: \Project.sortOrder) private var allProjects: [Project]
+
+    private var filteredActivities: [Activity] {
+        allActivities.filter { activity in
+            activity.startTime >= viewModel.selectedDateRange.start &&
+            activity.startTime < viewModel.selectedDateRange.end
+        }
+    }
+
+    private var filteredTimeEntries: [TimeEntry] {
+        allTimeEntries.filter { entry in
+            entry.startTime >= viewModel.selectedDateRange.start &&
+            entry.startTime < viewModel.selectedDateRange.end
+        }
+    }
+
     private var timelineWidth: CGFloat {
         return viewModel.getTimelineWidth()
     }
@@ -172,7 +190,7 @@ struct TimelineView: View {
                     .frame(width: timelineWidth, height: 30)
                     .cornerRadius(5)
 
-                ForEach(viewModel.activities, id: \.id) { activity in
+                ForEach(filteredActivities, id: \.id) { activity in
                     let position = viewModel.timeToPosition(activity.startTime)
                     let width = viewModel.durationToWidth(activity.calculatedDuration)
                     let appColor = colorForApp(activity.appBundleId)
@@ -208,8 +226,7 @@ struct TimelineView: View {
                     .frame(width: timelineWidth, height: 30)
                     .cornerRadius(5)
 
-                // Placeholder project blocks
-                ForEach(Array(viewModel.projects.prefix(3).enumerated()), id: \.element.id) { index, project in
+                ForEach(Array(allProjects.prefix(3).enumerated()), id: \.element.id) { index, project in
                     let position = Double(index) * 0.25 + 0.1
                     let width = 0.15
 
@@ -244,10 +261,10 @@ struct TimelineView: View {
                     .frame(width: timelineWidth, height: 30)
                     .cornerRadius(5)
 
-                ForEach(viewModel.timeEntries, id: \.id) { entry in
+                ForEach(filteredTimeEntries, id: \.id) { entry in
                     let position = viewModel.timeToPosition(entry.startTime)
                     let width = viewModel.durationToWidth(entry.calculatedDuration)
-                    let projectColor = viewModel.projects.first { $0.id == entry.projectId }?.color ?? .blue
+                    let projectColor = allProjects.first { $0.id == entry.projectId }?.color ?? .blue
 
                     Rectangle()
                         .fill(projectColor.opacity(0.8))
