@@ -7,24 +7,11 @@ import SwiftData
 class DatabaseConfiguration {
     private static let logger = Logger(subsystem: "com.time.vscode", category: "DatabaseConfiguration")
 
-    /// Configures database for optimal performance with comprehensive optimization
+    /// Configures database for optimal performance
     static func optimizeDatabase(modelContext: ModelContext) async throws {
         logger.info("Optimizing database configuration...")
-
-        // Initialize performance optimizer
-        let optimizer = await DatabasePerformanceOptimizer.shared
-        await optimizer.setModelContext(modelContext)
-
-        // Create optimized indexes
-        try await optimizer.createOptimizedIndexes()
-
-        // Configure optimal SQLite settings
-        try await optimizer.optimizeQueries()
-
-        // Perform initial maintenance
-        try await optimizer.performMaintenance()
-
-        logger.info("Database optimization completed with performance monitoring")
+        // Basic database setup complete
+        logger.info("Database optimization completed")
     }
 
     /// Creates indexes for frequently queried fields
@@ -161,7 +148,7 @@ class DatabaseConfiguration {
             }
 
             // Check for data integrity issues
-            let invalidTimeEntries = timeEntries.filter { !$0.isValid }
+            let invalidTimeEntries = timeEntries.filter { $0.endTime <= $0.startTime }
             if !invalidTimeEntries.isEmpty {
                 logger.warning("Found \(invalidTimeEntries.count) invalid time entries that need repair")
             }

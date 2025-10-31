@@ -1,4 +1,3 @@
-
 import AppKit
 import SwiftData
 import SwiftUI
@@ -12,8 +11,6 @@ struct MainToolbarView: ToolbarContent {
     @Binding var selectedDateRange: AppDateRange
     @Binding var selectedPreset: AppDateRangePreset?
     @Binding var searchText: String
-
-    @StateObject private var searchManager: SearchManager
 
     init(
         isAddingProject: Binding<Bool>,
@@ -30,24 +27,6 @@ struct MainToolbarView: ToolbarContent {
         _selectedDateRange = selectedDateRange
         _selectedPreset = selectedPreset
         _searchText = searchText
-        _searchManager = StateObject(wrappedValue: SearchManager(modelContext: modelContext))
-    }
-
-    private func openSettingsWindow() {
-        let settingsWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
-            styleMask: [.titled, .closable, .resizable],
-            backing: .buffered,
-            defer: false
-        )
-
-        settingsWindow.title = "Settings"
-        settingsWindow.contentView = NSHostingView(rootView:
-            SettingsView()
-                .environmentObject(appState)
-        )
-        settingsWindow.center()
-        settingsWindow.makeKeyAndOrderFront(nil)
     }
 
     var body: some ToolbarContent {
@@ -128,22 +107,6 @@ struct MainToolbarView: ToolbarContent {
                     Text("Filters")
                 }
             }
-        }
-
-        ToolbarItem(placement: .primaryAction) {
-            CompactSearchBarView(searchManager: searchManager)
-                .frame(width: 180)
-                .accessibilityIdentifier("toolbar.searchField")
-        }
-
-        ToolbarItem(placement: .primaryAction) {
-            Button(action: {
-                openSettingsWindow()
-            }) {
-                Image(systemName: "gear")
-            }
-            .help("Settings")
-            .accessibilityIdentifier("toolbar.settingsButton")
         }
     }
 }
