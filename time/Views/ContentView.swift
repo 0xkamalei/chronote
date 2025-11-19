@@ -126,15 +126,11 @@ struct ContentView: View {
                 modelContext: modelContext
             )
         }
-        .environmentObject(projectManager)
         .onAppear {
             // Initialize managers with modelContext
             projectManager.setModelContext(modelContext)
             activityQueryManager.setModelContext(modelContext)
             timeEntryManager.setModelContext(modelContext)
-            appState.timerManager.setModelContext(modelContext)
-            appState.timerManager.setNotificationManager(notificationManager)
-            appState.idleRecoveryManager.setModelContext(modelContext)
         }
         .onChange(of: appState.selectedProject) { _, newProject in
             activityQueryManager.setProjectFilter(newProject)
@@ -152,18 +148,6 @@ struct ContentView: View {
         .onChange(of: searchText) { _, newSearchText in
             activityQueryManager.setSearchText(newSearchText)
             Logger.ui.debug("Search text changed: \(newSearchText, privacy: .private)")
-        }
-        .sheet(isPresented: $appState.idleRecoveryManager.isShowingRecoveryDialog) {
-            if let recovery = appState.idleRecoveryManager.pendingIdleRecovery {
-                IdleRecoveryView(
-                    idleStartTime: recovery.idleStartTime,
-                    idleDuration: recovery.idleDuration,
-                    onComplete: { action in
-                        appState.idleRecoveryManager.processIdleRecoveryAction(action)
-                    }
-                )
-                .interactiveDismissDisabled(true)
-            }
         }
     }
 }

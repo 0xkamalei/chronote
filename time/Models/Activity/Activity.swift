@@ -60,10 +60,3 @@ final class Activity {
     }
 }
 
-// MARK: - Transferable Conformance
-
-extension Activity: Transferable {
-    static var transferRepresentation: some TransferRepresentation {
-        ProxyRepresentation(exporting: \.id.uuidString)
-    }
-}

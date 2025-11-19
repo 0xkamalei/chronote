@@ -72,6 +72,25 @@ final class TimeEntry {
         self.id = UUID(uuidString: id) ?? UUID()
     }
 
+    // MARK: - Helper Methods
+
+    func recalculateDuration() {
+        duration = calculatedDuration
+    }
+
+    var isValid: Bool {
+        return !title.trimmingCharacters(in: .whitespaces).isEmpty
+            && startTime < endTime
+    }
+
+    func repairDataIntegrity() {
+        if startTime > endTime {
+            swap(&startTime, &endTime)
+        }
+        recalculateDuration()
+        markAsUpdated()
+    }
+
     // MARK: - Utility Methods
 
     /// Returns a copy of this time entry with updated times

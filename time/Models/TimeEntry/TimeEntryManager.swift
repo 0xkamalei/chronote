@@ -3,6 +3,50 @@ import os
 import SwiftData
 import SwiftUI
 
+// MARK: - Errors
+
+/// Error types for time entry operations
+enum TimeEntryError: LocalizedError {
+    case persistenceFailure(String)
+    case projectNotFound(String)
+    case validationFailed(String)
+    case invalidTimeRange
+
+    var errorDescription: String? {
+        switch self {
+        case let .persistenceFailure(message):
+            return message
+        case let .projectNotFound(message):
+            return message
+        case let .validationFailed(message):
+            return message
+        case .invalidTimeRange:
+            return "Invalid time range for time entry"
+        }
+    }
+
+    var recoverySuggestion: String? {
+        switch self {
+        case .persistenceFailure:
+            return "Try again or restart the application"
+        case .projectNotFound:
+            return "Select a valid project"
+        case .validationFailed:
+            return "Check your input and try again"
+        case .invalidTimeRange:
+            return "End time must be after start time"
+        }
+    }
+}
+
+// MARK: - Validation Result
+
+/// Validation result for time entry operations
+enum TimeEntryValidationResult {
+    case success
+    case failure(TimeEntryError)
+}
+
 @MainActor
 class TimeEntryManager: ObservableObject {
     // MARK: - Singleton
@@ -1004,11 +1048,4 @@ class TimeEntryManager: ObservableObject {
             logger.error("Failed to delete time entry: \(error.localizedDescription)")
         }
     }
-}
-
-// MARK: - Notification Names
-
-extension Notification.Name {
-    static let timeEntryDidChange = Notification.Name("timeEntryDidChange")
-    static let timeEntryWasDeleted = Notification.Name("timeEntryWasDeleted")
 }

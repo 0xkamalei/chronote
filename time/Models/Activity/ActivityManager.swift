@@ -145,4 +145,9 @@ extension ActivityManager {
     func setNotificationManager(_ manager: NotificationManager) {
         // No-op for MVP version
     }
+
+    /// Get the current activity being tracked
+    func getCurrentActivity() -> Activity? {
+        return currentActivity
+    }
 }

@@ -32,6 +32,7 @@ open time.xcodeproj
 ### 代码风格
 
 - 使用 SwiftUI 和 SwiftData 的最新版本和最佳实践
+- 使用 swiftformat 格式化代码
 
 ### 功能特性
 
@@ -41,7 +42,7 @@ open time.xcodeproj
 - 创建项目、"新建时间条目"或"启动计时器"时，可以快速添加子项目
 - 在左侧边栏显示项目树，可以通过拖拽改变项目的显示顺序
 - 点击左侧边栏中的项目进行选择，当前项目成为"所有活动"查询的筛选条件
-- `project.title` 是项目下的具体任务；例如，如果项目是开发 timing.app，`project.title` 会是编写 PRD
+- `project.title` 是项目下的具体任务 
 - "未分配"代表尚未通过时间条目分配到项目的活动；可以选择"未分配"来仅筛选未分配的活动
 - "所有活动"代表不按项目筛选；选中时，"未分配"应显示在详情顶部
 - "我的项目"等同于查询所有分配给项目的活动
@@ -50,7 +51,7 @@ open time.xcodeproj
 
 #### Activity（活动）
 
-- 打开程序后自动记录活动，目前正在实现中
+- 打开程序后自动记录活动 
 - 活动基于应用切换事件自动记录前一个应用占用的时间
 - 活动显示结果可以通过各种条件筛选：时间范围、项目
 - 活动详情显示分为两栏：一栏用于摘要，一栏用于分组显示；默认按项目、project.title、activity.title 分组
@@ -91,8 +92,6 @@ open time.xcodeproj
 
 ```swift
 NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { notification in
-    print("Event didActivateApplicationNotification")
-    // 在这里执行你的回调操作
     if let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication {
         print(app.bundleIdentifier ?? "-")
         Task {
@@ -139,7 +138,6 @@ NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willSleep
   - 上下文数据：窗口标题、URL（浏览器）、文档路径
   - 标志：空闲时间检测标记
 - **TimeEntry**: 用户手动或定时器自动生成的时间条目，关联到项目
-- **TimerSession**: 计时器会话追踪，记录用户的工作会话
 
 ### SwiftData 集成
 
@@ -151,7 +149,6 @@ NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willSleep
   - `ProjectManager`: 管理项目 CRUD 和层级操作，包括自动保存
   - `ActivityManager`: 管理应用追踪和活动记录
   - `TimeEntryManager`: 管理时间条目的创建、更新、删除
-  - `TimerManager`: 管理计时器会话
 - **@Query 实时查询**: 以下视图使用 `@Query` 宏直接查询并实时响应数据变化：
   - `SidebarView`: 实时显示项目树结构
   - `TimelineView`: 实时显示 Activities、TimeEntries、Projects
@@ -173,12 +170,7 @@ NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willSleep
 - **Modular Views**: 用于编辑项目、时间条目和计时器控制的独立视图
 - **Sheet Presentations**: 用于添加项目和时间条目的模态对话框
 
-### 关键文件
-
-- `AppState.swift`: 中央状态管理和项目层级逻辑
-- `Models/Project.swift`: 项目模型，带有颜色编码和层级支持
-- `Views/SidebarView.swift`: 项目导航和选择
-- `ContentView.swift`: 主应用布局和 sheet 协调
+ 
 
 ## 开发注意事项
 

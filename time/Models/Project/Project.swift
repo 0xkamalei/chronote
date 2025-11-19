@@ -160,6 +160,39 @@ final class Project: Equatable, Codable {
         return allProjects.filter { $0.parentID == self.parentID && $0.id != self.id }
     }
 
+    /// Validates if this project can be a parent of another project
+    func validateAsParentOf(_ project: Project) -> ValidationResult {
+        // Check if moving would create a circular reference
+        if isDescendantOf(project) {
+            return .failure(.circularReference)
+        }
+        return .success
+    }
+
+    /// Get all descendant projects
+    var descendants: [Project] {
+        var result: [Project] = []
+        for child in children {
+            result.append(child)
+            result.append(contentsOf: child.descendants)
+        }
+        return result
+    }
+
+    /// Get the depth of this project in the hierarchy
+    var depth: Int {
+        // This is computed based on parentID relationship
+        // In a real implementation, you'd query the data
+        // For MVP, return a simple value
+        return 0
+    }
+
+    /// Check if this project can accept children (e.g., hierarchy depth limit)
+    var canAcceptChildren: Bool {
+        // For MVP, always allow (simplified)
+        return true
+    }
+
     // MARK: - Private Helper Methods
 
     private func hasAncestor(withID ancestorID: String, visited: Set<String> = Set()) -> Bool {

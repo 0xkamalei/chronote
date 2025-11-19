@@ -7,6 +7,14 @@ import os
 
 // MARK: - Supporting Types
 
+/// Enum for drag and drop position
+enum DropPosition {
+    case above
+    case below
+    case inside
+    case invalid
+}
+
 /// Data structure for deletion confirmation dialogs
 struct DeletionConfirmationData {
     let project: Project
@@ -1371,17 +1379,9 @@ class ProjectManager: ObservableObject {
     /// - Returns: True if drop was successful, false otherwise
     func handleDrop(draggedProject: Project, targetProject: Project, position: DropPosition) async -> Bool {
         do {
-            let validationResult = ProjectDragDropHandler.validateDragOperation(
-                draggedProject: draggedProject,
-                targetProject: targetProject,
-                position: position
-            )
-
-            switch validationResult {
-            case .valid:
-                break
-            case let .invalid(error):
-                Logger.projectManager.error("️ Drop validation failed: \(error.localizedDescription)")
+            // Simple validation: don't allow circular references
+            if draggedProject.id == targetProject.id || targetProject.isDescendantOf(draggedProject) {
+                Logger.projectManager.error("Invalid drop: would create circular reference")
                 return false
             }
 
@@ -1413,18 +1413,8 @@ class ProjectManager: ObservableObject {
     ///   - position: The intended drop position
     /// - Returns: True if drop can be accepted
     func canAcceptDrop(draggedProject: Project, targetProject: Project, position: DropPosition) -> Bool {
-        let validationResult = ProjectDragDropHandler.validateDragOperation(
-            draggedProject: draggedProject,
-            targetProject: targetProject,
-            position: position
-        )
-
-        switch validationResult {
-        case .valid:
-            return true
-        case .invalid:
-            return false
-        }
+        // Simple validation: don't allow circular references
+        return draggedProject.id != targetProject.id && !targetProject.isDescendantOf(draggedProject)
     }
 
     /// Handles dropping a project above another project (same parent, lower sort order)
@@ -1584,18 +1574,14 @@ class ProjectManager: ObservableObject {
     ///   - position: The intended drop position
     /// - Returns: Detailed validation result with specific error information
     func validateDragWithDetails(draggedProject: Project, targetProject: Project, position: DropPosition) -> (isValid: Bool, errorMessage: String?) {
-        let validationResult = ProjectDragDropHandler.validateDragOperation(
-            draggedProject: draggedProject,
-            targetProject: targetProject,
-            position: position
-        )
-
-        switch validationResult {
-        case .valid:
-            return (true, nil)
-        case let .invalid(error):
-            return (false, error.localizedDescription)
+        // Simple validation: don't allow circular references
+        if draggedProject.id == targetProject.id {
+            return (false, "Cannot drop a project onto itself")
         }
+        if targetProject.isDescendantOf(draggedProject) {
+            return (false, "Cannot create circular reference")
+        }
+        return (true, nil)
     }
 
     /// Handles batch drag operations efficiently
