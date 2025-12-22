@@ -55,7 +55,7 @@ class ActivityDataProcessor {
     ) -> [ActivityHierarchyGroup] {
         var projectGroups: [ActivityHierarchyGroup] = []
 
-        for project in projects where project.parentID == nil {
+        for project in projects {
             // Get all time entries for this project
             let projectTimeEntries = timeEntries.filter { $0.projectId == project.id }
 
@@ -68,11 +68,9 @@ class ActivityDataProcessor {
             }
 
             if !projectActivities.isEmpty {
-                let projectChildren = buildSubprojectHierarchy(
+                let projectChildren = buildTimeEntryHierarchy(
                     activities: projectActivities,
-                    timeEntries: projectTimeEntries,
-                    projects: projects,
-                    parentProject: project
+                    timeEntries: projectTimeEntries
                 )
 
                 let projectGroup = ActivityHierarchyGroup(
@@ -87,53 +85,6 @@ class ActivityDataProcessor {
         }
 
         return projectGroups
-    }
-
-    // MARK: - Subproject Level
-
-    private static func buildSubprojectHierarchy(
-        activities: [Activity],
-        timeEntries: [TimeEntry],
-        projects: [Project],
-        parentProject: Project
-    ) -> [ActivityHierarchyGroup] {
-        var subprojectGroups: [ActivityHierarchyGroup] = []
-
-        // Direct children of current project
-        let subprojects = projects.filter { $0.parentID == parentProject.id }
-
-        if subprojects.isEmpty {
-            // No subprojects, go directly to time entries
-            return buildTimeEntryHierarchy(activities: activities, timeEntries: timeEntries)
-        }
-
-        for subproject in subprojects {
-            let subprojectTimeEntries = timeEntries.filter { $0.projectId == subproject.id }
-            let subprojectActivities = activities.filter { activity in
-                guard let endTime = activity.endTime else { return false }
-                return subprojectTimeEntries.contains { timeEntry in
-                    timeEntry.startTime <= activity.startTime && endTime <= timeEntry.endTime
-                }
-            }
-
-            if !subprojectActivities.isEmpty {
-                let subprojectChildren = buildTimeEntryHierarchy(
-                    activities: subprojectActivities,
-                    timeEntries: subprojectTimeEntries
-                )
-
-                let subprojectGroup = ActivityHierarchyGroup(
-                    name: subproject.name,
-                    level: .subproject,
-                    children: subprojectChildren,
-                    activities: []
-                )
-
-                subprojectGroups.append(subprojectGroup)
-            }
-        }
-
-        return subprojectGroups
     }
 
     // MARK: - TimeEntry Level
@@ -178,6 +129,43 @@ class ActivityDataProcessor {
         return timeEntryGroups
     }
 
+    // MARK: - App-Based Hierarchy
+
+    /// Builds a simplified hierarchy grouped only by App
+    static func buildAppHierarchy(activities: [Activity]) -> [ActivityHierarchyGroup] {
+        let appGroups = Dictionary(grouping: activities) { $0.appBundleId }
+        var appHierarchy: [ActivityHierarchyGroup] = []
+
+        for (bundleId, bundleActivities) in appGroups {
+            let appName = bundleActivities.first?.appName ?? bundleId
+            
+            // Group by window title
+            let titleGroups = Dictionary(grouping: bundleActivities) { $0.appTitle ?? "General" }
+            var titleHierarchy: [ActivityHierarchyGroup] = []
+
+            for (title, titleActivities) in titleGroups {
+                let titleGroup = ActivityHierarchyGroup(
+                    name: title,
+                    level: .appTitle,
+                    children: [],
+                    activities: titleActivities.sorted { $0.startTime > $1.startTime }
+                )
+                titleHierarchy.append(titleGroup)
+            }
+
+            let appGroup = ActivityHierarchyGroup(
+                name: appName,
+                level: .appName,
+                children: titleHierarchy.sorted { $0.totalDuration > $1.totalDuration },
+                activities: []
+            )
+
+            appHierarchy.append(appGroup)
+        }
+
+        return appHierarchy.sorted { $0.totalDuration > $1.totalDuration }
+    }
+
     // MARK: - Timeline Hierarchy (Time Period -> App -> Title)
 
     private static func buildTimelineHierarchy(
@@ -192,8 +180,8 @@ class ActivityDataProcessor {
             // Get app name (should be same for all activities with same bundle ID)
             let appName = bundleActivities.first?.appName ?? bundleId
 
-            // Group by app name (same as bundle activities app name)
-            let titleGroups = Dictionary(grouping: bundleActivities) { $0.appName }
+            // Group by app title
+            let titleGroups = Dictionary(grouping: bundleActivities) { $0.appTitle ?? "General" }
             var titleHierarchy: [ActivityHierarchyGroup] = []
 
             for (title, titleActivities) in titleGroups.sorted(by: { $0.key < $1.key }) {

@@ -117,35 +117,23 @@ struct HierarchicalActivityRow: View {
 
     private var iconColor: Color {
         switch group.level {
-        case .project:
-            return .blue
-        case .subproject:
-            return .cyan
-        case .timeEntry:
-            return .green
-        case .timePeriod:
-            return .orange
         case .appName:
-            return .purple
+            return .blue
         case .appTitle:
-            return .gray
+            return .secondary
+        default:
+            return .primary
         }
     }
 
     private var rowBackground: Color {
         switch group.level {
-        case .project:
-            return isExpanded ? Color.blue.opacity(0.08) : .clear
-        case .subproject:
-            return isExpanded ? Color.cyan.opacity(0.05) : .clear
-        case .timeEntry:
-            return isExpanded ? Color.green.opacity(0.05) : .clear
-        case .timePeriod:
-            return isExpanded ? Color.orange.opacity(0.05) : .clear
         case .appName:
-            return isExpanded ? Color.purple.opacity(0.05) : .clear
+            return isExpanded ? Color.blue.opacity(0.06) : .clear
         case .appTitle:
-            return Color.gray.opacity(0.02)
+            return isExpanded ? Color.gray.opacity(0.04) : .clear
+        default:
+            return .clear
         }
     }
 }
@@ -156,38 +144,34 @@ struct ActivityDetailRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Empty space for alignment
-            Image(systemName: "minus")
-                .font(.system(size: 12))
-                .frame(width: 16)
-                .opacity(0)
+            // Indentation marker
+            Rectangle()
+                .fill(Color.secondary.opacity(0.2))
+                .frame(width: 2)
+                .padding(.vertical, 4)
+                .padding(.leading, 32)
 
             // Activity details
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 8) {
-                    Text(activity.appName)
-                        .font(.caption)
-                        .fontWeight(.medium)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack {
+                    Text(formatTimeRange())
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundColor(.secondary)
 
                     Spacer()
 
-                    Text(formatTimeRange())
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-
-                HStack(spacing: 8) {
                     Text(formatDuration(activity.calculatedDuration))
                         .font(.caption2)
                         .foregroundColor(.secondary)
-
-                    Spacer()
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.secondary.opacity(0.1))
+                        .cornerRadius(4)
                 }
             }
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 4)
         .padding(.horizontal, 12)
-        .background(Color(.controlBackgroundColor).opacity(0.3))
     }
 
     // MARK: - Helper Methods

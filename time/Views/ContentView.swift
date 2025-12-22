@@ -16,8 +16,8 @@ struct ContentView: View {
 
     @State private var searchText: String = ""
     @State private var isDatePickerExpanded: Bool = false
-    @State private var selectedDateRange = AppDateRange(startDate: Date(), endDate: Date())
-    @State private var selectedPreset: AppDateRangePreset?
+    @State private var selectedDateRange = AppDateRangePreset.today.dateRange
+    @State private var selectedPreset: AppDateRangePreset? = .today
 
     @State private var isAddingProject: Bool = false
     @State private var isStartingTimer: Bool = false
@@ -29,8 +29,6 @@ struct ContentView: View {
                 TimeEntryListView()
             } else {
                 VStack(spacing: 0) {
-                    currentActivityStatusBar
-                    filterStatusIndicator
                     TimelineView()
                     Divider()
                     ActivitiesView(activities: activityQueryManager.activities)
@@ -40,7 +38,7 @@ struct ContentView: View {
         .frame(minWidth: 600, minHeight: 400)
         .sheet(isPresented: $isAddingProject) {
             EditProjectView(
-                mode: .create(parentID: nil),
+                mode: .create,
                 isPresented: $isAddingProject
             )
         }
@@ -49,62 +47,9 @@ struct ContentView: View {
         }
     }
 
-    @ViewBuilder
-    private var currentActivityStatusBar: some View {
-        if let currentActivity = activityManager.getCurrentActivity() {
-            HStack {
-                Image(systemName: "circle.fill")
-                    .foregroundColor(.green)
-                    .font(.caption)
-
-                Text("Currently tracking: \(currentActivity.appName)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-
-                Spacer()
-
-                Text("Duration: \(currentActivity.durationString)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 4)
-            .background(Color.green.opacity(0.1))
-
-            Divider()
-        }
-    }
-
-    @ViewBuilder
-    private var filterStatusIndicator: some View {
-        let filterDescription = activityQueryManager.getCurrentFilterDescription()
-        if !filterDescription.isEmpty && filterDescription != "All Activities" {
-            HStack {
-                Image(systemName: "line.3.horizontal.decrease.circle")
-                    .foregroundColor(.blue)
-                    .font(.caption)
-
-                Text("Filters: \(filterDescription)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-
-                Spacer()
-
-                Text("\(activityQueryManager.activities.count) of \(activityQueryManager.totalCount)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 4)
-            .background(Color.blue.opacity(0.1))
-
-            Divider()
-        }
-    }
-
     var body: some View {
         NavigationSplitView(
-            columnVisibility: .constant(.all),
+            columnVisibility: Bindable(appState).columnVisibility,
             sidebar: {
                 SidebarView()
                     .accessibilityIdentifier("view.sidebar")
@@ -115,6 +60,10 @@ struct ContentView: View {
             }
         )
         .navigationSplitViewStyle(.balanced)
+        .environmentObject(projectManager)
+        .environmentObject(activityQueryManager)
+        .environmentObject(activityManager)
+        .environmentObject(timeEntryManager)
         .toolbar {
             MainToolbarView(
                 isAddingProject: $isAddingProject,
@@ -130,6 +79,11 @@ struct ContentView: View {
             // Initialize managers with modelContext
             projectManager.setModelContext(modelContext)
             activityQueryManager.setModelContext(modelContext)
+            
+            // Sync initial date range
+            let initialInterval = DateInterval(start: selectedDateRange.startDate, end: selectedDateRange.endDate)
+            activityQueryManager.setDateRange(initialInterval)
+            
             timeEntryManager.setModelContext(modelContext)
             activityManager.startTracking(modelContext: modelContext)
             

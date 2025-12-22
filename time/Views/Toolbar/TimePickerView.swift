@@ -147,14 +147,28 @@ extension AppDateRangePreset {
         let calendar = Calendar.current
 
         switch self {
-        case .today: return AppDateRange(startDate: calendar.startOfDay(for: now), endDate: now)
-        case .thisWeek: return AppDateRange(startDate: calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now))!, endDate: now)
-        case .thisMonth: return AppDateRange(startDate: calendar.date(from: calendar.dateComponents([.year, .month], from: now))!, endDate: now)
-        case .thisQuarter: let quarter = (calendar.component(.month, from: now) - 1) / 3 + 1
-            let startOfMonth = calendar.date(from: calendar.dateComponents([.year], from: now))!
-            let startOfQuarter = calendar.date(byAdding: .month, value: (quarter - 1) * 3, to: startOfMonth)!
-            return AppDateRange(startDate: startOfQuarter, endDate: now)
-        case .thisYear: return AppDateRange(startDate: calendar.date(from: calendar.dateComponents([.year], from: now))!, endDate: now)
+        case .today: 
+            return AppDateRange(startDate: calendar.startOfDay(for: now), endDate: calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now))!.addingTimeInterval(-1))
+        case .thisWeek: 
+            let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
+            let startOfWeek = calendar.date(from: components)!
+            let endOfWeek = calendar.date(byAdding: .day, value: 7, to: startOfWeek)!.addingTimeInterval(-1)
+            return AppDateRange(startDate: startOfWeek, endDate: endOfWeek)
+        case .thisMonth: 
+            let components = calendar.dateComponents([.year, .month], from: now)
+            let startOfMonth = calendar.date(from: components)!
+            let endOfMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth)!.addingTimeInterval(-1)
+            return AppDateRange(startDate: startOfMonth, endDate: endOfMonth)
+        case .thisQuarter: 
+            let quarter = (calendar.component(.month, from: now) - 1) / 3 + 1
+            let startOfYear = calendar.date(from: calendar.dateComponents([.year], from: now))!
+            let startOfQuarter = calendar.date(byAdding: .month, value: (quarter - 1) * 3, to: startOfYear)!
+            let endOfQuarter = calendar.date(byAdding: .month, value: 3, to: startOfQuarter)!.addingTimeInterval(-1)
+            return AppDateRange(startDate: startOfQuarter, endDate: endOfQuarter)
+        case .thisYear: 
+            let startOfYear = calendar.date(from: calendar.dateComponents([.year], from: now))!
+            let endOfYear = calendar.date(byAdding: .year, value: 1, to: startOfYear)!.addingTimeInterval(-1)
+            return AppDateRange(startDate: startOfYear, endDate: endOfYear)
         case .yesterday: let yesterday = calendar.date(byAdding: .day, value: -1, to: now)!
             return AppDateRange(startDate: calendar.startOfDay(for: yesterday), endDate: calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: yesterday))!)
         case .lastWeek: let lastWeek = calendar.date(byAdding: .weekOfYear, value: -1, to: now)!

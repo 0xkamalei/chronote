@@ -5,6 +5,7 @@ import SwiftUI
 
 @Observable
 class AppState {
+    var columnVisibility: NavigationSplitViewVisibility = .all
     var selectedProject: Project?
     var selectedSidebar: String? = "All Activities"
     var isTimerStarting: Bool = false

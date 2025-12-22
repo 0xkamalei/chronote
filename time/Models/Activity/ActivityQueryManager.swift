@@ -95,6 +95,7 @@ class ActivityQueryManager: ObservableObject {
             let descriptor = buildFetchDescriptor()
             let fetchedActivities = try context.fetch(descriptor)
 
+            // Special case: for project/sidebar filters that might not be fully handled by Predicate
             let filteredActivities = applyInMemoryFilters(fetchedActivities)
 
             let countDescriptor = buildCountDescriptor()
@@ -102,7 +103,10 @@ class ActivityQueryManager: ObservableObject {
 
             activities = filteredActivities
 
-            logger.info("Refreshed activities: \(filteredActivities.count) loaded, \(self.totalCount) total matching filters")
+            logger.info("Refreshed activities: \(filteredActivities.count) loaded out of \(fetchedActivities.count) raw, total count matches: \(self.totalCount)")
+            if filteredActivities.isEmpty && !fetchedActivities.isEmpty {
+                logger.warning("Warning: In-memory filters removed all \(fetchedActivities.count) fetched activities")
+            }
 
         } catch {
             logger.error("Failed to refresh activities: \(error.localizedDescription)")
@@ -124,7 +128,8 @@ class ActivityQueryManager: ObservableObject {
         }
 
         if let project = currentProjectFilter {
-            logger.info("Project filter applied in memory: \(project.name) (placeholder logic)")
+            filtered = filtered.filter { $0.projectId == project.id }
+            logger.info("Project filter applied in memory: \(project.name)")
         }
 
         if let sidebarFilter = currentSidebarFilter {
@@ -132,9 +137,11 @@ class ActivityQueryManager: ObservableObject {
             case "All Activities":
                 break
             case "Unassigned":
-                logger.info("Unassigned filter applied in memory (placeholder logic)")
+                filtered = filtered.filter { $0.projectId == nil }
+                logger.info("Unassigned filter applied in memory")
             case "My Projects":
-                logger.info("My Projects filter applied in memory (placeholder logic)")
+                filtered = filtered.filter { $0.projectId != nil }
+                logger.info("My Projects filter applied in memory")
             default:
                 break
             }
@@ -176,19 +183,50 @@ class ActivityQueryManager: ObservableObject {
             sortBy: [SortDescriptor(\Activity.startTime, order: .reverse)]
         )
 
-        if let dateRange = currentDateRange {
-            let datePredicate = #Predicate<Activity> { activity in
-                activity.startTime >= dateRange.start && activity.startTime <= dateRange.end
-            }
-            descriptor.predicate = datePredicate
-        }
+        let range = currentDateRange
+        let project = currentProjectFilter
+        let sidebar = currentSidebarFilter
+        let searchText = currentSearchText
 
-        else if !currentSearchText.isEmpty {
-            let searchText = currentSearchText
-            let searchPredicate = #Predicate<Activity> { activity in
+        if let range = range {
+            let start = range.start
+            let end = range.end
+
+            if let project = project {
+                let pid = project.id
+                descriptor.predicate = #Predicate<Activity> { activity in
+                    if let aid = activity.projectId {
+                        return activity.startTime >= start && activity.startTime <= end && aid == pid
+                    } else {
+                        return false
+                    }
+                }
+            } else if sidebar == "Unassigned" {
+                descriptor.predicate = #Predicate<Activity> { activity in
+                    activity.startTime >= start && activity.startTime <= end && activity.projectId == nil
+                }
+            } else if sidebar == "My Projects" {
+                descriptor.predicate = #Predicate<Activity> { activity in
+                    activity.startTime >= start && activity.startTime <= end && activity.projectId != nil
+                }
+            } else {
+                descriptor.predicate = #Predicate<Activity> { activity in
+                    activity.startTime >= start && activity.startTime <= end
+                }
+            }
+        } else if let project = project {
+            let pid = project.id
+            descriptor.predicate = #Predicate<Activity> { activity in
+                if let aid = activity.projectId {
+                    return aid == pid
+                } else {
+                    return false
+                }
+            }
+        } else if !searchText.isEmpty {
+            descriptor.predicate = #Predicate<Activity> { activity in
                 activity.appName.localizedStandardContains(searchText)
             }
-            descriptor.predicate = searchPredicate
         }
 
         descriptor.fetchLimit = 1000 // 最多加载1000条记录

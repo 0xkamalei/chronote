@@ -90,23 +90,5 @@ struct MainToolbarView: ToolbarContent {
         ToolbarItem(placement: .principal) {
             DateNavigatorView(selectedDateRange: $selectedDateRange, selectedPreset: $selectedPreset)
         }
-
-        ToolbarItem(placement: .primaryAction) {
-            Button(action: {}) {
-                HStack {
-                    Image(systemName: "desktopcomputer")
-                    Text("Devices")
-                }
-            }
-        }
-
-        ToolbarItem(placement: .primaryAction) {
-            Button(action: {}) {
-                HStack {
-                    Image(systemName: "line.3.horizontal.decrease.circle")
-                    Text("Filters")
-                }
-            }
-        }
     }
 }

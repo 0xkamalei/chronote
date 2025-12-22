@@ -11,8 +11,8 @@ struct NewTimeEntryView: View {
     @Query(sort: \Project.sortOrder) private var allProjects: [Project]
 
     @State private var selectedProject: Project?
-    @State private var isAddingSubproject = false
-    @State private var newSubprojectName = ""
+    @State private var isAddingProject = false
+    @State private var newProjectName = ""
     @State private var title: String = ""
     @State private var notes: String = ""
     @State private var startTime: Date = .init()
@@ -80,23 +80,23 @@ struct NewTimeEntryView: View {
                             Text("(No Project)").tag(nil as Project?)
 
                             ForEach(allProjects, id: \.id) { project in
-                                ProjectPickerItem(project: project, level: 0)
+                                ProjectPickerItem(project: project)
                             }
                         }
                         .labelsHidden()
                         .accessibilityIdentifier("newEntry.projectPicker")
 
-                        if isAddingSubproject {
-                            TextField("New Subproject Name", text: $newSubprojectName)
+                        if isAddingProject {
+                            TextField("New Project Name", text: $newProjectName)
                                 .onSubmit {
-                                    if !newSubprojectName.isEmpty, let parent = selectedProject {
+                                    if !newProjectName.isEmpty {
                                         Task {
                                             do {
-                                                let newProject = try await projectManager.createProject(name: newSubprojectName, color: .gray, parentID: parent.id)
+                                                let newProject = try await projectManager.createProject(name: newProjectName, color: .gray)
                                                 await MainActor.run {
                                                     selectedProject = newProject
-                                                    newSubprojectName = ""
-                                                    isAddingSubproject = false
+                                                    newProjectName = ""
+                                                    isAddingProject = false
                                                 }
                                             } catch {
                                                 await MainActor.run {
@@ -108,11 +108,10 @@ struct NewTimeEntryView: View {
                                     }
                                 }
                         } else {
-                            Button("New Subproject...") {
-                                isAddingSubproject = true
+                            Button("New Project...") {
+                                isAddingProject = true
                             }
-                            .disabled(selectedProject == nil)
-                            .accessibilityIdentifier("newEntry.newSubprojectButton")
+                            .accessibilityIdentifier("newEntry.newProjectButton")
                         }
                     }
                 }

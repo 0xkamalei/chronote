@@ -5,9 +5,6 @@ import SwiftUI
 struct ActivitiesView: View {
     let activities: [Activity]
 
-    @Query private var timeEntries: [TimeEntry]
-    @Query private var projects: [Project]
-
     @State private var hierarchyGroups: [ActivityHierarchyGroup] = []
     @State private var totalDuration: TimeInterval = 0
 
@@ -37,9 +34,6 @@ struct ActivitiesView: View {
         .onChange(of: activities) {
             buildHierarchy()
         }
-        .onChange(of: timeEntries) {
-            buildHierarchy()
-        }
     }
 
     // MARK: - Views
@@ -66,7 +60,7 @@ struct ActivitiesView: View {
     private var headerView: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Activities")
+                Text("Activities by App")
                     .font(.headline)
 
                 Text("Total: \(ActivityDataProcessor.formatDuration(totalDuration))")
@@ -76,15 +70,9 @@ struct ActivitiesView: View {
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 4) {
-                Text("\(activities.count) activities")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-
-                Text("\(timeEntries.count) entries")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
+            Text("\(hierarchyGroups.count) apps")
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -95,12 +83,7 @@ struct ActivitiesView: View {
     // MARK: - Methods
 
     private func buildHierarchy() {
-        hierarchyGroups = ActivityDataProcessor.buildHierarchy(
-            activities: activities,
-            timeEntries: timeEntries,
-            projects: projects
-        )
-
+        hierarchyGroups = ActivityDataProcessor.buildAppHierarchy(activities: activities)
         totalDuration = ActivityDataProcessor.calculateTotalDuration(for: activities)
     }
 }

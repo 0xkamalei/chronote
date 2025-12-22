@@ -16,8 +16,8 @@ struct StartTimerView: View {
     @State private var startTime: Date = .init()
     @State private var estimatedDuration: String = "2 Hours"
     @State private var playSound: Bool = true
-    @State private var isAddingSubproject = false
-    @State private var newSubprojectName = ""
+    @State private var isAddingProject = false
+    @State private var newProjectName = ""
 
 
 
@@ -38,23 +38,23 @@ struct StartTimerView: View {
                     VStack(alignment: .leading) {
                         Picker("", selection: $selectedProject) {
                             ForEach(allProjects) { project in
-                                ProjectPickerItem(project: project, level: 0)
+                                ProjectPickerItem(project: project)
                             }
                         }
                         .labelsHidden()
                         .accessibilityIdentifier("startTimer.projectPicker")
 
-                        if isAddingSubproject {
-                            TextField("New Subproject Name", text: $newSubprojectName)
-                                .accessibilityIdentifier("startTimer.newSubprojectField")
+                        if isAddingProject {
+                            TextField("New Project Name", text: $newProjectName)
+                                .accessibilityIdentifier("startTimer.newProjectField")
                                 .onSubmit {
-                                    if !newSubprojectName.isEmpty, let parent = selectedProject {
+                                    if !newProjectName.isEmpty {
                                         Task {
                                             do {
-                                                let newProject = try await projectManager.createProject(name: newSubprojectName, color: .gray, parentID: parent.id)
+                                                let newProject = try await projectManager.createProject(name: newProjectName, color: .gray)
                                                 await MainActor.run {
                                                     selectedProject = newProject
-                                                    newSubprojectName = ""
+                                                    newProjectName = ""
                                                 }
                                             } catch {
                                                 Logger.ui.error("Failed to create project: \(error)")
@@ -63,10 +63,10 @@ struct StartTimerView: View {
                                     }
                                 }
                         } else {
-                            Button("New Subproject...") {
-                                isAddingSubproject = true
+                            Button("New Project...") {
+                                isAddingProject = true
                             }
-                            .accessibilityIdentifier("startTimer.newSubprojectButton")
+                            .accessibilityIdentifier("startTimer.newProjectButton")
                         }
                     }
                 }

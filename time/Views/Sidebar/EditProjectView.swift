@@ -2,12 +2,15 @@ import SwiftUI
 import SwiftData
 
 import os
+#if canImport(AppKit)
+import AppKit
+#endif
 
 struct EditProjectView: View {
     // MARK: - Mode Definition
 
     enum Mode {
-        case create(parentID: String?)
+        case create
         case edit(Project)
 
         var isEditing: Bool {
@@ -27,15 +30,6 @@ struct EditProjectView: View {
                 return nil
             }
         }
-
-        var parentID: String? {
-            switch self {
-            case let .create(parentID):
-                return parentID
-            case let .edit(project):
-                return project.parentID
-            }
-        }
     }
 
     // MARK: - Form Data Structure
@@ -43,46 +37,15 @@ struct EditProjectView: View {
     struct ProjectFormData {
         var name: String = ""
         var color: Color = .blue
-        var parentID: String? = nil
-        var includeActivities: Bool = false
-        var notes: String = ""
-        var rating: Double = 0.5
+        var productivityRating: Double = 0.5
         var archived: Bool = false
-        var rules: [ProjectRule] = []
-        var ruleGroupCondition: RuleGroupCondition = .all
 
         var nameError: String? = nil
-        var parentError: String? = nil
         var hasErrors: Bool {
-            return nameError != nil || parentError != nil
+            return nameError != nil
         }
     }
 
-    enum RuleGroupCondition: String, CaseIterable, Identifiable {
-        case all = "All"
-        case any = "Any"
-
-        var id: String { rawValue }
-    }
-
-    enum DeletionStrategy: String, CaseIterable, Identifiable {
-        case deleteChildren = "Delete all child projects"
-        case moveChildrenToParent = "Move children to parent level"
-        case moveChildrenToRoot = "Move children to root level"
-
-        var id: String { rawValue }
-
-        var description: String {
-            switch self {
-            case .deleteChildren:
-                return "All child projects will be permanently deleted"
-            case .moveChildrenToParent:
-                return "Child projects will be moved to the parent level"
-            case .moveChildrenToRoot:
-                return "Child projects will be moved to the root level"
-            }
-        }
-    }
 
     // MARK: - Properties
 
@@ -99,10 +62,8 @@ struct EditProjectView: View {
     }
 
     @State private var formData = ProjectFormData()
-    @State private var isRuleEditorExpanded: Bool = true
 
     @State private var showingDeleteConfirmation = false
-    @State private var deletionStrategy: DeletionStrategy = .moveChildrenToParent
     @State private var timeEntryReassignmentTarget: Project? = nil
 
     @State private var isSubmitting = false
@@ -132,129 +93,112 @@ struct EditProjectView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 16) {
-                Text(navigationTitle)
-                    .font(.title)
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Header Section
+                    VStack(spacing: 8) {
+                        Text(navigationTitle)
+                            .font(.system(size: 24, weight: .bold))
+                        
+                        Text("Projects let you organize your time by what you worked on.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.bottom, 8)
 
-                Text("Projects let you organize your time by what you worked on.")
-                    .foregroundColor(.secondary)
-
-                Form {
-                    Section("Basic Information") {
-                        VStack(alignment: .leading, spacing: 4) {
-                            TextField("Project Name", text: $formData.name, prompt: Text("Enter project name"))
-                                .textFieldStyle(.roundedBorder)
-                                .onSubmit {
-                                    validateName()
-                                }
-                                .onChange(of: formData.name) { _, newValue in
-                                    if formData.nameError != nil {
-                                        formData.nameError = nil
-                                    }
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                        if formData.name == newValue {
-                                            validateName()
+                    // Form Content
+                    VStack(alignment: .leading, spacing: 20) {
+                        // Basic Info Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Basic Information")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                            
+                            Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 16) {
+                                GridRow {
+                                    Text("Project Name")
+                                        .gridColumnAlignment(.trailing)
+                                        .foregroundColor(.secondary)
+                                    
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        TextField("Enter project name", text: $formData.name)
+                                            .textFieldStyle(.roundedBorder)
+                                            .frame(maxWidth: .infinity)
+                                        
+                                        if let nameError = formData.nameError {
+                                            Text(nameError)
+                                                .font(.caption)
+                                                .foregroundColor(.red)
                                         }
                                     }
                                 }
-                                .accessibilityLabel("Project Name")
-                                .accessibilityHint("Enter a unique name for this project")
-                                .accessibilityIdentifier("projectForm.nameField")
-
-                            if let nameError = formData.nameError {
-                                Label(nameError, systemImage: "exclamationmark.triangle.fill")
-                                    .foregroundColor(.red)
-                                    .font(.caption)
-                                    .accessibilityLabel("Name validation error: \(nameError)")
-                            }
-                        }
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Picker("Parent Project", selection: $formData.parentID) {
-                                Text("None (Root Level)").tag(nil as String?)
-                                ForEach(availableParentProjects, id: \.id) { project in
-                                    ProjectPickerItem(project: project, level: 0)
-                                        .tag(project.id as String?)
+                                
+                                GridRow {
+                                    Text("Project Color")
+                                        .gridColumnAlignment(.trailing)
+                                        .foregroundColor(.secondary)
+                                    
+                                    HStack {
+                                        ColorPicker("", selection: $formData.color)
+                                            .labelsHidden()
+                                        Spacer()
+                                    }
                                 }
                             }
-                            .pickerStyle(.menu)
-                            .onChange(of: formData.parentID) { _, _ in
-                                validateParent()
-                            }
-                            .accessibilityLabel("Parent Project")
-                            .accessibilityHint("Choose a parent project or leave as root level")
-
-                            if let parentError = formData.parentError {
-                                Label(parentError, systemImage: "exclamationmark.triangle.fill")
-                                    .foregroundColor(.red)
-                                    .font(.caption)
-                                    .accessibilityLabel("Parent validation error: \(parentError)")
-                            }
                         }
+                        .padding()
+                        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+                        .cornerRadius(12)
 
-                        ColorPicker("Project Color", selection: $formData.color, supportsOpacity: false)
-                            .accessibilityLabel("Project Color")
-                            .accessibilityHint("Choose a color to identify this project")
-                    }
-
-                    Section("Advanced Settings") {
-                        Toggle(isOn: $formData.includeActivities) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Auto-include Activities")
-                                Text("Include activities with \"\(formData.name.isEmpty ? "project name" : formData.name)\" in their title or path")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .accessibilityLabel("Auto-include Activities")
-                        .accessibilityHint("Automatically include activities that match the project name")
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Notes")
+                        // Productivity Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Advanced Settings")
                                 .font(.headline)
-                            TextField("Additional notes about this project", text: $formData.notes, axis: .vertical)
-                                .textFieldStyle(.roundedBorder)
-                                .lineLimit(3 ... 6)
-                                .accessibilityLabel("Project Notes")
-                                .accessibilityHint("Optional notes about this project")
-                        }
-
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text("Productivity Rating:")
-                                    .font(.headline)
-                                Spacer()
-                                Text(formData.rating > 0.5 ? "PRODUCTIVE" : "UNPRODUCTIVE")
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(formData.rating > 0.5 ? .green : .orange)
+                                .foregroundColor(.secondary)
+                            
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack {
+                                    Text("Productivity Rating")
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                    Text(formData.productivityRating > 0.5 ? "PRODUCTIVE" : "UNPRODUCTIVE")
+                                        .font(.caption)
+                                        .fontWeight(.bold)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 2)
+                                        .background(formData.productivityRating > 0.5 ? Color.green.opacity(0.2) : Color.orange.opacity(0.2))
+                                        .foregroundColor(formData.productivityRating > 0.5 ? .green : .orange)
+                                        .cornerRadius(4)
+                                }
+                                
+                                Slider(value: $formData.productivityRating, in: 0...1) {
+                                    Text("Productivity Rating")
+                                } minimumValueLabel: {
+                                    Text("Low").font(.caption2).foregroundColor(.secondary)
+                                } maximumValueLabel: {
+                                    Text("High").font(.caption2).foregroundColor(.secondary)
+                                }
+                                .accentColor(formData.productivityRating > 0.5 ? .green : .orange)
+                                
+                                Divider()
+                                    .padding(.vertical, 4)
+                                
+                                Toggle(isOn: $formData.archived) {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Archive Project")
+                                            .font(.body)
+                                        Text("Archived projects are hidden from most views")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                .toggleStyle(.checkbox)
                             }
-
-                            Slider(value: $formData.rating, in: 0 ... 1) {
-                                Text("Productivity Rating")
-                            } minimumValueLabel: {
-                                Text("Low")
-                                    .font(.caption)
-                            } maximumValueLabel: {
-                                Text("High")
-                                    .font(.caption)
-                            }
-                            .accessibilityLabel("Productivity Rating")
-                            .accessibilityValue("\(Int(formData.rating * 100))% productive")
-                            .accessibilityHint("Rate how productive this project is")
                         }
-
-                        Toggle(isOn: $formData.archived) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Archive Project")
-                                Text("Archived projects are hidden from most views and their rules are ignored")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .accessibilityLabel("Archive Project")
-                        .accessibilityHint("Hide this project from most views")
+                        .padding()
+                        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+                        .cornerRadius(12)
                     }
 
                     if case let .edit(project) = mode {
@@ -264,56 +208,16 @@ struct EditProjectView: View {
                         .disabled(isSubmitting || isDeleting)
                     }
                 }
+                .padding(.horizontal, 40)
+                .padding(.vertical, 20)
+            }
 
-                DisclosureGroup("Rule Editor (advanced)", isExpanded: $isRuleEditorExpanded) {
-                    VStack {
-                        HStack {
-                            Picker("Condition", selection: $formData.ruleGroupCondition) {
-                                ForEach(RuleGroupCondition.allCases) { condition in
-                                    Text(condition.rawValue).tag(condition)
-                                }
-                            }
-                            .pickerStyle(.segmented)
-
-                            Text("of the following are true")
-                            Spacer()
-                            Button(action: addRule) {
-                                Image(systemName: "plus")
-                            }
-                        }
-
-                        ForEach($formData.rules) { $rule in
-                            HStack {
-                                Picker("Type", selection: $rule.type) {
-                                    ForEach(ProjectRuleType.allCases) { type in
-                                        Text(type.rawValue).tag(type)
-                                    }
-                                }
-                                .frame(minWidth: 150)
-
-                                Picker("Condition", selection: $rule.condition) {
-                                    ForEach(ProjectRuleCondition.allCases) { condition in
-                                        Text(condition.rawValue).tag(condition)
-                                    }
-                                }
-                                .frame(minWidth: 120)
-
-                                TextField("Value", text: $rule.value)
-
-                                Button(action: { removeRule(rule) }) {
-                                    Image(systemName: "minus")
-                                }
-                            }
-                        }
-                    }
-                }
-
+            // Messages & Footer
+            VStack(spacing: 12) {
                 if let submitError = submitError {
                     HStack {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundColor(.red)
-                            .scaleEffect(1.2)
-                            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: submitError)
                         Text(submitError)
                             .foregroundColor(.red)
                             .font(.caption)
@@ -321,33 +225,15 @@ struct EditProjectView: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.red.opacity(0.1))
-                            .stroke(Color.red.opacity(0.3), lineWidth: 1)
-                    )
+                    .background(Color.red.opacity(0.1))
+                    .cornerRadius(8)
                     .offset(x: errorShakeOffset)
-                    .onAppear {
-                        withAnimation(.easeInOut(duration: 0.1).repeatCount(3, autoreverses: true)) {
-                            errorShakeOffset = 5
-                        }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            errorShakeOffset = 0
-                        }
-
-                        #if canImport(UIKit)
-                            let notificationFeedback = UINotificationFeedbackGenerator()
-                            notificationFeedback.notificationOccurred(.error)
-                        #endif
-                    }
                 }
 
                 if showingSuccessMessage {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(.green)
-                            .scaleEffect(successPulseScale)
-                            .animation(.spring(response: 0.4, dampingFraction: 0.6), value: successPulseScale)
                         Text(mode.isEditing ? "Project updated successfully" : "Project created successfully")
                             .foregroundColor(.green)
                             .font(.caption)
@@ -355,138 +241,103 @@ struct EditProjectView: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.green.opacity(0.1))
-                            .stroke(Color.green.opacity(0.3), lineWidth: 1)
-                    )
-                    .onAppear {
-                        withAnimation(.easeInOut(duration: 0.2).repeatCount(2, autoreverses: true)) {
-                            successPulseScale = 1.2
-                        }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                            successPulseScale = 1.0
-                        }
-
-                        #if canImport(UIKit)
-                            let notificationFeedback = UINotificationFeedbackGenerator()
-                            notificationFeedback.notificationOccurred(.success)
-                        #endif
-                    }
-                    .transition(.asymmetric(
-                        insertion: .scale.combined(with: .opacity),
-                        removal: .opacity
-                    ))
+                    .background(Color.green.opacity(0.1))
+                    .cornerRadius(8)
                 }
 
                 HStack {
                     Button("Cancel") {
                         isPresented = false
                     }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
                     .disabled(isSubmitting || isDeleting)
 
                     Spacer()
 
-                    AsyncButton(
-                        title: mode.isEditing ? "Save Changes" : "Create Project",
-                        isLoading: isSubmitting,
-                        action: {
-                            await saveProjectAsync()
+                    Button(action: {
+                        Task { await saveProjectAsync() }
+                    }) {
+                        if isSubmitting {
+                            ProgressView()
+                                .controlSize(.small)
+                                .padding(.horizontal, 10)
+                        } else {
+                            Text(mode.isEditing ? "Save Changes" : "Create Project")
+                                .fontWeight(.semibold)
                         }
-                    )
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
                     .keyboardShortcut(.defaultAction)
                     .disabled(!isFormValid)
-                    .accessibilityIdentifier("projectForm.submitButton")
                 }
+                .padding(.horizontal, 40)
+                .padding(.vertical, 20)
+                .background(Color(NSColor.windowBackgroundColor))
             }
-            .padding()
-            .frame(minWidth: 500, idealWidth: 600)
-            .navigationTitle(navigationTitle)
-            .scaleEffect(formScale)
-            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: formScale)
-            .overlay {
-                if showingLoadingOverlay {
-                    ZStack {
-                        Color.black.opacity(0.3)
-                            .ignoresSafeArea()
+        }
+        .frame(minWidth: 550, maxWidth: 650, minHeight: 500, maxHeight: 800)
+        .navigationTitle(navigationTitle)
+        .scaleEffect(formScale)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: formScale)
+        .overlay {
+            if showingLoadingOverlay {
+                ZStack {
+                    Color.black.opacity(0.3)
+                        .ignoresSafeArea()
 
-                        VStack(spacing: 16) {
-                            ProgressView()
-                                .scaleEffect(1.5)
-                                .progressViewStyle(CircularProgressViewStyle(tint: .accentColor))
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                        
+                        Text(isSubmitting ? "Saving project..." : "Deleting project...")
+                            .font(.headline)
+                            .foregroundColor(.primary)
 
-                            Text(isSubmitting ? "Saving project..." : "Deleting project...")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-
-                            if operationProgress > 0 {
-                                ProgressView(value: operationProgress, total: 1.0)
-                                    .frame(width: 200)
-                                    .progressViewStyle(LinearProgressViewStyle(tint: .accentColor))
-                            }
+                        if operationProgress > 0 {
+                            ProgressView(value: operationProgress, total: 1.0)
+                                .frame(width: 200)
                         }
-                        .padding(24)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(.regularMaterial)
-                                .shadow(radius: 20)
-                        )
                     }
-                    .transition(.asymmetric(
-                        insertion: .opacity.combined(with: .scale(scale: 0.8)),
-                        removal: .opacity
-                    ))
+                    .padding(24)
+                    .background(RoundedRectangle(cornerRadius: 16).fill(.regularMaterial))
                 }
             }
-            .onAppear {
-                initializeFormData()
-
-                formScale = 0.9
-                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                    formScale = 1.0
-                }
+        }
+        .onAppear {
+            initializeFormData()
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                formScale = 1.0
             }
-            .confirmationDialog("Delete Project", isPresented: $showingDeleteConfirmation) {
-                if case let .edit(project) = mode {
-                    ProjectDeleteConfirmationDialog(
-                        project: project,
-                        deletionStrategy: $deletionStrategy,
-                        timeEntryReassignmentTarget: $timeEntryReassignmentTarget,
-                        availableProjects: availableProjectsForReassignment,
-                        onConfirm: {
-                            deleteProject()
-                        }
-                    )
-                }
-            } message: {
-                if case let .edit(project) = mode {
-                    Text("Are you sure you want to delete \"\(project.name)\"? This action cannot be undone.")
-                }
+        }
+        .confirmationDialog("Delete Project", isPresented: $showingDeleteConfirmation) {
+            if case let .edit(project) = mode {
+                ProjectDeleteConfirmationDialog(
+                    project: project,
+                    timeEntryReassignmentTarget: $timeEntryReassignmentTarget,
+                    availableProjects: availableProjectsForReassignment,
+                    onConfirm: {
+                        deleteProject()
+                    }
+                )
+            }
+        } message: {
+            if case let .edit(project) = mode {
+                Text("Are you sure you want to delete \"\(project.name)\"? This action cannot be undone.")
             }
         }
     }
 
     // MARK: - Computed Properties for Form Logic
 
-    /// Available parent projects (excludes the project being edited and its descendants)
-    private var availableParentProjects: [Project] {
-        switch mode {
-        case .create:
-            return allProjects
-        case let .edit(project):
-            let excludedIds = Set([project.id] + project.descendants.map { $0.id })
-            return allProjects.filter { !excludedIds.contains($0.id) }
-        }
-    }
-
-    /// Available projects for time entry reassignment (excludes the project being deleted and its descendants)
+    /// Available projects for time entry reassignment (excludes the project being deleted)
     private var availableProjectsForReassignment: [Project] {
         switch mode {
         case .create:
             return []
         case let .edit(project):
-            let excludedIds = Set([project.id] + project.descendants.map { $0.id })
-            return allProjects.filter { !excludedIds.contains($0.id) }
+            return allProjects.filter { $0.id != project.id }
         }
     }
 
@@ -495,22 +346,16 @@ struct EditProjectView: View {
     /// Initializes form data based on the mode (create vs edit)
     private func initializeFormData() {
         switch mode {
-        case let .create(parentID):
+        case .create:
             formData = ProjectFormData()
-            formData.parentID = parentID
             formData.name = ""
             formData.color = .blue
 
         case let .edit(project):
             formData.name = project.name
             formData.color = project.color
-            formData.parentID = project.parentID
-            formData.includeActivities = false
-            formData.notes = ""
-            formData.rating = 0.5
-            formData.archived = false
-            formData.rules = [ProjectRule()]
-            formData.ruleGroupCondition = .all
+            formData.productivityRating = project.productivityRating
+            formData.archived = project.isArchived
         }
     }
 
@@ -548,7 +393,6 @@ struct EditProjectView: View {
         }
 
         let existingProjects = allProjects.filter { project in
-            project.parentID == formData.parentID &&
                 project.name.lowercased() == trimmedName.lowercased()
         }
 
@@ -560,64 +404,16 @@ struct EditProjectView: View {
         }
 
         if !filteredProjects.isEmpty {
-            formData.nameError = "A project with this name already exists at this level"
+            formData.nameError = "A project with this name already exists"
             return
         }
 
         formData.nameError = nil
     }
 
-    /// Validates the parent selection with circular reference prevention
-    private func validateParent() {
-        guard let parentID = formData.parentID else {
-            formData.parentError = nil
-            return
-        }
-
-        guard let parent = allProjects.first(where: { $0.id == parentID }) else {
-            formData.parentError = "Selected parent project not found"
-            return
-        }
-
-        if case let .edit(project) = mode {
-            if parent.id == project.id {
-                formData.parentError = "A project cannot be its own parent"
-                return
-            }
-
-            if project.isAncestorOf(parent) {
-                formData.parentError = "Cannot create circular reference - selected parent is a child of this project"
-                return
-            }
-
-            if parent.depth >= 4 {
-                formData.parentError = "Project hierarchy would be too deep (maximum 5 levels)"
-                return
-            }
-
-            let validationResult = parent.validateAsParentOf(project)
-            switch validationResult {
-            case let .failure(error):
-                formData.parentError = error.localizedDescription
-                return
-            case .success:
-                break
-            }
-        } else {
-            if parent.depth >= 4 {
-                formData.parentError = "Selected parent is too deep in hierarchy (maximum 5 levels)"
-                return
-            }
-        }
-
-        formData.parentError = nil
-    }
-
     /// Validates the entire form before submission
     private func validateForm() -> Bool {
         validateName()
-        validateParent()
-
         return !formData.hasErrors
     }
 
@@ -697,20 +493,14 @@ struct EditProjectView: View {
         }
     }
 
-    /// Creates a new project asynchronously
     private func createNewProjectAsync() async throws {
         let trimmedName = formData.name.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        let existingProjects = allProjects.filter { project in
-            project.parentID == formData.parentID &&
-                project.name.lowercased() == trimmedName.lowercased()
-        }
-
-        if !existingProjects.isEmpty {
-            throw ProjectCreationError.duplicateName
-        }
-
-        _ = try await projectManager.createProject(name: trimmedName, color: formData.color, parentID: formData.parentID)
+        _ = try await projectManager.createProject(
+            name: trimmedName,
+            color: formData.color,
+            productivityRating: formData.productivityRating,
+            isArchived: formData.archived
+        )
     }
 
     /// Updates an existing project asynchronously
@@ -718,7 +508,6 @@ struct EditProjectView: View {
         let trimmedName = formData.name.trimmingCharacters(in: .whitespacesAndNewlines)
 
         let existingProjects = allProjects.filter { existingProject in
-            existingProject.parentID == formData.parentID &&
                 existingProject.name.lowercased() == trimmedName.lowercased() &&
                 existingProject.id != project.id
         }
@@ -727,32 +516,18 @@ struct EditProjectView: View {
             throw ProjectCreationError.duplicateName
         }
 
-        // Apply updates
         try await projectManager.updateProject(
             project,
             name: trimmedName,
             color: formData.color,
-            parentID: formData.parentID
+            productivityRating: formData.productivityRating,
+            isArchived: formData.archived
         )
-        
-        // Ensure sort order is updated if parent changed
-        if project.parentID != formData.parentID {
-            let newOrder = calculateNextSortOrder()
-            // We need to update sortOrder separately or passed to manager. 
-            // Manager doesn't take sortOrder in updateProject.
-            // Let's rely on manager or update manually then save.
-            project.sortOrder = newOrder
-            // Helper to save since we did manual update
-            try await projectManager.reorderProject(project, to: newOrder, in: formData.parentID)
-        }
-        
-
     }
 
-    /// Calculates the next sort order for the current parent
+    /// Calculates the next sort order
     private func calculateNextSortOrder() -> Int {
-        let siblings = allProjects.filter { $0.parentID == formData.parentID }
-        return (siblings.map { $0.sortOrder }.max() ?? 0) + 1
+        return (allProjects.map { $0.sortOrder }.max() ?? 0) + 1
     }
 
     // MARK: - Delete Functionality
@@ -796,50 +571,11 @@ struct EditProjectView: View {
         }
     }
 
-    /// Calculates the next sort order for a specific parent
-    private func calculateNextSortOrderForParent(_ parentID: String?) -> Int {
-        let siblings = allProjects.filter { $0.parentID == parentID }
-        return siblings.map { $0.sortOrder }.max() ?? 0 + 1
-    }
 
-    // MARK: - Rule Management
-
-    func addRule() {
-        formData.rules.append(ProjectRule())
-    }
-
-    func removeRule(_ rule: ProjectRule) {
-        formData.rules.removeAll { $0.id == rule.id }
-    }
 }
 
 // MARK: - Rule Types and Components
 
-enum ProjectRuleType: String, CaseIterable, Identifiable {
-    case application = "Application"
-    case windowTitle = "Window Title"
-    case url = "URL"
-    case path = "Path"
-
-    var id: String { rawValue }
-}
-
-enum ProjectRuleCondition: String, CaseIterable, Identifiable {
-    case contains = "Contains"
-    case equals = "Equals"
-    case startsWith = "Starts With"
-    case endsWith = "Ends With"
-    case matches = "Matches"
-
-    var id: String { rawValue }
-}
-
-struct ProjectRule: Identifiable {
-    let id = UUID()
-    var type: ProjectRuleType = .application
-    var condition: ProjectRuleCondition = .contains
-    var value: String = ""
-}
 
 
 // MARK: - Supporting Components
@@ -890,7 +626,6 @@ struct ProjectDangerZoneSection: View {
 /// Confirmation dialog for project deletion
 struct ProjectDeleteConfirmationDialog: View {
     let project: Project
-    @Binding var deletionStrategy: EditProjectView.DeletionStrategy
     @Binding var timeEntryReassignmentTarget: Project?
     let availableProjects: [Project]
     let onConfirm: () -> Void
@@ -909,49 +644,21 @@ struct ProjectDeleteConfirmationDialog: View {
 
 enum ProjectCreationError: LocalizedError {
     case duplicateName
-    case invalidParent
     case networkError
 
     var errorDescription: String? {
         switch self {
         case .duplicateName:
-            return "A project with this name already exists at this level"
-        case .invalidParent:
-            return "The selected parent project is invalid"
+            return "A project with this name already exists"
         case .networkError:
             return "Network error occurred while saving"
         }
     }
 }
 
-// MARK: - AsyncButton Component
-
-struct AsyncButton: View {
-    let title: String
-    let isLoading: Bool
-    let action: () async -> Void
-
-    var body: some View {
-        Button(action: {
-            Task {
-                await action()
-            }
-        }) {
-            HStack {
-                if isLoading {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                        .progressViewStyle(CircularProgressViewStyle())
-                }
-                Text(title)
-            }
-        }
-        .disabled(isLoading)
-    }
-}
 
 #Preview("Create Mode") {
-    EditProjectView(mode: .create(parentID: nil), isPresented: .constant(true))
+    EditProjectView(mode: .create, isPresented: .constant(true))
         .environment(AppState())
 }
 

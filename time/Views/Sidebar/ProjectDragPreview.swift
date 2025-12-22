@@ -36,12 +36,6 @@ struct ProjectDragPreview: View {
                 .foregroundColor(.primary)
                 .lineLimit(1)
                 .truncationMode(.tail)
-
-            if project.depth > 0 {
-                Text("(\(project.depth + 1))")
-                    .font(.system(size: 12, weight: .regular))
-                    .foregroundColor(.secondary)
-            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
@@ -69,8 +63,8 @@ struct ProjectDragPreview: View {
 #Preview {
     VStack(spacing: 16) {
         ProjectDragPreview(project: Project(name: "Root Project", color: .blue))
-        ProjectDragPreview(project: Project(name: "Child Project", color: .green, parentID: "parent"))
-        ProjectDragPreview(project: Project(name: "Deep Child", color: .orange, parentID: "child"))
+        ProjectDragPreview(project: Project(name: "Other Project", color: .green))
+        ProjectDragPreview(project: Project(name: "Another Project", color: .orange))
     }
     .padding()
 }

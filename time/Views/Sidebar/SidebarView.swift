@@ -11,24 +11,6 @@ struct SidebarView: View {
 
     @Query(sort: \Project.sortOrder) private var projects: [Project]
 
-    private var rootProjects: [Project] {
-        let roots = projects.filter { $0.parentID == nil }
-        return roots.map { root in
-            let project = root
-            project.children = buildChildren(for: root.id)
-            return project
-        }
-    }
-
-    private func buildChildren(for parentID: String) -> [Project] {
-        let children = projects.filter { $0.parentID == parentID }
-        return children.map { child in
-            let project = child
-            project.children = buildChildren(for: child.id)
-            return project
-        }
-    }
-
     var body: some View {
         @Bindable var bindableAppState = appState
         
@@ -38,18 +20,6 @@ struct SidebarView: View {
                     Label("Activities", systemImage: "clock")
                 }
                 .accessibilityIdentifier("sidebar.activities")
-                NavigationLink(value: "Time Entries") {
-                    Label("Time Entries", systemImage: "list.bullet.clipboard")
-                }
-                .accessibilityIdentifier("sidebar.timeEntries")
-                NavigationLink(value: "Stats") {
-                    Label("Stats", systemImage: "chart.bar")
-                }
-                .accessibilityIdentifier("sidebar.stats")
-                NavigationLink(value: "Reports") {
-                    Label("Reports", systemImage: "doc.text")
-                }
-                .accessibilityIdentifier("sidebar.reports")
             }
 
             Section(header: Text("Projects")) {
@@ -82,11 +52,10 @@ struct SidebarView: View {
                 .accessibilityIdentifier("sidebar.unassigned")
 
                 DisclosureGroup(isExpanded: $isMyProjectsExpanded) {
-                    ForEach(rootProjects) { project in
-                        ProjectRowView(project: project, level: 0)
+                    ForEach(projects) { project in
+                        ProjectRowView(project: project)
                     }
                     .onMove(perform: moveProjects)
-                    .deleteDisabled(true)
                 } label: {
                     HStack {
                         Image(systemName: "folder")
@@ -100,7 +69,7 @@ struct SidebarView: View {
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("Create New Project")
-                        .accessibilityHint("Creates a new project at the root level")
+                        .accessibilityHint("Creates a new project")
                         .help("Create New Project")
                         .accessibilityIdentifier("sidebar.createProjectButton")
                     }
@@ -117,7 +86,7 @@ struct SidebarView: View {
         .listStyle(SidebarListStyle())
         .navigationTitle("Time Tracker")
         .sheet(isPresented: $showingCreateProject) {
-            EditProjectView(mode: .create(parentID: nil), isPresented: $showingCreateProject)
+            EditProjectView(mode: .create, isPresented: $showingCreateProject)
         }
         .onAppear {
             appState.validateCurrentSelection()
@@ -134,10 +103,10 @@ struct SidebarView: View {
         Task {
             do {
                 for index in source {
-                    if index < rootProjects.count {
-                        let project = rootProjects[index]
+                    if index < projects.count {
+                        let project = projects[index]
                         let newIndex = destination > index ? destination - 1 : destination
-                        try await projectManager.reorderProject(project, to: newIndex, in: nil)
+                        try await projectManager.reorderProject(project, to: newIndex)
                     }
                 }
             } catch {
@@ -146,6 +115,7 @@ struct SidebarView: View {
         }
     }
 }
+
 
 extension Notification.Name {
     static let projectDidChange = Notification.Name("projectDidChange")

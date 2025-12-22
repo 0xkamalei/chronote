@@ -12,8 +12,6 @@ struct ProjectRowView: View {
     @Environment(AppState.self) private var appState
     @EnvironmentObject private var projectManager: ProjectManager
 
-    private let level: Int
-
     @State private var isDragging = false
     @State private var dragOffset = CGSize.zero
     @State private var dragStartTime: Date?
@@ -24,46 +22,21 @@ struct ProjectRowView: View {
     @State private var dropFeedbackDebouncer: Timer?
 
     @State private var cachedRowHeight: CGFloat = 28
-    @State private var cachedIndentationWidth: CGFloat = 0
 
-    init(project: Project, level: Int = 0) {
-        self.project = project
-        self.level = level
-    }
+    @State private var showingEditProject = false
+    @State private var showingDeleteConfirmation = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             projectLabel
-
-            if !project.children.isEmpty && project.isExpanded {
-                ForEach(project.children) { child in
-                    ProjectRowView(project: child, level: level + 1)
-                }
-                .onMove { source, destination in
-                    moveChildProjects(from: source, to: destination)
-                }
-            }
         }
     }
 
     private var projectLabelContent: some View {
         HStack(spacing: 8) {
-            indentationView
-            expandCollapseIndicator
             colorIndicator
             projectNameText
             Spacer()
-            statusIndicators
-        }
-    }
-
-    private var indentationView: some View {
-        HStack(spacing: 0) {
-            ForEach(0 ..< level, id: \.self) { _ in
-                Rectangle()
-                    .fill(Color.clear)
-                    .frame(width: 16)
-            }
         }
     }
 
@@ -85,22 +58,6 @@ struct ProjectRowView: View {
             .truncationMode(.tail)
     }
 
-    private var statusIndicators: some View {
-        HStack(spacing: 4) {
-            if !project.children.isEmpty {
-                Text("\(project.children.count)")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 1)
-                    .background(
-                        Capsule()
-                            .fill(Color.secondary.opacity(0.15))
-                    )
-            }
-        }
-    }
-
     private var projectLabel: some View {
         projectLabelContent
             .padding(.horizontal, 8)
@@ -108,30 +65,62 @@ struct ProjectRowView: View {
             .contentShape(Rectangle())
             .background(projectBackground)
             .modifier(DragModifier(isDragging: isDragging, dragOffset: dragOffset))
-            .modifier(ProjectLabelInteractionModifier(
-                project: project,
-                appState: appState,
-                accessibilityLabel: accessibilityLabel,
-                accessibilityHint: accessibilityHint,
-                accessibilityValue: accessibilityValue,
-                onDragChanged: handleDragChanged,
-                onDragEnded: handleDragEnded
-            ))
-            // Note: Drag and drop simplified for MVP - requires Transferable protocol
-            // .dropDestination(for: Project.self) { droppedProjects, location in
-            //     handleProjectDrop(droppedProjects: droppedProjects, at: location)
-            // } isTargeted: { isTargeted in
-            //     handleDropTargetChange(isTargeted)
-            // }
+            .onTapGesture {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    appState.selectProject(project)
+                }
+            }
+            .contextMenu {
+                Button("Edit Project", systemImage: "pencil") {
+                    showingEditProject = true
+                }
+
+                Divider()
+
+                Button("Delete Project", systemImage: "trash", role: .destructive) {
+                    showingDeleteConfirmation = true
+                }
+            }
+            .sheet(isPresented: $showingEditProject) {
+                EditProjectView(
+                    mode: .edit(project),
+                    isPresented: $showingEditProject
+                )
+            }
+            .confirmationDialog(
+                "Delete Project",
+                isPresented: $showingDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Delete", role: .destructive) {
+                    deleteProject()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Are you sure you want to delete '\(project.name)'? This action cannot be undone.")
+            }
+            .gesture(
+                DragGesture(minimumDistance: 3, coordinateSpace: .local)
+                    .onChanged(handleDragChanged)
+                    .onEnded(handleDragEnded)
+            )
             .overlay(alignment: .top) {
                 dropIndicatorTop
             }
             .overlay(alignment: .bottom) {
                 dropIndicatorBottom
             }
-            .overlay {
-                dropIndicatorInside
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(accessibilityLabel)
+            .accessibilityHint(accessibilityHint)
+            .accessibilityValue(accessibilityValue)
+            .accessibilityAddTraits(appState.isProjectSelected(project) ? [.isSelected] : [])
+            .accessibilityAction(.default) {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    appState.selectProject(project)
+                }
             }
+            .accessibilityAction(.showMenu) {}
     }
 
     private var dropIndicatorTop: some View {
@@ -156,40 +145,6 @@ struct ProjectRowView: View {
         }
     }
 
-    private var dropIndicatorInside: some View {
-        Group {
-            if showDropIndicator && dropPosition == .inside {
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(Color.accentColor, lineWidth: 2)
-                    .opacity(0.6)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var expandCollapseIndicator: some View {
-        if !project.children.isEmpty {
-            Button(action: {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    project.isExpanded.toggle()
-                }
-            }) {
-                Image(systemName: project.isExpanded ? "chevron.down" : "chevron.right")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.secondary)
-                    .frame(width: 12, height: 12)
-                    .rotationEffect(.degrees(project.isExpanded ? 0 : -90))
-                    .animation(.easeInOut(duration: 0.2), value: project.isExpanded)
-            }
-            .buttonStyle(.plain)
-            .contentShape(Rectangle())
-        } else {
-            Rectangle()
-                .fill(Color.clear)
-                .frame(width: 12, height: 12)
-        }
-    }
-
     private var backgroundColorForProject: Color {
         if appState.isProjectSelected(project) {
             return Color.accentColor.opacity(0.2)
@@ -201,142 +156,6 @@ struct ProjectRowView: View {
     private var projectBackground: some View {
         RoundedRectangle(cornerRadius: 4)
             .fill(backgroundColorForProject)
-    }
-
-    private func moveChildProjects(from source: IndexSet, to destination: Int) {
-        let projectsToReorder = project.children
-
-        guard let sourceIndex = source.first,
-              sourceIndex < projectsToReorder.count
-        else {
-            Logger.ui.warning("Invalid source index for project reorder operation")
-            return
-        }
-
-        let projectToMove = projectsToReorder[sourceIndex]
-
-        Task {
-            do {
-                try await projectManager.reorderProject(projectToMove, to: destination, in: project.id)
-            } catch {
-                Logger.ui.error("Failed to reorder project: \(error.localizedDescription)")
-            }
-        }
-    }
-
-    private func handleProjectDrop(droppedProjects: [Project], at location: CGPoint) -> Bool {
-        guard let droppedProject = droppedProjects.first else { return false }
-
-        if !validateDrop(droppedProject: droppedProject) {
-            return false
-        }
-
-        let detectedPosition = getDropPosition(for: location)
-
-        switch detectedPosition {
-        case .above:
-            return handleDropAbove(droppedProject: droppedProject)
-        case .below:
-            return handleDropBelow(droppedProject: droppedProject)
-        case .inside:
-            return handleDropInside(droppedProject: droppedProject)
-        case .invalid:
-            return false
-        }
-    }
-
-    private func validateDrop(droppedProject: Project) -> Bool {
-        if droppedProject.id == project.id {
-            return false
-        }
-
-        if isProjectAncestor(droppedProject, of: project) {
-            return false
-        }
-
-        return true
-    }
-
-    private func handleDropAbove(droppedProject: Project) -> Bool {
-        let targetParentID = project.parentID
-        let targetSortOrder = project.sortOrder
-
-        Task {
-            do {
-                guard let project = projectManager.getProject(by: droppedProject.id) else {
-                    Logger.ui.error("Project not found: \(droppedProject.id)")
-                    return
-                }
-
-                let newParent = targetParentID != nil ? projectManager.getProject(by: targetParentID!) : nil
-
-                try await projectManager.moveProject(project, to: newParent)
-                try await projectManager.reorderProject(project, to: targetSortOrder, in: targetParentID)
-
-                Logger.ui.info("Successfully moved project '\(project.name)' to position \(targetSortOrder)")
-            } catch {
-                Logger.ui.error("Failed to move project to position: \(error.localizedDescription)")
-            }
-        }
-        return true
-    }
-
-    private func handleDropBelow(droppedProject: Project) -> Bool {
-        let targetParentID = project.parentID
-        let targetSortOrder = project.sortOrder + 1
-
-        Task {
-            do {
-                guard let project = projectManager.getProject(by: droppedProject.id) else {
-                    Logger.ui.error("Project not found: \(droppedProject.id)")
-                    return
-                }
-
-                let newParent = targetParentID != nil ? projectManager.getProject(by: targetParentID!) : nil
-
-                try await projectManager.moveProject(project, to: newParent)
-                try await projectManager.reorderProject(project, to: targetSortOrder, in: targetParentID)
-
-                Logger.ui.info("Successfully moved project '\(project.name)' to position \(targetSortOrder)")
-            } catch {
-                Logger.ui.error("Failed to move project to position: \(error.localizedDescription)")
-            }
-        }
-        return true
-    }
-
-    private func handleDropInside(droppedProject: Project) -> Bool {
-        Task {
-            do {
-                guard let project = projectManager.getProject(by: droppedProject.id) else {
-                    Logger.ui.error("Project not found: \(droppedProject.id)")
-                    return
-                }
-
-                let newParent = projectManager.getProject(by: self.project.id)
-                try await projectManager.moveProject(project, to: newParent)
-
-                Logger.ui.info("Successfully moved project '\(project.name)' to new parent")
-            } catch {
-                Logger.ui.error("Failed to move project: \(error.localizedDescription)")
-            }
-        }
-        return true
-    }
-
-    private func isProjectAncestor(_ potentialAncestor: Project, of project: Project) -> Bool {
-        var current = project
-        while let parentID = current.parentID {
-            if parentID == potentialAncestor.id {
-                return true
-            }
-            if let parent = projectManager.findProject(by: parentID) {
-                current = parent
-            } else {
-                break
-            }
-        }
-        return false
     }
 
     // MARK: - Performance Optimized Drag Handling
@@ -418,7 +237,7 @@ struct ProjectRowView: View {
         } else if location.y > bottomThreshold {
             newPosition = .below
         } else {
-            newPosition = project.canAcceptChildren ? .inside : .below
+            newPosition = .below
         }
 
         if newPosition != dropPosition {
@@ -436,15 +255,6 @@ struct ProjectRowView: View {
     private var accessibilityLabel: String {
         var label = "Project: \(project.name)"
 
-        if level > 0 {
-            label += ", level \(level + 1)"
-        }
-
-        if !project.children.isEmpty {
-            label += ", \(project.children.count) child project\(project.children.count == 1 ? "" : "s")"
-            label += project.isExpanded ? ", expanded" : ", collapsed"
-        }
-
         if appState.isProjectSelected(project) {
             label += ", currently selected"
         }
@@ -457,13 +267,8 @@ struct ProjectRowView: View {
         var hints: [String] = []
 
         hints.append("Double tap to select")
-
-        if !project.children.isEmpty {
-            hints.append("Swipe up or down to expand or collapse")
-        }
-
         hints.append("Long press for more options")
-        hints.append("Drag to reorder or move to different parent")
+        hints.append("Drag to reorder")
 
         return hints.joined(separator: ". ")
     }
@@ -486,7 +291,22 @@ struct ProjectRowView: View {
 
         return values.isEmpty ? "" : values.joined(separator: ", ")
     }
+
+    private func deleteProject() {
+        Task {
+            do {
+                // Clear selection if deleting selected project
+                if appState.selectedProject?.id == project.id {
+                    await MainActor.run { appState.clearSelection() }
+                }
+                try await projectManager.deleteProject(project)
+            } catch {
+                Logger.ui.error("Failed to delete project: \(error)")
+            }
+        }
+    }
 }
+
 
 // MARK: - Drag Modifier
 
@@ -501,44 +321,6 @@ struct DragModifier: ViewModifier {
             .opacity(isDragging ? 0.8 : 1.0)
             .animation(.spring(response: 0.3, dampingFraction: 0.8, blendDuration: 0), value: isDragging)
             .animation(.easeInOut(duration: 0.15), value: dragOffset)
-    }
-}
-
-// MARK: - Project Label Interaction Modifier
-
-struct ProjectLabelInteractionModifier: ViewModifier {
-    let project: Project
-    let appState: AppState
-    let accessibilityLabel: String
-    let accessibilityHint: String
-    let accessibilityValue: String
-    let onDragChanged: (DragGesture.Value) -> Void
-    let onDragEnded: (DragGesture.Value) -> Void
-
-    func body(content: Content) -> some View {
-        content
-            // .draggable(project) {
-            //     ProjectDragPreview(project: project, isDragging: true)
-            // }
-            .onTapGesture {
-                withAnimation(.easeInOut(duration: 0.15)) {
-                    appState.selectProject(project)
-                }
-            }
-            .contextMenu {
-                ProjectRightClickMenu(project: project)
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(accessibilityLabel)
-            .accessibilityHint(accessibilityHint)
-            .accessibilityValue(accessibilityValue)
-            .accessibilityAddTraits(appState.isProjectSelected(project) ? [.isSelected] : [])
-            .accessibilityAction(.default) {
-                withAnimation(.easeInOut(duration: 0.15)) {
-                    appState.selectProject(project)
-                }
-            }
-            .accessibilityAction(.showMenu) {}
     }
 }
 // MARK: - Drop Position Enum

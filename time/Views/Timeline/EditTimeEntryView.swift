@@ -1,5 +1,6 @@
 import os
 import SwiftUI
+import SwiftData
 
 struct EditTimeEntryView: View {
     @Environment(AppState.self) private var appState
@@ -9,9 +10,16 @@ struct EditTimeEntryView: View {
 
     let timeEntry: TimeEntry
 
+    @Query(sort: \Project.sortOrder) private var allProjects: [Project]
+
+    init(isPresented: Binding<Bool>, timeEntry: TimeEntry) {
+        _isPresented = isPresented
+        self.timeEntry = timeEntry
+    }
+
     @State private var selectedProject: Project?
-    @State private var isAddingSubproject = false
-    @State private var newSubprojectName = ""
+    @State private var isAddingProject = false
+    @State private var newProjectName = ""
     @State private var title: String = ""
     @State private var notes: String = ""
     @State private var startTime: Date = .init()
@@ -72,8 +80,8 @@ struct EditTimeEntryView: View {
                         Picker("", selection: $selectedProject) {
                             Text("(No Project)").tag(nil as Project?)
 
-                            ForEach(projectManager.buildProjectTree(), id: \.id) { project in
-                                ProjectPickerItem(project: project, level: 0)
+                            ForEach(allProjects, id: \.id) { project in
+                                ProjectPickerItem(project: project)
                             }
                         }
                         .labelsHidden()
@@ -81,17 +89,17 @@ struct EditTimeEntryView: View {
                             validateInput()
                         }
 
-                        if isAddingSubproject {
-                            TextField("New Subproject Name", text: $newSubprojectName)
+                        if isAddingProject {
+                            TextField("New Project Name", text: $newProjectName)
                                 .onSubmit {
-                                    if !newSubprojectName.isEmpty, let parent = selectedProject {
+                                    if !newProjectName.isEmpty {
                                         Task {
                                             do {
-                                                let newProject = try await projectManager.createProject(name: newSubprojectName, color: .gray, parentID: parent.id)
+                                                let newProject = try await projectManager.createProject(name: newProjectName, color: .gray)
                                                 await MainActor.run {
                                                     selectedProject = newProject
-                                                    newSubprojectName = ""
-                                                    isAddingSubproject = false
+                                                    newProjectName = ""
+                                                    isAddingProject = false
                                                 }
                                             } catch {
                                                 await MainActor.run {
@@ -103,10 +111,9 @@ struct EditTimeEntryView: View {
                                     }
                                 }
                         } else {
-                            Button("New Subproject...") {
-                                isAddingSubproject = true
+                            Button("New Project...") {
+                                isAddingProject = true
                             }
-                            .disabled(selectedProject == nil)
                         }
                     }
                 }
