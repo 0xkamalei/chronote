@@ -148,7 +148,8 @@ class ActivityDataProcessor {
                     name: title,
                     level: .appTitle,
                     children: [],
-                    activities: titleActivities.sorted { $0.startTime > $1.startTime }
+                    activities: titleActivities.sorted { $0.startTime > $1.startTime },
+                    bundleId: bundleId
                 )
                 titleHierarchy.append(titleGroup)
             }
@@ -157,7 +158,8 @@ class ActivityDataProcessor {
                 name: appName,
                 level: .appName,
                 children: titleHierarchy.sorted { $0.totalDuration > $1.totalDuration },
-                activities: []
+                activities: [],
+                bundleId: bundleId
             )
 
             appHierarchy.append(appGroup)
@@ -189,7 +191,8 @@ class ActivityDataProcessor {
                     name: title,
                     level: .appTitle,
                     children: [],
-                    activities: titleActivities.sorted { $0.startTime < $1.startTime }
+                    activities: titleActivities.sorted { $0.startTime < $1.startTime },
+                    bundleId: bundleId
                 )
                 titleHierarchy.append(titleGroup)
             }
@@ -198,7 +201,8 @@ class ActivityDataProcessor {
                 name: appName,
                 level: .appName,
                 children: titleHierarchy,
-                activities: []
+                activities: [],
+                bundleId: bundleId
             )
 
             appHierarchy.append(appGroup)

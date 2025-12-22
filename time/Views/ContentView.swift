@@ -19,7 +19,6 @@ struct ContentView: View {
     @State private var selectedDateRange = AppDateRangePreset.today.dateRange
     @State private var selectedPreset: AppDateRangePreset? = .today
 
-    @State private var isStartingTimer: Bool = false
     @State private var isAddingTimeEntry: Bool = false
 
     private var activitiesView: some View {
@@ -27,21 +26,8 @@ struct ContentView: View {
     }
 
     private var detailView: some View {
-        Group {
-            if appState.selectedSidebar == "Time Entries" {
-                TimeEntryListView()
-            } else {
-                VStack(spacing: 0) {
-                    TimelineView()
-                    Divider()
-                    activitiesView
-                }
-            }
-        }
-        .frame(minWidth: 600, minHeight: 400)
-        .sheet(isPresented: $isAddingTimeEntry) {
-            NewTimeEntryView(isPresented: $isAddingTimeEntry)
-        }
+        activitiesView
+            .frame(minWidth: 600, minHeight: 400)
     }
 
     var body: some View {
@@ -63,7 +49,6 @@ struct ContentView: View {
         .environmentObject(timeEntryManager)
         .toolbar {
             MainToolbarView(
-                isStartingTimer: $isStartingTimer,
                 isAddingTimeEntry: $isAddingTimeEntry,
                 selectedDateRange: $selectedDateRange,
                 selectedPreset: $selectedPreset,
@@ -81,6 +66,9 @@ struct ContentView: View {
             let end = max(selectedDateRange.startDate, selectedDateRange.endDate)
             let initialInterval = DateInterval(start: start, end: end)
             activityQueryManager.setDateRange(initialInterval)
+            
+            // Sync initial sidebar filter
+            activityQueryManager.setSidebarFilter(appState.selectedSidebar)
             
             timeEntryManager.setModelContext(modelContext)
             activityManager.startTracking(modelContext: modelContext)

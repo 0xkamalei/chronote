@@ -40,45 +40,54 @@ struct DateNavigatorView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            // 左箭头按钮
-            Button(action: {
+            Button {
                 adjustDateRange(by: -1)
-            }) {
+            } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 14, weight: .medium))
+                    .frame(width: 28, height: 24)
             }
             .buttonStyle(.borderless)
             
             Divider()
                 .frame(height: 16)
-                .padding(.horizontal, 2)
             
-            // 日期显示按钮
-            Button(action: {
+            Button {
                 isDatePickerExpanded.toggle()
-            }) {
+            } label: {
                 Text(dateRangeText)
                     .font(.system(size: 12))
                     .frame(minWidth: 70)
+                    .frame(height: 24)
             }
             .buttonStyle(.borderless)
             .popover(isPresented: $isDatePickerExpanded, arrowEdge: .bottom) {
-                TimePickerView(isPresented: $isDatePickerExpanded, selectedDateRange: $selectedDateRange, selectedPreset: $selectedPreset)
+                TimePickerView(
+                    isPresented: $isDatePickerExpanded,
+                    selectedDateRange: $selectedDateRange,
+                    selectedPreset: $selectedPreset
+                )
             }
             
             Divider()
                 .frame(height: 16)
-                .padding(.horizontal, 2)
             
-            // 右箭头按钮
-            Button(action: {
+            Button {
                 adjustDateRange(by: 1)
-            }) {
+            } label: {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .medium))
+                    .frame(width: 28, height: 24)
             }
             .buttonStyle(.borderless)
         }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color(NSColor.controlBackgroundColor))
+        )
+        .shadow(color: Color.black.opacity(0.25), radius: 8, y: 4)
     }
 
     private func adjustDateRange(by value: Int) {

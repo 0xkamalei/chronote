@@ -65,15 +65,15 @@ struct ChronologicalActivitiesView: View {
 struct ChronologicalActivityRow: View {
     let activity: Activity
     
-    private var timeFormatter: DateFormatter {
+    private var dateTimeFormatter: DateFormatter {
         let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm:ss"
+        formatter.dateFormat = "yyyy/MM/dd HH:mm:ss"
         return formatter
     }
     
-    private var dateFormatter: DateFormatter {
+    private var timeFormatter: DateFormatter {
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy/MM/dd"
+        formatter.dateFormat = "HH:mm:ss"
         return formatter
     }
     
@@ -85,43 +85,25 @@ struct ChronologicalActivityRow: View {
                 .foregroundColor(.secondary)
                 .frame(width: 30, alignment: .leading)
             
-            // Date and time range column
-            VStack(alignment: .leading, spacing: 1) {
-                Text(dateFormatter.string(from: activity.startTime))
-                    .font(.system(.caption2, design: .monospaced))
-                    .foregroundColor(.secondary)
-                
-                Text(formatTimeRange())
-                    .font(.system(.caption2, design: .monospaced))
-                    .foregroundColor(.secondary)
-            }
-            .frame(width: 80, alignment: .leading)
-            
-            // Percentage column
-            Text(formatPercentage())
-                .font(.system(.caption, design: .monospaced))
+            // Date and time range in single line
+            Text(formatDateTimeRange())
+                .font(.system(.caption2, design: .monospaced))
                 .foregroundColor(.secondary)
-                .frame(width: 40, alignment: .leading)
+                .lineLimit(1)
+                .frame(width: 200, alignment: .leading)
             
-            // App info with colored indicator
+            // App info with icon and name
             HStack(spacing: 8) {
                 Circle()
                     .fill(appColor)
                     .frame(width: 8, height: 8)
                 
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(activity.appName)
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .lineLimit(1)
-                    
-                    if let title = activity.appTitle, !title.isEmpty {
-                        Text(title)
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                    }
-                }
+                AppIconView(bundleId: activity.appBundleId, size: 16)
+                
+                Text(activity.appName)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .lineLimit(1)
             }
             
             Spacer()
@@ -149,8 +131,8 @@ struct ChronologicalActivityRow: View {
     
     // MARK: - Helper Methods
     
-    private func formatTimeRange() -> String {
-        let startStr = timeFormatter.string(from: activity.startTime)
+    private func formatDateTimeRange() -> String {
+        let startStr = dateTimeFormatter.string(from: activity.startTime)
         
         if let endTime = activity.endTime {
             let endStr = timeFormatter.string(from: endTime)
@@ -173,13 +155,6 @@ struct ChronologicalActivityRow: View {
             let minutes = totalMinutes % 60
             return "\(hours)h\(minutes)m"
         }
-    }
-    
-    private func formatPercentage() -> String {
-        // This would need to be calculated based on total duration
-        // For now, return a placeholder based on duration
-        let minutes = Int(activity.calculatedDuration / 60)
-        return "\(max(1, minutes))%"
     }
     
     private var appColor: Color {

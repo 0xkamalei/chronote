@@ -8,8 +8,22 @@ struct SidebarView: View {
     @State private var showingCreateProject = false
     @Environment(AppState.self) private var appState
     @EnvironmentObject private var projectManager: ProjectManager
+    @EnvironmentObject private var activityQueryManager: ActivityQueryManager
 
     @Query(sort: \Project.sortOrder) private var projects: [Project]
+    
+    /// 计算所有活动的总时长
+    private var totalDurationString: String {
+        let totalDuration = activityQueryManager.activities.reduce(0) { $0 + $1.calculatedDuration }
+        return ActivityDataProcessor.formatDuration(totalDuration)
+    }
+    
+    /// 计算未分配活动的总时长（暂时与总时长相同，后续可根据项目分配逻辑调整）
+    private var unassignedDurationString: String {
+        // TODO: 根据实际的项目分配逻辑过滤未分配的活动
+        let totalDuration = activityQueryManager.activities.reduce(0) { $0 + $1.calculatedDuration }
+        return ActivityDataProcessor.formatDuration(totalDuration)
+    }
 
     var body: some View {
         @Bindable var bindableAppState = appState
@@ -26,7 +40,7 @@ struct SidebarView: View {
                 HStack {
                     Label("All Activities", systemImage: "tray.full")
                     Spacer()
-                    Text("37m")
+                    Text(totalDurationString)
                         .foregroundStyle(.secondary)
                         .font(.caption)
                 }
@@ -40,7 +54,7 @@ struct SidebarView: View {
                 HStack {
                     Label("Unassigned", systemImage: "questionmark.circle")
                     Spacer()
-                    Text("37m")
+                    Text(unassignedDurationString)
                         .foregroundStyle(.secondary)
                         .font(.caption)
                 }
@@ -57,16 +71,13 @@ struct SidebarView: View {
                     }
                     .onMove(perform: moveProjects)
                 } label: {
-                    HStack {
-                        Image(systemName: "folder")
-                        Text("My Projects")
-                    }
-                    .contentShape(Rectangle())
-                    .background(appState.isSpecialItemSelected("My Projects") ? Color.accentColor.opacity(0.2) : Color.clear)
-                    .onTapGesture {
-                        appState.selectSpecialItem("My Projects")
-                    }
-                    .accessibilityIdentifier("sidebar.myProjects")
+                    Label("My Projects", systemImage: "folder")
+                        .contentShape(Rectangle())
+                        .background(appState.isSpecialItemSelected("My Projects") ? Color.accentColor.opacity(0.2) : Color.clear)
+                        .onTapGesture {
+                            appState.selectSpecialItem("My Projects")
+                        }
+                        .accessibilityIdentifier("sidebar.myProjects")
                 }
                 .accessibilityIdentifier("sidebar.myProjectsDisclosure")
             }

@@ -6,21 +6,18 @@ struct MainToolbarView: ToolbarContent {
     @Environment(AppState.self) private var appState
     @Environment(\.modelContext) private var modelContext
 
-    @Binding var isStartingTimer: Bool
     @Binding var isAddingTimeEntry: Bool
     @Binding var selectedDateRange: AppDateRange
     @Binding var selectedPreset: AppDateRangePreset?
     @Binding var searchText: String
 
     init(
-        isStartingTimer: Binding<Bool>,
         isAddingTimeEntry: Binding<Bool>,
         selectedDateRange: Binding<AppDateRange>,
         selectedPreset: Binding<AppDateRangePreset?>,
         searchText: Binding<String>,
         modelContext: ModelContext
     ) {
-        _isStartingTimer = isStartingTimer
         _isAddingTimeEntry = isAddingTimeEntry
         _selectedDateRange = selectedDateRange
         _selectedPreset = selectedPreset
@@ -43,36 +40,7 @@ struct MainToolbarView: ToolbarContent {
             }
         }
 
-        ToolbarItem(placement: .navigation) {
-            HStack {
-                Button(action: {
-                    if appState.isTimerActive {
-                        Task {
-                            await appState.stopTimer()
-                        }
-                    } else {
-                        isStartingTimer.toggle()
-                    }
-                }) {
-                    HStack {
-                        Image(systemName: appState.isTimerActive ? "stop.circle" : "play.circle")
-                        Text(appState.isTimerActive ? "Stop Timer" : "Start Timer")
-                    }
-                }
-                .accessibilityIdentifier("toolbar.timerButton")
-                .popover(isPresented: $isStartingTimer) {
-                    StartTimerView(isPresented: $isStartingTimer)
-                }
 
-                // Show timer display when active
-                if appState.isTimerActive {
-                    Divider()
-                        .frame(height: 20)
-
-                    TimerDisplayView()
-                }
-            }
-        }
 
         ToolbarItem(placement: .principal) {
             DateNavigatorView(selectedDateRange: $selectedDateRange, selectedPreset: $selectedPreset)

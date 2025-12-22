@@ -45,7 +45,24 @@ class ActivityQueryManager: ObservableObject {
 
     /// 设置日期范围筛选
     func setDateRange(_ range: DateInterval?) {
-        guard currentDateRange != range else { return }
+        // Log the incoming range for debugging
+        if let range = range {
+            logger.info("setDateRange called with: \(range.start) - \(range.end)")
+        } else {
+            logger.info("setDateRange called with: nil")
+        }
+        
+        // Check if range actually changed
+        if let currentRange = currentDateRange, let newRange = range {
+            if currentRange.start == newRange.start && currentRange.end == newRange.end {
+                logger.info("Date range unchanged, skipping refresh")
+                return
+            }
+        } else if currentDateRange == nil && range == nil {
+            logger.info("Both ranges are nil, skipping refresh")
+            return
+        }
+        
         currentDateRange = range
         Task {
             await refreshActivities()
@@ -90,23 +107,54 @@ class ActivityQueryManager: ObservableObject {
         }
 
         isLoading = true
+        
+        // Debug: Log current filter state with timezone info
+        if let range = currentDateRange {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            logger.info("Current date range: \(formatter.string(from: range.start)) - \(formatter.string(from: range.end))")
+            logger.info("Current timezone: \(TimeZone.current.identifier)")
+        } else {
+            logger.info("Current date range: nil")
+        }
 
         do {
-            let descriptor = buildFetchDescriptor()
-            let fetchedActivities = try context.fetch(descriptor)
+            // Fetch all activities first, then filter in memory
+            // This avoids potential issues with SwiftData #Predicate and Date comparisons
+            var allDescriptor = FetchDescriptor<Activity>(
+                sortBy: [SortDescriptor(\Activity.startTime, order: .reverse)]
+            )
+            allDescriptor.fetchLimit = 5000 // Reasonable limit
+            
+            let allActivities = try context.fetch(allDescriptor)
+            logger.info("Total activities fetched: \(allActivities.count)")
+            
+            // Apply date range filter in memory
+            var fetchedActivities = allActivities
+            if let range = currentDateRange {
+                fetchedActivities = allActivities.filter { activity in
+                    activity.startTime >= range.start && activity.startTime < range.end
+                }
+                logger.info("After date filter: \(fetchedActivities.count) activities")
+                
+                // Debug: if no results, show sample data
+                if fetchedActivities.isEmpty && !allActivities.isEmpty {
+                    let formatter = ISO8601DateFormatter()
+                    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                    logger.warning("No activities in date range. Sample activities:")
+                    for activity in allActivities.prefix(5) {
+                        logger.info("  - \(activity.appName): \(formatter.string(from: activity.startTime))")
+                    }
+                }
+            }
 
-            // Special case: for project/sidebar filters that might not be fully handled by Predicate
+            // Apply other filters in memory
             let filteredActivities = applyInMemoryFilters(fetchedActivities)
 
-            let countDescriptor = buildCountDescriptor()
-            self.totalCount = try context.fetchCount(countDescriptor)
+            self.totalCount = filteredActivities.count
+            activities = Array(filteredActivities.prefix(1000)) // Limit to 1000 for display
 
-            activities = filteredActivities
-
-            logger.info("Refreshed activities: \(filteredActivities.count) loaded out of \(fetchedActivities.count) raw, total count matches: \(self.totalCount)")
-            if filteredActivities.isEmpty && !fetchedActivities.isEmpty {
-                logger.warning("Warning: In-memory filters removed all \(fetchedActivities.count) fetched activities")
-            }
+            logger.info("Refreshed activities: \(self.activities.count) loaded, total: \(self.totalCount)")
 
         } catch {
             logger.error("Failed to refresh activities: \(error.localizedDescription)")
@@ -191,27 +239,32 @@ class ActivityQueryManager: ObservableObject {
         if let range = range {
             let start = range.start
             let end = range.end
+            
+            // Log the actual values being used in predicate
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            logger.info("Building predicate with start: \(formatter.string(from: start)), end: \(formatter.string(from: end))")
 
             if let project = project {
                 let pid = project.id
                 descriptor.predicate = #Predicate<Activity> { activity in
                     if let aid = activity.projectId {
-                        return activity.startTime >= start && activity.startTime <= end && aid == pid
+                        return activity.startTime >= start && activity.startTime < end && aid == pid
                     } else {
                         return false
                     }
                 }
             } else if sidebar == "Unassigned" {
                 descriptor.predicate = #Predicate<Activity> { activity in
-                    activity.startTime >= start && activity.startTime <= end && activity.projectId == nil
+                    activity.startTime >= start && activity.startTime < end && activity.projectId == nil
                 }
             } else if sidebar == "My Projects" {
                 descriptor.predicate = #Predicate<Activity> { activity in
-                    activity.startTime >= start && activity.startTime <= end && activity.projectId != nil
+                    activity.startTime >= start && activity.startTime < end && activity.projectId != nil
                 }
             } else {
                 descriptor.predicate = #Predicate<Activity> { activity in
-                    activity.startTime >= start && activity.startTime <= end
+                    activity.startTime >= start && activity.startTime < end
                 }
             }
         } else if let project = project {
