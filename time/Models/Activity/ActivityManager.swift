@@ -91,6 +91,10 @@ class ActivityManager: ObservableObject {
 
             if current.duration > 0 {
                 do {
+                    // Insert into context before saving (if not already managed)
+                    if current.modelContext == nil {
+                        modelContext.insert(current)
+                    }
                     try modelContext.save()
                     logger.info("Saved current activity: \(current.appName)")
                 } catch {
@@ -119,6 +123,10 @@ class ActivityManager: ObservableObject {
 
             if current.duration > 0 {
                 do {
+                    // Insert into context before saving (if not already managed)
+                    if current.modelContext == nil {
+                        modelContext.insert(current)
+                    }
                     try modelContext.save()
                     logger.info("Saved activity for: \(current.appName)")
                 } catch {
@@ -190,6 +198,10 @@ class ActivityManager: ObservableObject {
                 
                 if current.duration > 0 {
                     do {
+                        // Insert into context before saving (if not already managed)
+                        if current.modelContext == nil {
+                            modelContext.insert(current)
+                        }
                         try modelContext.save()
                         logger.info("Saved activity before idle: \(current.appName)")
                     } catch {

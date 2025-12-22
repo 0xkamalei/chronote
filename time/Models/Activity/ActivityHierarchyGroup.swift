@@ -17,6 +17,7 @@ struct ActivityHierarchyGroup: Identifiable {
     let level: ActivityHierarchyLevel
     let children: [ActivityHierarchyGroup]
     let activities: [Activity] // Leaf level activities
+    let bundleId: String? // App bundle identifier for icon lookup
 
     /// Calculate total duration for this group and all children
     var totalDuration: TimeInterval {
@@ -80,5 +81,14 @@ struct ActivityHierarchyGroup: Identifiable {
         case .appTitle:
             return "document"
         }
+    }
+    
+    /// Initializer with default bundleId
+    init(name: String, level: ActivityHierarchyLevel, children: [ActivityHierarchyGroup], activities: [Activity], bundleId: String? = nil) {
+        self.name = name
+        self.level = level
+        self.children = children
+        self.activities = activities
+        self.bundleId = bundleId
     }
 }
