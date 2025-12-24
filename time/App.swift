@@ -5,7 +5,6 @@ import SwiftUI
 
 @main
 struct time_vscodeApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     private static let logger = Logger(subsystem: "com.time.vscode", category: "App")
 
     var sharedModelContainer: ModelContainer = {
@@ -48,6 +47,10 @@ struct time_vscodeApp: App {
                 }
                 .keyboardShortcut("q", modifiers: .command)
             }
+        }
+
+        Settings {
+            SettingsView()
         }
     }
 }

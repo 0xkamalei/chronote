@@ -6,10 +6,6 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		14F7E0512E1420A8000CB627 /* ActivityDataProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14F7E0502E1420A8000CB627 /* ActivityDataProcessorTests.swift */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXContainerItemProxy section */
 		14F7E0542E1420C4000CB627 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -23,15 +19,9 @@
 /* Begin PBXFileReference section */
 		14F7E02B2E141361000CB627 /* time.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = time.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		14F7E04D2E1420A8000CB627 /* timeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = timeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		14F7E0502E1420A8000CB627 /* ActivityDataProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityDataProcessorTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		1489F70E2EB394E900222C9E /* timeUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = timeUITests;
-			sourceTree = "<group>";
-		};
 		14F7E02D2E141361000CB627 /* time */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = time;
@@ -61,8 +51,6 @@
 			isa = PBXGroup;
 			children = (
 				14F7E02D2E141361000CB627 /* time */,
-				14F7E0602E142100000CB627 /* timeTests */,
-				1489F70E2EB394E900222C9E /* timeUITests */,
 				14F7E02C2E141361000CB627 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -74,14 +62,6 @@
 				14F7E04D2E1420A8000CB627 /* timeTests.xctest */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		14F7E0602E142100000CB627 /* timeTests */ = {
-			isa = PBXGroup;
-			children = (
-				14F7E0502E1420A8000CB627 /* ActivityDataProcessorTests.swift */,
-			);
-			path = timeTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -120,9 +100,6 @@
 			);
 			dependencies = (
 				14F7E0552E1420C4000CB627 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				1489F70E2EB394E900222C9E /* timeUITests */,
 			);
 			name = timeTests;
 			productName = timeTests;
@@ -186,7 +163,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				14F7E0512E1420A8000CB627 /* ActivityDataProcessorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -339,7 +315,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = K8BQ5976GL;
-				ENABLE_APP_SANDBOX = YES;
+				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
@@ -371,7 +347,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = K8BQ5976GL;
-				ENABLE_APP_SANDBOX = YES;
+				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
