@@ -26,23 +26,29 @@ struct AppIconView: View {
 /// A simple row that displays app activity without collapsible hierarchy
 struct HierarchicalActivityRow: View {
     let group: ActivityGroup
+    
+    // Default width, but could be made adjustable via binding in parent if needed
+    @State private var durationWidth: CGFloat = 60
 
     var body: some View {
         HStack(spacing: 8) {
-            // Duration on the left
+            // Duration on the left with fixed but wider width
             Text(group.durationString)
                 .font(.system(size: 13, design: .monospaced))
                 .foregroundColor(.secondary)
-                .frame(width: 50, alignment: .trailing)
-            
-            // Chevron indicator (non-interactive, just visual)
-            Image(systemName: "chevron.right")
-                .font(.system(size: 10, weight: .medium))
-                .foregroundColor(.secondary.opacity(0.6))
+                .frame(width: durationWidth, alignment: .trailing)
+                .lineLimit(1)
             
             // App icon
             if group.level == .appName {
                 AppIconView(bundleId: group.bundleId, size: 18)
+            } else if group.level == .detail {
+                // No icon for detail level, just alignment padding or maybe a small dot?
+                // Or maybe use the clock icon defined in levelIcon
+                Image(systemName: "clock")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+                    .frame(width: 18)
             } else {
                 Image(systemName: group.levelIcon)
                 .font(.system(size: 14))

@@ -4,15 +4,16 @@ import Foundation
 enum ActivityGroupLevel {
     case project
     case appName
-    case appTitle
+    case appContext
+    case detail
 }
 
 /// Represents a group of activities
 struct ActivityGroup: Identifiable {
-    let id: UUID = UUID()
+    let id: String
     let name: String
     let level: ActivityGroupLevel
-    let children: [ActivityGroup] // Kept for structure, but typically empty in lazy loading
+    let children: [ActivityGroup]? // Kept for structure, but typically empty in lazy loading
     let activities: [Activity] // The activities belonging to this group
     let bundleId: String? // App bundle identifier for icon lookup
 
@@ -51,13 +52,16 @@ struct ActivityGroup: Identifiable {
             return "folder"
         case .appName:
             return "app"
-        case .appTitle:
+        case .appContext:
             return "document"
+        case .detail:
+            return "clock"
         }
     }
     
     /// Initializer
-    init(name: String, level: ActivityGroupLevel, children: [ActivityGroup] = [], activities: [Activity], bundleId: String? = nil) {
+    init(id: String? = nil, name: String, level: ActivityGroupLevel, children: [ActivityGroup]? = nil, activities: [Activity], bundleId: String? = nil) {
+        self.id = id ?? UUID().uuidString
         self.name = name
         self.level = level
         self.children = children

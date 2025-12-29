@@ -266,11 +266,6 @@ extension ActivityManager: ContextMonitorDelegate {
 // MARK: - Public Helper Methods
 
 extension ActivityManager {
-    /// Set notification manager (for integration with AppState)
-    func setNotificationManager(_ manager: NotificationManager) {
-        // No-op for MVP version
-    }
-
     /// Get the current activity being tracked
     func getCurrentActivity() -> Activity? {
         return currentActivity

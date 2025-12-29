@@ -4,10 +4,16 @@ import SwiftUI
 /// Main view displaying activities in a hierarchical, collapsible structure
 struct ActivitiesView: View {
     let activities: [Activity]
+    let initialGroupingLevel: ActivityGroupLevel
     
     @Query(sort: \Project.name) private var projects: [Project]
 
     @State private var activityGroups: [ActivityGroup] = []
+    
+    init(activities: [Activity], initialGroupingLevel: ActivityGroupLevel = .project) {
+        self.activities = activities
+        self.initialGroupingLevel = initialGroupingLevel
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -15,21 +21,27 @@ struct ActivitiesView: View {
                 emptyState
             } else {
                 // Hierarchical list
-                List {
-                    ForEach(activityGroups, id: \.id) { group in
-                        HierarchicalActivityRow(group: group)
-                            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                    }
+                List(activityGroups, children: \.children) { group in
+                    HierarchicalActivityRow(group: group)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                 }
-                .listStyle(.plain)
+                .listStyle(.sidebar)
             }
         }
         .onAppear {
             updateGroups()
         }
         .onChange(of: activities) {
+            updateGroups()
+        }
+        // Also update when project list changes (e.g. renaming)
+        .onChange(of: projects) {
+            updateGroups()
+        }
+        // Update when grouping level changes (e.g. switching between "Unassigned" and "All Activities")
+        .onChange(of: initialGroupingLevel) {
             updateGroups()
         }
     }
@@ -56,8 +68,19 @@ struct ActivitiesView: View {
     }
 
     private func updateGroups() {
-        // Default to grouping by project as per new design
-        activityGroups = ActivityDataProcessor.groupByProject(activities: activities, projects: projects)
+        Task {
+            let grouped: [ActivityGroup]
+            if initialGroupingLevel == .project {
+                grouped = ActivityDataProcessor.groupByProject(activities: activities, projects: projects)
+            } else {
+                // When starting at app level (e.g. inside a project view), group directly by app
+                grouped = ActivityDataProcessor.groupByApp(activities: activities, parentId: "root") ?? []
+            }
+            
+            await MainActor.run {
+                self.activityGroups = grouped
+            }
+        }
     }
 }
 

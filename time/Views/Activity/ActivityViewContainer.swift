@@ -45,9 +45,17 @@ struct ActivityViewContainer: View {
         switch appState.activityViewMode {
         case .unified:
             // Use hierarchical view as "Unified" mode
-            ActivitiesView(activities: activities)
+            ActivitiesView(activities: activities, initialGroupingLevel: currentGroupingLevel)
         case .chronological:
             ChronologicalActivitiesView(activities: activities)
+        }
+    }
+    
+    private var currentGroupingLevel: ActivityGroupLevel {
+        if appState.selectedProject != nil || appState.selectedSidebar == "Unassigned" {
+            return .appName
+        } else {
+            return .project
         }
     }
     
