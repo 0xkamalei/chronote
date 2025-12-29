@@ -92,6 +92,9 @@ struct RecursiveActivityRow: View {
     let group: ActivityGroup
     @State private var isExpanded: Bool = false
     
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \Project.sortOrder) private var allProjects: [Project]
+    
     var body: some View {
         if let children = group.children, !children.isEmpty {
             DisclosureGroup(isExpanded: $isExpanded) {
@@ -106,6 +109,9 @@ struct RecursiveActivityRow: View {
                             isExpanded.toggle()
                         }
                     }
+                    .contextMenu {
+                        assignMenu
+                    }
             }
             .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
             .listRowBackground(Color.clear)
@@ -115,6 +121,42 @@ struct RecursiveActivityRow: View {
                 .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
+                .contextMenu {
+                    assignMenu
+                }
         }
+    }
+    
+    private var assignMenu: some View {
+        Menu("Assign to Project") {
+            Button("Unassigned") {
+                assignToProject(nil)
+            }
+            
+            Divider()
+            
+            ForEach(allProjects) { project in
+                Button {
+                    assignToProject(project)
+                } label: {
+                    HStack {
+                        Circle()
+                            .fill(project.color)
+                            .frame(width: 8, height: 8)
+                        Text(project.name)
+                    }
+                }
+            }
+        }
+    }
+    
+    private func assignToProject(_ project: Project?) {
+        // Update all activities in this group
+        for activity in group.activities {
+            activity.projectId = project?.id
+        }
+        
+        // Save changes
+        try? modelContext.save()
     }
 }
