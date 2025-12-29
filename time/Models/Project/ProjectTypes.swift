@@ -6,7 +6,6 @@ import Foundation
 enum ProjectError: LocalizedError, Equatable {
     case invalidName(String)
     case hasActiveTimer
-    case hasTimeEntries(count: Int)
     case persistenceFailure(String)
     case projectNotFound(String)
     case duplicateName(String)
@@ -19,8 +18,6 @@ enum ProjectError: LocalizedError, Equatable {
             return "Invalid project name: \(reason)"
         case .hasActiveTimer:
             return "Cannot delete project with active timer"
-        case let .hasTimeEntries(count):
-            return "Project has \(count) time \(count == 1 ? "entry" : "entries")"
         case let .persistenceFailure(details):
             return "Failed to save changes: \(details)"
         case let .projectNotFound(id):
@@ -40,8 +37,6 @@ enum ProjectError: LocalizedError, Equatable {
             return "Please enter a valid project name with at least one non-whitespace character."
         case .hasActiveTimer:
             return "Stop the active timer before deleting this project."
-        case .hasTimeEntries:
-            return "Choose how to handle the time entries: reassign them to another project or delete them."
         case .persistenceFailure:
             return "Check your disk space and file permissions, then try again."
         case .projectNotFound:
@@ -61,8 +56,6 @@ enum ProjectError: LocalizedError, Equatable {
             return reason
         case .hasActiveTimer:
             return "An active timer is running for this project"
-        case let .hasTimeEntries(count):
-            return "\(count) time \(count == 1 ? "entry is" : "entries are") associated with this project"
         case let .persistenceFailure(details):
             return details
         case let .projectNotFound(id):
@@ -84,8 +77,6 @@ enum ProjectError: LocalizedError, Equatable {
             return l == r
         case (.hasActiveTimer, .hasActiveTimer):
             return true
-        case let (.hasTimeEntries(l), .hasTimeEntries(r)):
-            return l == r
         case let (.persistenceFailure(l), .persistenceFailure(r)):
             return l == r
         case let (.projectNotFound(l), .projectNotFound(r)):

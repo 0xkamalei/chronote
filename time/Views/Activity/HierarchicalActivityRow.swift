@@ -25,7 +25,7 @@ struct AppIconView: View {
 
 /// A simple row that displays app activity without collapsible hierarchy
 struct HierarchicalActivityRow: View {
-    let group: ActivityHierarchyGroup
+    let group: ActivityGroup
 
     var body: some View {
         HStack(spacing: 8) {
@@ -45,9 +45,9 @@ struct HierarchicalActivityRow: View {
                 AppIconView(bundleId: group.bundleId, size: 18)
             } else {
                 Image(systemName: group.levelIcon)
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
-                    .frame(width: 18)
+                .font(.system(size: 14))
+                .foregroundColor(.secondary)
+                .frame(width: 18)
             }
             
             // App name
@@ -66,7 +66,7 @@ struct HierarchicalActivityRow: View {
 #Preview {
     VStack {
         HierarchicalActivityRow(
-            group: ActivityHierarchyGroup(
+            group: ActivityGroup(
                 name: "Safari",
                 level: .appName,
                 children: [],

@@ -64,8 +64,7 @@ struct EditProjectView: View {
     @State private var formData = ProjectFormData()
 
     @State private var showingDeleteConfirmation = false
-    @State private var timeEntryReassignmentTarget: Project? = nil
-
+    
     @State private var isSubmitting = false
     @State private var isDeleting = false
     @State private var submitError: String? = nil
@@ -266,8 +265,6 @@ struct EditProjectView: View {
             if case let .edit(project) = mode {
                 ProjectDeleteConfirmationDialog(
                     project: project,
-                    timeEntryReassignmentTarget: $timeEntryReassignmentTarget,
-                    availableProjects: availableProjectsForReassignment,
                     onConfirm: {
                         deleteProject()
                     }
@@ -281,16 +278,6 @@ struct EditProjectView: View {
     }
 
     // MARK: - Computed Properties for Form Logic
-
-    /// Available projects for time entry reassignment (excludes the project being deleted)
-    private var availableProjectsForReassignment: [Project] {
-        switch mode {
-        case .create:
-            return []
-        case let .edit(project):
-            return allProjects.filter { $0.id != project.id }
-        }
-    }
 
     // MARK: - Form Initialization
 
@@ -577,8 +564,6 @@ struct ProjectDangerZoneSection: View {
 /// Confirmation dialog for project deletion
 struct ProjectDeleteConfirmationDialog: View {
     let project: Project
-    @Binding var timeEntryReassignmentTarget: Project?
-    let availableProjects: [Project]
     let onConfirm: () -> Void
 
     var body: some View {

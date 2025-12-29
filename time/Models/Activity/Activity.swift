@@ -8,6 +8,9 @@ final class Activity {
     var appName: String
     var appBundleId: String
     var appTitle: String? // Window title
+    var filePath: String? // Full file path (for editors/Finder)
+    var webUrl: String?   // Full URL (for browsers)
+    var domain: String?   // Domain extracted from URL
     var icon: String? // Icon reference
     var projectId: String? // Linked Project ID (Auto-assigned)
     var duration: TimeInterval
@@ -40,11 +43,14 @@ final class Activity {
 
     // MARK: - Initialization
 
-    init(appName: String, appBundleId: String, appTitle: String? = nil, duration: TimeInterval, startTime: Date, endTime: Date? = nil, icon: String? = nil) {
+    init(appName: String, appBundleId: String, appTitle: String? = nil, filePath: String? = nil, webUrl: String? = nil, domain: String? = nil, duration: TimeInterval, startTime: Date, endTime: Date? = nil, icon: String? = nil) {
         id = UUID()
         self.appName = appName
         self.appBundleId = appBundleId
         self.appTitle = appTitle
+        self.filePath = filePath
+        self.webUrl = webUrl
+        self.domain = domain
         self.duration = duration
         self.startTime = startTime
         self.endTime = endTime

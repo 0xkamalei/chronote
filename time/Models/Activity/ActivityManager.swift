@@ -14,12 +14,16 @@ class ActivityManager: ObservableObject {
     private var currentActivity: Activity?
     private var notificationObservers: [NSObjectProtocol] = []
     private var modelContext: ModelContext?
+    
+    private let contextMonitor = ContextMonitor()
 
     private let logger = Logger(subsystem: "com.time-vscode.ActivityManager", category: "ActivityTracking")
 
     // MARK: - Initialization
 
-    private init() {}
+    private init() {
+        contextMonitor.delegate = self
+    }
 
     // MARK: - Public Methods
 
@@ -79,11 +83,19 @@ class ActivityManager: ObservableObject {
         IdleMonitor.shared.startMonitoring()
 
         logger.info("Started tracking app activities")
+        
+        // Initial track of current app
+        if let app = NSWorkspace.shared.frontmostApplication,
+           let bundleId = app.bundleIdentifier {
+            let context = WindowMonitor.shared.getContext(for: app.processIdentifier)
+            trackAppSwitch(newApp: bundleId, context: context, modelContext: modelContext)
+        }
     }
     
     /// Stop tracking app activity
     func stopTracking(modelContext: ModelContext, endTime: Date = Date()) {
         IdleMonitor.shared.stopMonitoring()
+        contextMonitor.stopMonitoring()
         
         if let current = self.currentActivity {
             current.endTime = endTime
@@ -112,15 +124,19 @@ class ActivityManager: ObservableObject {
         logger.info("Stopped tracking")
     }
 
-    /// Track an app switch
-    func trackAppSwitch(newApp: String, title: String? = nil, modelContext: ModelContext) {
+    /// Track an app switch (or context switch)
+    func trackAppSwitch(newApp: String, context: ActivityContext, startTime: Date = Date(), modelContext: ModelContext) {
         self.modelContext = modelContext
 
         // Save the previous activity
         if let current = self.currentActivity {
-            current.endTime = Date()
+            current.endTime = startTime
             current.duration = current.calculatedDuration
 
+            // Filter out short activities (noise) if this is a context switch within same app?
+            // For now, we save everything as per requirement "duration > 0".
+            // The 5s debounce in ContextMonitor handles the noise filtering.
+            
             if current.duration > 0 {
                 do {
                     // Insert into context before saving (if not already managed)
@@ -140,26 +156,25 @@ class ActivityManager: ObservableObject {
         // Try to get the localized app name
         if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == newApp }) {
             appName = app.localizedName ?? newApp
+            
+            // Start monitoring the new PID
+            contextMonitor.startMonitoring(pid: app.processIdentifier, initialContext: context)
         }
 
-        let now = Date()
         let newActivity = Activity(
             appName: appName,
             appBundleId: newApp,
-            appTitle: title,
+            appTitle: context.title,
+            filePath: context.filePath,
+            webUrl: context.webUrl,
+            domain: nil, // TODO: Extract domain from webUrl
             duration: 0,
-            startTime: now,
+            startTime: startTime,
             endTime: nil
         )
 
-        // Attempt Auto-Classification
-        if let projectId = AutoClassificationService.shared.classify(activity: newActivity) {
-            newActivity.projectId = projectId
-            logger.info("Auto-classified activity to project: \(projectId)")
-        }
-
         self.currentActivity = newActivity
-        if let title = title {
+        if let title = context.title {
             logger.info("Started tracking: \(appName) - \(title)")
         } else {
             logger.info("Started tracking: \(appName)")
@@ -172,10 +187,10 @@ class ActivityManager: ObservableObject {
         guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
               let bundleId = app.bundleIdentifier else { return }
 
-        let windowTitle = WindowMonitor.shared.getActiveWindowTitle(for: app.processIdentifier)
+        let context = WindowMonitor.shared.getContext(for: app.processIdentifier)
 
         if let modelContext = modelContext {
-            trackAppSwitch(newApp: bundleId, title: windowTitle, modelContext: modelContext)
+            trackAppSwitch(newApp: bundleId, context: context, modelContext: modelContext)
         }
     }
 
@@ -210,6 +225,9 @@ class ActivityManager: ObservableObject {
                 }
                 self.currentActivity = nil
             }
+            // Note: We don't stop ContextMonitor here explicitly, but since currentActivity is nil,
+            // we effectively stop recording.
+            // Ideally we should pause ContextMonitor or ignore its callbacks when idle.
         }
     }
 
@@ -221,8 +239,26 @@ class ActivityManager: ObservableObject {
            let bundleId = app.bundleIdentifier,
            let modelContext = modelContext {
              
-             let windowTitle = WindowMonitor.shared.getActiveWindowTitle(for: app.processIdentifier)
-             trackAppSwitch(newApp: bundleId, title: windowTitle, modelContext: modelContext)
+             let context = WindowMonitor.shared.getContext(for: app.processIdentifier)
+             trackAppSwitch(newApp: bundleId, context: context, modelContext: modelContext)
+        }
+    }
+}
+
+// MARK: - ContextMonitorDelegate
+extension ActivityManager: ContextMonitorDelegate {
+    nonisolated func didDetectContextChange(context: ActivityContext, startTime: Date) {
+        Task { @MainActor in
+            guard let modelContext = self.modelContext,
+                  let current = self.currentActivity else { return }
+            
+            // Reuse trackAppSwitch with retroactive time
+            self.trackAppSwitch(
+                newApp: current.appBundleId,
+                context: context,
+                startTime: startTime,
+                modelContext: modelContext
+            )
         }
     }
 }

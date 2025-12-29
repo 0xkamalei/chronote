@@ -14,7 +14,6 @@ class AppState {
     var selectedProject: Project?
     var selectedSidebar: String? = "All Activities"
     var isTimerStarting: Bool = false
-    var selectedTimeEntryId: UUID?
 
     // Timer Logic
     var isTimerActive: Bool = false
@@ -62,20 +61,6 @@ class AppState {
         return selectedSidebar == item && selectedProject == nil
     }
 
-    // MARK: - Time Entry Selection
-
-    func selectTimeEntry(_ timeEntry: TimeEntry?) {
-        selectedTimeEntryId = timeEntry?.id
-    }
-
-    func isTimeEntrySelected(_ timeEntry: TimeEntry) -> Bool {
-        return selectedTimeEntryId == timeEntry.id
-    }
-    
-    func clearTimeEntrySelection() {
-        selectedTimeEntryId = nil
-    }
-
     // MARK: - Timer Logic
 
     @MainActor
@@ -99,6 +84,8 @@ class AppState {
         isTimerActive = false
         timerStartTime = nil
         
+        // TODO: Re-implement TimeEntry creation when the feature is ready
+        /*
         do {
             _ = try await TimeEntryManager.shared.createFromTimer(
                 project: timerProject ?? selectedProject,
@@ -110,6 +97,7 @@ class AppState {
         } catch {
              print("Failed to stop timer and create entry: \(error)")
         }
+        */
         
         // Reset metadata
         timerProject = nil

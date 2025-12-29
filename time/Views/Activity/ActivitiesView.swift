@@ -4,8 +4,10 @@ import SwiftUI
 /// Main view displaying activities in a hierarchical, collapsible structure
 struct ActivitiesView: View {
     let activities: [Activity]
+    
+    @Query(sort: \Project.name) private var projects: [Project]
 
-    @State private var hierarchyGroups: [ActivityHierarchyGroup] = []
+    @State private var activityGroups: [ActivityGroup] = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -14,7 +16,7 @@ struct ActivitiesView: View {
             } else {
                 // Hierarchical list
                 List {
-                    ForEach(hierarchyGroups, id: \.id) { group in
+                    ForEach(activityGroups, id: \.id) { group in
                         HierarchicalActivityRow(group: group)
                             .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                             .listRowBackground(Color.clear)
@@ -25,10 +27,10 @@ struct ActivitiesView: View {
             }
         }
         .onAppear {
-            buildHierarchy()
+            updateGroups()
         }
         .onChange(of: activities) {
-            buildHierarchy()
+            updateGroups()
         }
     }
 
@@ -53,12 +55,13 @@ struct ActivitiesView: View {
         .background(Color(.controlBackgroundColor))
     }
 
-    private func buildHierarchy() {
-        hierarchyGroups = ActivityDataProcessor.buildAppHierarchy(activities: activities)
+    private func updateGroups() {
+        // Default to grouping by project as per new design
+        activityGroups = ActivityDataProcessor.groupByProject(activities: activities, projects: projects)
     }
 }
 
 #Preview {
     ActivitiesView(activities: [])
-        .modelContainer(for: Activity.self, inMemory: true)
+        .modelContainer(for: [Activity.self, Project.self], inMemory: true)
 }

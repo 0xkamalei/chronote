@@ -4,212 +4,88 @@ import Foundation
 class ActivityDataProcessor {
     // MARK: - Hierarchy Building
 
-    /// Builds the complete hierarchy from activities and time entries
+    /// Groups activities by project
     /// - Parameters:
-    ///   - activities: Array of activities to organize
-    ///   - timeEntries: Array of time entries for project associations
-    ///   - projects: Array of available projects
-    /// - Returns: Array of ActivityHierarchyGroup representing the root level
-    static func buildHierarchy(
+    ///   - activities: List of activities to group (assumed to be filtered by time)
+    ///   - projects: List of available projects
+    /// - Returns: Array of ActivityGroup at .project level
+    static func groupByProject(
         activities: [Activity],
-        timeEntries: [TimeEntry],
         projects: [Project]
-    ) -> [ActivityHierarchyGroup] {
-        var hierarchyGroups: [ActivityHierarchyGroup] = []
-
-        // Group 1: Unassigned activities (no time entry)
-        let unassignedActivities = activities.filter { activity in
-            guard let endTime = activity.endTime else { return true }
-            return !timeEntries.contains { timeEntry in
-                timeEntry.startTime <= activity.startTime && endTime <= timeEntry.endTime
+    ) -> [ActivityGroup] {
+        var groups: [ActivityGroup] = []
+        
+        // 1. Group activities by project ID
+        var activitiesByProject: [String: [Activity]] = [:]
+        var unassignedActivities: [Activity] = []
+        
+        for activity in activities {
+            if let projectId = activity.projectId {
+                activitiesByProject[projectId, default: []].append(activity)
+            } else {
+                unassignedActivities.append(activity)
             }
         }
-
-        if !unassignedActivities.isEmpty {
-            let unassignedGroup = ActivityHierarchyGroup(
-                name: "Unassigned",
-                level: .project,
-                children: buildTimelineHierarchy(activities: unassignedActivities, timeEntries: []),
-                activities: []
-            )
-            hierarchyGroups.append(unassignedGroup)
-        }
-
-        // Group 2: By projects
-        let projectGroups = buildProjectHierarchy(
-            activities: activities,
-            timeEntries: timeEntries,
-            projects: projects
-        )
-        hierarchyGroups.append(contentsOf: projectGroups)
-
-        return hierarchyGroups
-    }
-
-    // MARK: - Project Level
-
-    private static func buildProjectHierarchy(
-        activities: [Activity],
-        timeEntries: [TimeEntry],
-        projects: [Project]
-    ) -> [ActivityHierarchyGroup] {
-        var projectGroups: [ActivityHierarchyGroup] = []
-
+        
+        // 2. Create groups for known projects
         for project in projects {
-            // Get all time entries for this project
-            let projectTimeEntries = timeEntries.filter { $0.projectId == project.id }
-
-            // Get activities for this project's time entries
-            let projectActivities = activities.filter { activity in
-                guard let endTime = activity.endTime else { return false }
-                return projectTimeEntries.contains { timeEntry in
-                    timeEntry.startTime <= activity.startTime && endTime <= timeEntry.endTime
-                }
-            }
-
-            if !projectActivities.isEmpty {
-                let projectChildren = buildTimeEntryHierarchy(
-                    activities: projectActivities,
-                    timeEntries: projectTimeEntries
-                )
-
-                let projectGroup = ActivityHierarchyGroup(
+            if let projectActivities = activitiesByProject[project.id.uuidString] { // Assuming project.id is UUID
+                let group = ActivityGroup(
                     name: project.name,
                     level: .project,
-                    children: projectChildren,
-                    activities: []
+                    children: [], // Lazy load: no children initially
+                    activities: projectActivities,
+                    bundleId: nil
                 )
-
-                projectGroups.append(projectGroup)
+                groups.append(group)
             }
         }
-
-        return projectGroups
+        
+        // 3. Create group for unassigned (if any)
+        if !unassignedActivities.isEmpty {
+            let unassignedGroup = ActivityGroup(
+                name: "Unassigned",
+                level: .project,
+                children: [],
+                activities: unassignedActivities,
+                bundleId: nil
+            )
+            groups.append(unassignedGroup)
+        }
+        
+        // Optional: Sort by duration descending
+        return groups.sorted { $0.totalDuration > $1.totalDuration }
     }
-
-    // MARK: - TimeEntry Level
-
-    private static func buildTimeEntryHierarchy(
-        activities: [Activity],
-        timeEntries: [TimeEntry]
-    ) -> [ActivityHierarchyGroup] {
-        var timeEntryGroups: [ActivityHierarchyGroup] = []
-
-        for timeEntry in timeEntries {
-            let entryActivities = activities.filter { activity in
-                guard let endTime = activity.endTime else { return false }
-                return timeEntry.startTime <= activity.startTime && endTime <= timeEntry.endTime
-            }
-
-            if !entryActivities.isEmpty {
-                let timelineHierarchy = buildTimelineHierarchy(
-                    activities: entryActivities,
-                    timeEntries: []
-                )
-
-                let timeEntryGroup = ActivityHierarchyGroup(
-                    name: timeEntry.title,
-                    level: .timeEntry,
-                    children: timelineHierarchy,
-                    activities: []
-                )
-
-                timeEntryGroups.append(timeEntryGroup)
-            }
+    
+    /// Groups activities by app
+    /// - Parameter activities: List of activities to group (assumed to be filtered by project)
+    /// - Returns: Array of ActivityGroup at .appName level
+    static func groupByApp(activities: [Activity]) -> [ActivityGroup] {
+        var groups: [ActivityGroup] = []
+        
+        // 1. Group by Bundle ID
+        var activitiesByApp: [String: [Activity]] = [:]
+        
+        for activity in activities {
+            activitiesByApp[activity.appBundleId, default: []].append(activity)
         }
-
-        // Add unassigned activities in this time frame
-        if !timeEntries.isEmpty {
-            let timelineHierarchy = buildTimelineHierarchy(activities: activities, timeEntries: timeEntries)
-            if !timelineHierarchy.isEmpty {
-                timeEntryGroups.append(contentsOf: timelineHierarchy)
-            }
-        }
-
-        return timeEntryGroups
-    }
-
-    // MARK: - App-Based Hierarchy
-
-    /// Builds a simplified hierarchy grouped only by App
-    static func buildAppHierarchy(activities: [Activity]) -> [ActivityHierarchyGroup] {
-        let appGroups = Dictionary(grouping: activities) { $0.appBundleId }
-        var appHierarchy: [ActivityHierarchyGroup] = []
-
-        for (bundleId, bundleActivities) in appGroups {
-            let appName = bundleActivities.first?.appName ?? bundleId
+        
+        // 2. Create groups
+        for (bundleId, appActivities) in activitiesByApp {
+            guard let first = appActivities.first else { continue }
             
-            // Group by window title
-            let titleGroups = Dictionary(grouping: bundleActivities) { $0.appTitle ?? "General" }
-            var titleHierarchy: [ActivityHierarchyGroup] = []
-
-            for (title, titleActivities) in titleGroups {
-                let titleGroup = ActivityHierarchyGroup(
-                    name: title,
-                    level: .appTitle,
-                    children: [],
-                    activities: titleActivities.sorted { $0.startTime > $1.startTime },
-                    bundleId: bundleId
-                )
-                titleHierarchy.append(titleGroup)
-            }
-
-            let appGroup = ActivityHierarchyGroup(
-                name: appName,
+            let group = ActivityGroup(
+                name: first.appName,
                 level: .appName,
-                children: titleHierarchy.sorted { $0.totalDuration > $1.totalDuration },
-                activities: [],
+                children: [], // Lazy load: no children initially
+                activities: appActivities,
                 bundleId: bundleId
             )
-
-            appHierarchy.append(appGroup)
+            groups.append(group)
         }
-
-        return appHierarchy.sorted { $0.totalDuration > $1.totalDuration }
-    }
-
-    // MARK: - Timeline Hierarchy (Time Period -> App -> Title)
-
-    private static func buildTimelineHierarchy(
-        activities: [Activity],
-        timeEntries: [TimeEntry]
-    ) -> [ActivityHierarchyGroup] {
-        // Group by app bundle ID (aggregation)
-        let appGroups = Dictionary(grouping: activities) { $0.appBundleId }
-        var appHierarchy: [ActivityHierarchyGroup] = []
-
-        for (bundleId, bundleActivities) in appGroups.sorted(by: { $0.key < $1.key }) {
-            // Get app name (should be same for all activities with same bundle ID)
-            let appName = bundleActivities.first?.appName ?? bundleId
-
-            // Group by app title
-            let titleGroups = Dictionary(grouping: bundleActivities) { $0.appTitle ?? "General" }
-            var titleHierarchy: [ActivityHierarchyGroup] = []
-
-            for (title, titleActivities) in titleGroups.sorted(by: { $0.key < $1.key }) {
-                let titleGroup = ActivityHierarchyGroup(
-                    name: title,
-                    level: .appTitle,
-                    children: [],
-                    activities: titleActivities.sorted { $0.startTime < $1.startTime },
-                    bundleId: bundleId
-                )
-                titleHierarchy.append(titleGroup)
-            }
-
-            let appGroup = ActivityHierarchyGroup(
-                name: appName,
-                level: .appName,
-                children: titleHierarchy,
-                activities: [],
-                bundleId: bundleId
-            )
-
-            appHierarchy.append(appGroup)
-        }
-
-        // Sort by total duration (descending)
-        return appHierarchy.sorted { $0.totalDuration > $1.totalDuration }
+        
+        // Sort by duration descending
+        return groups.sorted { $0.totalDuration > $1.totalDuration }
     }
 
     // MARK: - Utility Methods
@@ -247,48 +123,4 @@ class ActivityDataProcessor {
         ]
         return browsers.contains(bundleId)
     }
-
-    // MARK: - Activity Matching
-
-    /// Matches activities to time entries based on time overlap
-    /// - Parameters:
-    ///   - activities: List of activities to match
-    ///   - timeEntries: List of time entries to match against
-    /// - Returns: Dictionary mapping Activity ID to list of matches, sorted by overlap duration (descending)
-    static func matchActivitiesToTimeEntries(_ activities: [Activity], _ timeEntries: [TimeEntry]) -> [UUID: [ActivityMatch]] {
-        var results: [UUID: [ActivityMatch]] = [:]
-
-        for activity in activities {
-            // ongoing activity (nil endTime) should be ignored
-            guard let activityEnd = activity.endTime else { continue }
-            
-            var matches: [ActivityMatch] = []
-
-            for entry in timeEntries {
-                // Calculate overlap
-                let start = max(activity.startTime, entry.startTime)
-                let end = min(activityEnd, entry.endTime)
-
-                // edge-touching intervals (end == start) count as no overlap
-                if start < end {
-                    let overlap = end.timeIntervalSince(start)
-                    matches.append(ActivityMatch(timeEntry: entry, overlapDuration: overlap))
-                }
-            }
-
-            if !matches.isEmpty {
-                // Sort by overlap duration desc
-                matches.sort { $0.overlapDuration > $1.overlapDuration }
-                results[activity.id] = matches
-            }
-        }
-
-        return results
-    }
-}
-
-/// Represents a match between an activity and a time entry
-struct ActivityMatch {
-    let timeEntry: TimeEntry
-    let overlapDuration: TimeInterval
 }

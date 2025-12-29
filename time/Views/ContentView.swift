@@ -11,15 +11,12 @@ struct ContentView: View {
     @StateObject private var projectManager = ProjectManager.shared
     @StateObject private var activityQueryManager = ActivityQueryManager.shared
     @StateObject private var activityManager = ActivityManager.shared
-    @StateObject private var timeEntryManager = TimeEntryManager.shared
     @StateObject private var notificationManager = NotificationManager()
 
     @State private var searchText: String = ""
     @State private var isDatePickerExpanded: Bool = false
     @State private var selectedDateRange = AppDateRangePreset.today.dateRange
     @State private var selectedPreset: AppDateRangePreset? = .today
-
-    @State private var isAddingTimeEntry: Bool = false
 
     private var activitiesView: some View {
         ActivityViewContainer(activities: activityQueryManager.activities)
@@ -46,10 +43,8 @@ struct ContentView: View {
         .environmentObject(projectManager)
         .environmentObject(activityQueryManager)
         .environmentObject(activityManager)
-        .environmentObject(timeEntryManager)
         .toolbar {
             MainToolbarView(
-                isAddingTimeEntry: $isAddingTimeEntry,
                 selectedDateRange: $selectedDateRange,
                 selectedPreset: $selectedPreset,
                 searchText: $searchText,
@@ -70,14 +65,10 @@ struct ContentView: View {
             // Sync initial sidebar filter
             activityQueryManager.setSidebarFilter(appState.selectedSidebar)
             
-            timeEntryManager.setModelContext(modelContext)
             activityManager.startTracking(modelContext: modelContext)
             
-            // Initialize AutoClassificationService
-            AutoClassificationService.shared.loadRules(modelContext: modelContext)
-            
-            // Allow TimeEntryManager to access ActivityManager if needed, or vice versa
-            // For now, they are independent singletons initialized with context
+            // TODO: Initialize AutoClassificationService when Rules are back
+            // AutoClassificationService.shared.loadRules(modelContext: modelContext)
             
             if !WindowMonitor.shared.checkAccessibilityPermissions() {
                 Logger.ui.warning("Accessibility permissions missing. Window titles will not be tracked.")

@@ -4,7 +4,6 @@ import os.log
 import SwiftData
 import SwiftUI
 
-/// 管理Activity查询的类，根据筛选条件动态查询数据
 @MainActor
 class ActivityQueryManager: ObservableObject {
     // MARK: - Singleton
@@ -35,7 +34,6 @@ class ActivityQueryManager: ObservableObject {
 
     // MARK: - Public Methods
 
-    /// 设置ModelContext
     func setModelContext(_ context: ModelContext) {
         modelContext = context
         Task {
@@ -43,7 +41,6 @@ class ActivityQueryManager: ObservableObject {
         }
     }
 
-    /// 设置日期范围筛选
     func setDateRange(_ range: DateInterval?) {
         // Log the incoming range for debugging
         if let range = range {
@@ -69,7 +66,6 @@ class ActivityQueryManager: ObservableObject {
         }
     }
 
-    /// 设置搜索文本筛选
     func setSearchText(_ text: String) {
         let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard currentSearchText != trimmedText else { return }
@@ -79,7 +75,6 @@ class ActivityQueryManager: ObservableObject {
         }
     }
 
-    /// 设置项目筛选
     func setProjectFilter(_ project: Project?) {
         guard currentProjectFilter?.id != project?.id else { return }
         currentProjectFilter = project
@@ -89,7 +84,6 @@ class ActivityQueryManager: ObservableObject {
         }
     }
 
-    /// 设置侧边栏筛选
     func setSidebarFilter(_ filter: String?) {
         guard currentSidebarFilter != filter else { return }
         currentSidebarFilter = filter
@@ -99,7 +93,6 @@ class ActivityQueryManager: ObservableObject {
         }
     }
 
-    /// 刷新活动数据
     func refreshActivities() async {
         guard let context = modelContext else {
             logger.error("ModelContext not set")
@@ -165,7 +158,6 @@ class ActivityQueryManager: ObservableObject {
         isLoading = false
     }
 
-    /// 在内存中应用额外的筛选条件
     private func applyInMemoryFilters(_ activities: [Activity]) -> [Activity] {
         var filtered = activities
 
@@ -198,7 +190,6 @@ class ActivityQueryManager: ObservableObject {
         return filtered
     }
 
-    /// 获取当前筛选条件的描述
     func getCurrentFilterDescription() -> String {
         var components: [String] = []
 
@@ -225,7 +216,6 @@ class ActivityQueryManager: ObservableObject {
 
     // MARK: - Private Methods
 
-    /// 构建查询描述符
     private func buildFetchDescriptor() -> FetchDescriptor<Activity> {
         var descriptor = FetchDescriptor<Activity>(
             sortBy: [SortDescriptor(\Activity.startTime, order: .reverse)]
@@ -287,17 +277,15 @@ class ActivityQueryManager: ObservableObject {
         return descriptor
     }
 
-    /// 构建计数描述符
     private func buildCountDescriptor() -> FetchDescriptor<Activity> {
         var descriptor = buildFetchDescriptor()
-        descriptor.fetchLimit = nil // 移除限制以获取准确计数
+        descriptor.fetchLimit = nil  
         return descriptor
     }
 }
 
 // MARK: - Supporting Types
 
-/// 筛选条件状态
 struct FilterState {
     let dateRange: DateInterval?
     let searchText: String

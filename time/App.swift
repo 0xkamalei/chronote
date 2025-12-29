@@ -11,8 +11,6 @@ struct time_vscodeApp: App {
         let schema = Schema([
             Activity.self,
             Project.self,
-            TimeEntry.self,
-            Rule.self,
         ])
 
         let modelConfiguration = ModelConfiguration(
