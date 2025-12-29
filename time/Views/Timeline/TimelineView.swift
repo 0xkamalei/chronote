@@ -8,6 +8,7 @@ struct TimelineView: View {
     // Controlled from outside
     @Binding var visibleTimeRange: ClosedRange<Date>
     var totalTimeRange: ClosedRange<Date>
+    var selectedTimeRange: ClosedRange<Date>? // Visual highlight for filtered range
     
     // Callback for filtering (Drag Selection)
     var onRangeSelected: ((ClosedRange<Date>) -> Void)?
@@ -32,11 +33,12 @@ struct TimelineView: View {
     
     private let processor = TimelineProcessor()
     
-    init(activities: [Activity], events: [Event] = [], visibleTimeRange: Binding<ClosedRange<Date>>, totalTimeRange: ClosedRange<Date>, onRangeSelected: ((ClosedRange<Date>) -> Void)? = nil) {
+    init(activities: [Activity], events: [Event] = [], visibleTimeRange: Binding<ClosedRange<Date>>, totalTimeRange: ClosedRange<Date>, selectedTimeRange: ClosedRange<Date>? = nil, onRangeSelected: ((ClosedRange<Date>) -> Void)? = nil) {
         self.activities = activities
         self.events = events
         self._visibleTimeRange = visibleTimeRange
         self.totalTimeRange = totalTimeRange
+        self.selectedTimeRange = selectedTimeRange
         self.onRangeSelected = onRangeSelected
     }
     
@@ -59,6 +61,11 @@ struct TimelineView: View {
                 ZStack(alignment: .topLeading) {
                     // Background Grid
                     TimeAxisGrid(range: visibleTimeRange, width: width)
+                    
+                    // Selected Range Highlight
+                    if let selected = selectedTimeRange, selected != totalTimeRange {
+                        TimelineSelectionLayer(selectedRange: selected, visibleRange: visibleTimeRange, width: width)
+                    }
                     
                     VStack(spacing: 0) {
                         // App Activity Track (Top)
@@ -162,6 +169,12 @@ struct TimelineView: View {
                                         showEditEventPopover = true
                                     }
                                 }
+                            } else {
+                                // Activity Track Double Click -> Reset Zoom
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    visibleTimeRange = totalTimeRange
+                                    onRangeSelected?(totalTimeRange)
+                                }
                             }
                         },
                         onDragEnd: { x1, x2, y in
@@ -183,15 +196,41 @@ struct TimelineView: View {
                                 showCreateEventPopover = true
                             } else {
                                 // Drag Select on Activity Track -> Filter Time
-                                // Update visible range AND trigger filter callback
-                                visibleTimeRange = start...end
-                                onRangeSelected?(start...end)
+                                // Validate duration (min 60s)
+                                if end.timeIntervalSince(start) > 60 {
+                                    // Update visible range AND trigger filter callback
+                                    visibleTimeRange = start...end
+                                    onRangeSelected?(start...end)
+                                }
                             }
                         }
                     )
                 }
                 .background(Color(nsColor: .controlBackgroundColor))
                 .zIndex(1)
+                .overlay(alignment: .topTrailing) {
+                    // Reset Zoom Button
+                    if !isFullyZoomedOut {
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                visibleTimeRange = totalTimeRange
+                                onRangeSelected?(totalTimeRange)
+                            }
+                        }) {
+                            Image(systemName: "arrow.up.left.and.arrow.down.right")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(.secondary)
+                                .padding(6)
+                                .background(Material.regular)
+                                .clipShape(Circle())
+                                .shadow(radius: 1)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(8)
+                        .help("Reset Zoom")
+                        .transition(.opacity)
+                    }
+                }
                 
                 // Navigator (Scrollbar) - Hide when not zoomed
                 if !isFullyZoomedOut {
@@ -355,5 +394,38 @@ struct TimeAxisGrid: View {
                 context.stroke(path, with: .color(.gray.opacity(0.2)), lineWidth: 1)
             }
         }
+    }
+}
+
+struct TimelineSelectionLayer: View {
+    let selectedRange: ClosedRange<Date>
+    let visibleRange: ClosedRange<Date>
+    let width: CGFloat
+    
+    var body: some View {
+        Canvas { context, size in
+            let visibleDuration = visibleRange.upperBound.timeIntervalSince(visibleRange.lowerBound)
+            guard visibleDuration > 0 else { return }
+            let pxPerSec = width / visibleDuration
+            
+            let startOffset = selectedRange.lowerBound.timeIntervalSince(visibleRange.lowerBound)
+            let endOffset = selectedRange.upperBound.timeIntervalSince(visibleRange.lowerBound)
+            
+            let x1 = CGFloat(startOffset) * pxPerSec
+            let x2 = CGFloat(endOffset) * pxPerSec
+            
+            // Draw Blue Box
+            // Ensure width is at least 1px to be visible
+            let rectWidth = max(1, x2 - x1)
+            let rect = CGRect(x: x1, y: 0, width: rectWidth, height: size.height)
+            
+            // Style: Similar to drag selection (blue with alpha)
+            context.fill(Path(rect), with: .color(.blue.opacity(0.1)))
+            
+            // Optional: Add Border
+            let borderPath = Path(rect)
+            context.stroke(borderPath, with: .color(.blue.opacity(0.3)), lineWidth: 1)
+        }
+        .allowsHitTesting(false) // Let clicks pass through
     }
 }

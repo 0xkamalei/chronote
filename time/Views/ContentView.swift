@@ -66,6 +66,7 @@ struct ContentView: View {
                     events: viewportEvents,
                     visibleTimeRange: $timelineVisibleRange,
                     totalTimeRange: start...end,
+                    selectedTimeRange: filterDateRange,
                     onRangeSelected: { newRange in
                         filterDateRange = newRange
                     }

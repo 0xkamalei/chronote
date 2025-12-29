@@ -70,37 +70,11 @@ struct TimelineInteractionOverlay: NSViewRepresentable {
         // MARK: - Gestures
         
         func handleZoomOrDrag(x1: CGFloat, x2: CGFloat, y: CGFloat) {
-            // Check if bottom track (Events)
-            // Activity track height is ~48
-            if y > 48 {
-                // Pass drag event up for Event Creation
-                parent.onDragEnd?(x1, x2, y)
-                return
-            }
-            
-            // Otherwise Zoom
-            handleZoomToRange(x1: x1, x2: x2)
-        }
-        
-        func handleZoomToRange(x1: CGFloat, x2: CGFloat) {
-            let currentRange = parent.visibleTimeRange
-            let duration = currentRange.upperBound.timeIntervalSince(currentRange.lowerBound)
-            
-            guard parent.totalWidth > 0 else { return }
-            let pixelsPerSecond = parent.totalWidth / duration
-            
-            // Map X coordinates to Time
-            // X=0 is currentRange.lowerBound
-            let t1 = currentRange.lowerBound.addingTimeInterval(Double(x1) / pixelsPerSecond)
-            let t2 = currentRange.lowerBound.addingTimeInterval(Double(x2) / pixelsPerSecond)
-            
-            // Validate and Update
-            // Ensure min duration
-            if t2.timeIntervalSince(t1) > 60 {
-                 DispatchQueue.main.async {
-                     self.parent.visibleTimeRange = t1...t2
-                 }
-            }
+            // Always pass drag event up to parent
+            // Parent will decide whether to:
+            // 1. Create Event (if y > 48)
+            // 2. Zoom & Filter (if y <= 48)
+            parent.onDragEnd?(x1, x2, y)
         }
         
         func handleScroll(_ event: NSEvent) {
