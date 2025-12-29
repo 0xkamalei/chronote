@@ -93,17 +93,60 @@ struct ChronologicalActivityRow: View {
                 .frame(width: 200, alignment: .leading)
             
             // App info with icon and name
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(appColor)
-                    .frame(width: 8, height: 8)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    AppIconView(bundleId: activity.appBundleId, size: 16)
+                    
+                    Text(activity.appName)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .lineLimit(1)
+                    
+                    if let projectId = activity.projectId {
+                        Text(projectId)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 4)
+                            .background(Color.secondary.opacity(0.1))
+                            .cornerRadius(4)
+                    }
+                }
                 
-                AppIconView(bundleId: activity.appBundleId, size: 16)
+                if let title = activity.appTitle {
+                    Text(title)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
                 
-                Text(activity.appName)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .lineLimit(1)
+                if let url = activity.webUrl {
+                    Text(url)
+                        .font(.caption2)
+                        .foregroundColor(.blue)
+                        .lineLimit(1)
+                }
+                
+                if let path = activity.filePath {
+                    Text(path)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+                
+                if let domain = activity.domain {
+                    Text("Domain: \(domain)")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
+                
+                if let icon = activity.icon {
+                     Text("Icon: \(icon)")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
             }
             
             Spacer()
@@ -144,24 +187,20 @@ struct ChronologicalActivityRow: View {
     
     private func formatShortDuration() -> String {
         let duration = activity.calculatedDuration
+        
+        if duration < 60 {
+            return "\(Int(duration))s"
+        }
+        
         let totalMinutes = Int(duration / 60)
         
-        if totalMinutes < 1 {
-            return "<1m"
-        } else if totalMinutes < 60 {
+        if totalMinutes < 60 {
             return "\(totalMinutes)m"
         } else {
             let hours = totalMinutes / 60
             let minutes = totalMinutes % 60
             return "\(hours)h\(minutes)m"
         }
-    }
-    
-    private var appColor: Color {
-        // Generate a consistent color based on app bundle ID
-        let hash = activity.appBundleId.hashValue
-        let colors: [Color] = [.blue, .green, .orange, .purple, .red, .pink, .yellow, .cyan]
-        return colors[abs(hash) % colors.count]
     }
     
     private var rowBackground: Color {

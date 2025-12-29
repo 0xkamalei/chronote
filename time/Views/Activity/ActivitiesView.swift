@@ -21,11 +21,10 @@ struct ActivitiesView: View {
                 emptyState
             } else {
                 // Hierarchical list
-                List(activityGroups, children: \.children) { group in
-                    HierarchicalActivityRow(group: group)
-                        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
+                List {
+                    ForEach(activityGroups) { group in
+                        RecursiveActivityRow(group: group)
+                    }
                 }
                 .listStyle(.sidebar)
             }
@@ -87,4 +86,35 @@ struct ActivitiesView: View {
 #Preview {
     ActivitiesView(activities: [])
         .modelContainer(for: [Activity.self, Project.self], inMemory: true)
+}
+
+struct RecursiveActivityRow: View {
+    let group: ActivityGroup
+    @State private var isExpanded: Bool = false
+    
+    var body: some View {
+        if let children = group.children, !children.isEmpty {
+            DisclosureGroup(isExpanded: $isExpanded) {
+                ForEach(children) { child in
+                    RecursiveActivityRow(group: child)
+                }
+            } label: {
+                HierarchicalActivityRow(group: group)
+                    .contentShape(Rectangle())
+                    .onTapGesture(count: 2) {
+                        withAnimation {
+                            isExpanded.toggle()
+                        }
+                    }
+            }
+            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+        } else {
+            HierarchicalActivityRow(group: group)
+                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+        }
+    }
 }

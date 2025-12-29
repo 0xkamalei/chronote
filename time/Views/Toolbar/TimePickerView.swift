@@ -7,6 +7,7 @@ struct TimePickerView: View {
 
     @State private var startDate: Date
     @State private var endDate: Date
+    @State private var isUpdatingPresets: Bool = false
 
     init(isPresented: Binding<Bool>, selectedDateRange: Binding<AppDateRange>, selectedPreset: Binding<AppDateRangePreset?>) {
         _isPresented = isPresented
@@ -78,6 +79,7 @@ struct TimePickerView: View {
                         .labelsHidden()
                         .clipped()
                         .onChange(of: startDate) { _, newValue in
+                            guard !isUpdatingPresets else { return }
                             DispatchQueue.main.async {
                                 let calendar = Calendar.current
                                 let startOfDay = calendar.startOfDay(for: newValue)
@@ -103,6 +105,7 @@ struct TimePickerView: View {
                         .labelsHidden()
                         .clipped()
                         .onChange(of: endDate) { _, newValue in
+                            guard !isUpdatingPresets else { return }
                             DispatchQueue.main.async {
                                 let calendar = Calendar.current
                                 let startOfDay = calendar.startOfDay(for: newValue)
@@ -120,10 +123,15 @@ struct TimePickerView: View {
     }
 
     private func updateDateRange(for preset: AppDateRangePreset) {
+        isUpdatingPresets = true
         let range = preset.dateRange
         startDate = range.startDate
         endDate = range.endDate
         selectedDateRange = range
+        
+        DispatchQueue.main.async {
+            isUpdatingPresets = false
+        }
     }
     
     private func formatDate(_ date: Date) -> String {

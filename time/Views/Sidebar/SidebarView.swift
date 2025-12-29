@@ -12,19 +12,6 @@ struct SidebarView: View {
 
     @Query(sort: \Project.sortOrder) private var projects: [Project]
     
-    /// 计算所有活动的总时长
-    private var totalDurationString: String {
-        let totalDuration = activityQueryManager.activities.reduce(0) { $0 + $1.calculatedDuration }
-        return ActivityDataProcessor.formatDuration(totalDuration)
-    }
-    
-    /// 计算未分配活动的总时长（暂时与总时长相同，后续可根据项目分配逻辑调整）
-    private var unassignedDurationString: String {
-        // TODO: 根据实际的项目分配逻辑过滤未分配的活动
-        let totalDuration = activityQueryManager.activities.reduce(0) { $0 + $1.calculatedDuration }
-        return ActivityDataProcessor.formatDuration(totalDuration)
-    }
-
     var body: some View {
         @Bindable var bindableAppState = appState
         
@@ -40,9 +27,6 @@ struct SidebarView: View {
                 HStack {
                     Label("All Activities", systemImage: "tray.full")
                     Spacer()
-                    Text(totalDurationString)
-                        .foregroundStyle(.secondary)
-                        .font(.caption)
                 }
                 .contentShape(Rectangle())
                 .background(appState.isSpecialItemSelected("All Activities") ? Color.accentColor.opacity(0.2) : Color.clear)
@@ -54,9 +38,6 @@ struct SidebarView: View {
                 HStack {
                     Label("Unassigned", systemImage: "questionmark.circle")
                     Spacer()
-                    Text(unassignedDurationString)
-                        .foregroundStyle(.secondary)
-                        .font(.caption)
                 }
                 .contentShape(Rectangle())
                 .background(appState.isSpecialItemSelected("Unassigned") ? Color.accentColor.opacity(0.2) : Color.clear)

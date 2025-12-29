@@ -6,23 +6,17 @@ struct DateNavigatorView: View {
     @Binding var selectedPreset: AppDateRangePreset?
     @State private var isDatePickerExpanded: Bool = false
 
-    /// 获取显示文本
-    /// - 有预设名称时显示预设名称
-    /// - Day level显示日期格式
-    /// - 其他显示日期范围
+ 
     private var dateRangeText: String {
         let calendar = Calendar.current
         
-        // 如果有预设，显示预设名称
         if let preset = selectedPreset {
             return preset.rawValue
         }
         
-        // 检查是否是单日范围（Day level）
         let startOfSelectedDay = calendar.startOfDay(for: selectedDateRange.startDate)
         let endOfSelectedDay = calendar.date(byAdding: .day, value: 1, to: startOfSelectedDay)!
         
-        // 如果结束日期等于开始日期的下一天00:00（即单日查询），显示日期
         if calendar.isDate(selectedDateRange.endDate, equalTo: endOfSelectedDay, toGranularity: .minute) ||
            calendar.isDate(selectedDateRange.startDate, inSameDayAs: selectedDateRange.endDate) {
             let formatter = DateFormatter()
@@ -30,7 +24,6 @@ struct DateNavigatorView: View {
             return formatter.string(from: selectedDateRange.startDate)
         }
         
-        // 显示日期范围
         let formatter = DateFormatter()
         formatter.dateFormat = "M/d"
         let startString = formatter.string(from: selectedDateRange.startDate)
@@ -116,12 +109,10 @@ struct DateNavigatorView: View {
                 amount *= (dayCount + 1)
             }
         } else {
-            // 检查是否是单日查询（Day level）
             let startOfDay = calendar.startOfDay(for: selectedDateRange.startDate)
             let endOfDayRange = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
             
             if calendar.isDate(selectedDateRange.endDate, equalTo: endOfDayRange, toGranularity: .minute) {
-                // 单日查询，按天调整
                 component = .day
             } else {
                 let dayDifference = calendar.dateComponents([.day], from: selectedDateRange.startDate, to: selectedDateRange.endDate).day ?? 0
@@ -141,17 +132,29 @@ struct DateNavigatorView: View {
             } else {
                 newEndDate = Date()
             }
-            selectedDateRange = AppDateRange(startDate: newStartDate, endDate: newEndDate)
+            let newRange = AppDateRange(startDate: newStartDate, endDate: newEndDate)
+            selectedDateRange = newRange
+            
+            let targetPresets: [AppDateRangePreset] = [.today, .yesterday]
+            if let matched = targetPresets.first(where: { preset in
+                let presetRange = preset.dateRange
+                return abs(presetRange.startDate.timeIntervalSince(newRange.startDate)) < 1 &&
+                       abs(presetRange.endDate.timeIntervalSince(newRange.endDate)) < 1
+            }) {
+                selectedPreset = matched
+            } else {
+                selectedPreset = nil
+            }
+        } else {
+            selectedPreset = nil
         }
-
-        selectedPreset = nil
     }
 }
 
 extension AppDateRangePreset {
     var isFixedDuration: Bool {
         switch self {
-        case .past7Days, .past15Days, .past30Days, .past90Days, .past365Days, .lastWeek, .lastMonth:
+        case .past7Days, .past15Days, .past30Days, .past90Days, .past365Days, .lastWeek, .lastMonth, .today, .yesterday:
             return true
         default:
             return false

@@ -1,6 +1,7 @@
 import AppKit
 import ApplicationServices
 import Foundation
+import os.log
 
 struct ActivityContext: Equatable {
     let title: String?
@@ -14,6 +15,8 @@ struct ActivityContext: Equatable {
 
 class WindowMonitor {
     static let shared = WindowMonitor()
+    
+    private let logger = Logger(subsystem: "com.time-vscode.WindowMonitor", category: "WindowMonitor")
     
     private init() {}
     
@@ -47,11 +50,17 @@ class WindowMonitor {
             filePath = url.path
         }
         
-        // 3. Get URL (Browser specific - simplified for now)
-        // This is complex via AX. For now, we will leave it as nil or implement a basic check later.
-        // Implementing full browser URL fetching via AX requires traversing the UI tree which is expensive for polling.
-        // We can add specific browser handlers later.
-        let webUrl: String? = nil 
+        // 3. Get URL (Browser specific)
+        var webUrl: String?
+        
+        if let app = NSRunningApplication(processIdentifier: processIdentifier),
+           let bundleId = app.bundleIdentifier {
+            
+            // Only attempt for known browsers to avoid overhead
+            if isBrowser(bundleId) {
+                webUrl = getBrowserUrl(for: bundleId)
+            }
+        }
         
         return ActivityContext(title: titleString, filePath: filePath, webUrl: webUrl)
     }
@@ -67,6 +76,69 @@ class WindowMonitor {
     func checkAccessibilityPermissions() -> Bool {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
         return AXIsProcessTrustedWithOptions(options as CFDictionary)
+    }
+    
+    // MARK: - Private Helper Methods
+    
+    private func isBrowser(_ bundleId: String) -> Bool {
+        let browsers = [
+            "company.thebrowser.Browser", // Arc
+            "com.google.Chrome",
+            "com.apple.Safari",
+            "com.microsoft.edgemac",
+            "com.brave.Browser",
+            "org.mozilla.firefox" // Firefox (requires specific handling, but listed for completeness)
+        ]
+        return browsers.contains(bundleId)
+    }
+    
+    private func getBrowserUrl(for bundleId: String) -> String? {
+        var source: String?
+        
+        switch bundleId {
+        case "company.thebrowser.Browser":
+            // Arc specific: try window 1 which often maps better than front window in some contexts
+            source = """
+            tell application id "\(bundleId)"
+                get URL of active tab of window 1
+            end tell
+            """
+        case "com.google.Chrome", "com.microsoft.edgemac", "com.brave.Browser":
+            // Chromium based
+            // Note: Arc uses "Arc" as application name in AppleScript usually, but let's try generic approach or name based.
+            // "tell application id \"...\"" is safer.
+            source = """
+            tell application id "\(bundleId)"
+                get URL of active tab of front window
+            end tell
+            """
+        case "com.apple.Safari":
+            source = """
+            tell application id "\(bundleId)"
+                get URL of front document
+            end tell
+            """
+        default:
+            return nil
+        }
+        
+        guard let scriptSource = source else { return nil }
+        
+        var error: NSDictionary?
+        if let script = NSAppleScript(source: scriptSource) {
+            let result = script.executeAndReturnError(&error)
+            if let error = error {
+                if let code = error[NSAppleScript.errorNumber] as? Int, code == -1743 {
+                     logger.error("Permission denied: Please allow this app to control browsers in System Settings > Privacy & Security > Automation")
+                } else {
+                     logger.error("AppleScript error for \(bundleId): \(error)")
+                }
+                return nil
+            }
+            return result.stringValue
+        }
+        
+        return nil
     }
 }
 

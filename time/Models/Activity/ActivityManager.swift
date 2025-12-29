@@ -144,7 +144,7 @@ class ActivityManager: ObservableObject {
                         modelContext.insert(current)
                     }
                     try modelContext.save()
-                    logger.info("Saved activity for: \(current.appName)")
+                    logger.info("Saved activity for: \(current.appName) | Title: \(current.appTitle ?? "nil") | URL: \(current.webUrl ?? "nil") | Duration: \(String(format: "%.1f", current.duration))s")
                 } catch {
                     logger.error("Failed to save activity: \(error.localizedDescription)")
                 }
