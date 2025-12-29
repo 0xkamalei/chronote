@@ -77,11 +77,13 @@ struct timApp: App {
     }()
 
     @State private var appState = AppState()
+    @AppStorage("appTheme") private var appTheme: AppTheme = .system
 
     var body: some Scene {
         WindowGroup("") {
             ContentView()
                 .environment(appState)
+                .preferredColorScheme(appTheme.colorScheme)
         }
         .modelContainer(sharedModelContainer)
         .commands {

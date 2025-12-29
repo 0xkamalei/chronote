@@ -9,6 +9,7 @@ struct ActivitiesView: View {
     @Query(sort: \Project.name) private var projects: [Project]
 
     @State private var activityGroups: [ActivityGroup] = []
+    @State private var selection: Set<String> = []
     
     init(activities: [Activity], initialGroupingLevel: ActivityGroupLevel = .project) {
         self.activities = activities
@@ -23,10 +24,10 @@ struct ActivitiesView: View {
                 // Hierarchical list
                 List {
                     ForEach(activityGroups) { group in
-                        RecursiveActivityRow(group: group)
+                        RecursiveActivityRow(group: group, selection: $selection)
                     }
                 }
-                .listStyle(.sidebar)
+                .listStyle(.plain)
             }
         }
         .onAppear {
@@ -63,9 +64,9 @@ struct ActivitiesView: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.controlBackgroundColor))
+        .background(Color(nsColor: .windowBackgroundColor))
     }
-
+    
     private func updateGroups() {
         Task {
             let grouped: [ActivityGroup]
@@ -90,6 +91,7 @@ struct ActivitiesView: View {
 
 struct RecursiveActivityRow: View {
     let group: ActivityGroup
+    @Binding var selection: Set<String>
     @State private var isExpanded: Bool = false
     
     @Environment(\.modelContext) private var modelContext
@@ -99,16 +101,19 @@ struct RecursiveActivityRow: View {
         if let children = group.children, !children.isEmpty {
             DisclosureGroup(isExpanded: $isExpanded) {
                 ForEach(children) { child in
-                    RecursiveActivityRow(group: child)
+                    RecursiveActivityRow(group: child, selection: $selection)
                 }
             } label: {
-                HierarchicalActivityRow(group: group)
+                HierarchicalActivityRow(group: group, isSelected: selection.contains(group.id))
                     .contentShape(Rectangle())
-                    .onTapGesture(count: 2) {
+                    .gesture(TapGesture(count: 2).onEnded {
                         withAnimation {
                             isExpanded.toggle()
                         }
-                    }
+                    })
+                    .simultaneousGesture(TapGesture().onEnded {
+                        selection = [group.id]
+                    })
                     .contextMenu {
                         assignMenu
                     }
@@ -117,7 +122,11 @@ struct RecursiveActivityRow: View {
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
         } else {
-            HierarchicalActivityRow(group: group)
+            HierarchicalActivityRow(group: group, isSelected: selection.contains(group.id))
+                .contentShape(Rectangle())
+                .simultaneousGesture(TapGesture().onEnded {
+                    selection = [group.id]
+                })
                 .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)

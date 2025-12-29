@@ -12,53 +12,74 @@ struct SidebarView: View {
 
     @Query(sort: \Project.sortOrder) private var projects: [Project]
     
-    var body: some View {
-        @Bindable var bindableAppState = appState
-        
-        List(selection: $bindableAppState.selectedSidebar) {
-            Section {
-                NavigationLink(value: "Activities") {
-                    Label("Activities", systemImage: "clock")
+    // Unified selection enum
+    enum SidebarSelection: Hashable {
+        case allActivities
+        case unassigned
+        case myProjects // Parent category, though usually not selectable in the same way, but needed for consistency
+        case project(Project)
+    }
+    
+    private var selection: Binding<SidebarSelection?> {
+        Binding {
+            if let project = appState.selectedProject {
+                return .project(project)
+            } else if let sidebar = appState.selectedSidebar {
+                switch sidebar {
+                case "All Activities": return .allActivities
+                case "Unassigned": return .unassigned
+                case "My Projects": return .myProjects
+                default: return nil
                 }
-                .accessibilityIdentifier("sidebar.activities")
             }
-
-            Section(header: Text("Projects")) {
-                HStack {
+            return nil
+        } set: { newValue in
+            switch newValue {
+            case .allActivities:
+                appState.selectSpecialItem("All Activities")
+            case .unassigned:
+                appState.selectSpecialItem("Unassigned")
+            case .myProjects:
+                appState.selectSpecialItem("My Projects")
+            case .project(let project):
+                appState.selectProject(project)
+            case nil:
+                // Handle deselection if needed, though sidebar usually enforces one selection
+                break
+            }
+        }
+    }
+    
+    var body: some View {
+        List(selection: selection) {
+            Section {
+                NavigationLink(value: SidebarSelection.allActivities) {
                     Label("All Activities", systemImage: "tray.full")
-                    Spacer()
-                }
-                .contentShape(Rectangle())
-                .background(appState.isSpecialItemSelected("All Activities") ? Color.accentColor.opacity(0.2) : Color.clear)
-                .onTapGesture {
-                    appState.selectSpecialItem("All Activities")
+                        .padding(.vertical, 2)
                 }
                 .accessibilityIdentifier("sidebar.allActivities")
 
-                HStack {
+                NavigationLink(value: SidebarSelection.unassigned) {
                     Label("Unassigned", systemImage: "questionmark.circle")
-                    Spacer()
-                }
-                .contentShape(Rectangle())
-                .background(appState.isSpecialItemSelected("Unassigned") ? Color.accentColor.opacity(0.2) : Color.clear)
-                .onTapGesture {
-                    appState.selectSpecialItem("Unassigned")
+                        .padding(.vertical, 2)
                 }
                 .accessibilityIdentifier("sidebar.unassigned")
+            } header: {
+                Text("Activities")
+            }
 
+            Section(header: Text("Projects")) {
                 DisclosureGroup(isExpanded: $isMyProjectsExpanded) {
                     ForEach(projects) { project in
-                        ProjectRowView(project: project)
+                        NavigationLink(value: SidebarSelection.project(project)) {
+                            ProjectRowView(project: project)
+                        }
+                        .accessibilityIdentifier("sidebar.project.\(project.id)")
                     }
                     .onMove(perform: moveProjects)
                 } label: {
                     Label("My Projects", systemImage: "folder")
-                        .contentShape(Rectangle())
-                        .background(appState.isSpecialItemSelected("My Projects") ? Color.accentColor.opacity(0.2) : Color.clear)
-                        .onTapGesture {
-                            appState.selectSpecialItem("My Projects")
-                        }
-                        .accessibilityIdentifier("sidebar.myProjects")
+                        .padding(.vertical, 2)
                 }
                 .accessibilityIdentifier("sidebar.myProjectsDisclosure")
             }

@@ -6,6 +6,7 @@ struct ChronologicalActivitiesView: View {
     let activities: [Activity]
     
     @State private var sortedActivities: [Activity] = []
+    @State private var selection: Set<UUID> = []
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -13,9 +14,9 @@ struct ChronologicalActivitiesView: View {
                 emptyState
             } else {
                 // Chronological list
-                List {
+                List(selection: $selection) {
                     ForEach(sortedActivities, id: \.id) { activity in
-                        ChronologicalActivityRow(activity: activity)
+                        ChronologicalActivityRow(activity: activity, isSelected: selection.contains(activity.id))
                             .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
@@ -50,7 +51,7 @@ struct ChronologicalActivitiesView: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.controlBackgroundColor))
+        .background(Color(nsColor: .windowBackgroundColor))
     }
     
     // MARK: - Methods
@@ -64,6 +65,7 @@ struct ChronologicalActivitiesView: View {
 /// Individual row for chronological activity display
 struct ChronologicalActivityRow: View {
     let activity: Activity
+    let isSelected: Bool
     
     private var dateTimeFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -82,13 +84,13 @@ struct ChronologicalActivityRow: View {
             // Duration column (like "2m")
             Text(formatShortDuration())
                 .font(.system(.caption, design: .monospaced))
-                .foregroundColor(.secondary)
+                .foregroundColor(isSelected ? .white : .secondary)
                 .frame(width: 30, alignment: .leading)
             
             // Date and time range in single line
             Text(formatDateTimeRange())
                 .font(.system(.caption2, design: .monospaced))
-                .foregroundColor(.secondary)
+                .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
                 .lineLimit(1)
                 .frame(width: 200, alignment: .leading)
             
@@ -100,14 +102,15 @@ struct ChronologicalActivityRow: View {
                     Text(activity.appName)
                         .font(.caption)
                         .fontWeight(.medium)
+                        .foregroundColor(isSelected ? .white : .primary)
                         .lineLimit(1)
                     
                     if let projectId = activity.projectId {
                         Text(projectId)
                             .font(.caption2)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
                             .padding(.horizontal, 4)
-                            .background(Color.secondary.opacity(0.1))
+                            .background(isSelected ? Color.white.opacity(0.2) : Color.secondary.opacity(0.1))
                             .cornerRadius(4)
                     }
                 }
@@ -115,21 +118,21 @@ struct ChronologicalActivityRow: View {
                 if let title = activity.appTitle {
                     Text(title)
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
                         .lineLimit(1)
                 }
                 
                 if let url = activity.webUrl {
                     Text(url)
                         .font(.caption2)
-                        .foregroundColor(.blue)
+                        .foregroundColor(isSelected ? .white : .blue)
                         .lineLimit(1)
                 }
                 
                 if let path = activity.filePath {
                     Text(path)
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
@@ -137,14 +140,14 @@ struct ChronologicalActivityRow: View {
                 if let domain = activity.domain {
                     Text("Domain: \(domain)")
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
                         .lineLimit(1)
                 }
                 
                 if let icon = activity.icon {
                      Text("Icon: \(icon)")
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
                         .lineLimit(1)
                 }
             }
@@ -155,10 +158,10 @@ struct ChronologicalActivityRow: View {
             if activity.isActive {
                 Text("Active")
                     .font(.caption2)
-                    .foregroundColor(.green)
+                    .foregroundColor(isSelected ? .white : .green)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(Color.green.opacity(0.1))
+                    .background(isSelected ? Color.white.opacity(0.2) : Color.green.opacity(0.1))
                     .cornerRadius(4)
             }
         }
@@ -168,7 +171,7 @@ struct ChronologicalActivityRow: View {
         .cornerRadius(4)
         .overlay(
             RoundedRectangle(cornerRadius: 4)
-                .stroke(Color.secondary.opacity(0.1), lineWidth: 0.5)
+                .stroke(isSelected ? Color.clear : Color.secondary.opacity(0.1), lineWidth: 0.5)
         )
     }
     
@@ -204,36 +207,56 @@ struct ChronologicalActivityRow: View {
     }
     
     private var rowBackground: Color {
-        return Color(.controlBackgroundColor).opacity(0.5)
+        if isSelected {
+            return Color.accentColor
+        }
+        return Color(nsColor: .controlBackgroundColor).opacity(0.5)
     }
 }
 
 #Preview {
-    let mockActivities = [
-        Activity(
-            appName: "Finder",
-            appBundleId: "com.apple.finder",
-            appTitle: "7% Code, 6% LDX",
-            duration: 3600,
-            startTime: Date().addingTimeInterval(-7200),
-            endTime: Date().addingTimeInterval(-3600)
-        ),
-        Activity(
-            appName: "LDX",
-            appBundleId: "com.ldx.app",
+        let mockActivities = [
+            Activity(
+                appName: "Finder",
+                appBundleId: "com.apple.finder",
+                appTitle: "7% Code, 6% LDX",
+                duration: 3600,
+                startTime: Date().addingTimeInterval(-7200),
+                endTime: Date().addingTimeInterval(-3600)
+            ),
+            Activity(
+                appName: "LDX",
+                appBundleId: "com.ldx.app",
+                duration: 1800,
+                startTime: Date().addingTimeInterval(-3600),
+                endTime: Date().addingTimeInterval(-1800)
+            ),
+            Activity(
+                appName: "Code",
+                appBundleId: "com.microsoft.vscode",
+                duration: 900,
+                startTime: Date().addingTimeInterval(-1800),
+                endTime: Date().addingTimeInterval(-900)
+            )
+        ]
+        
+        ChronologicalActivitiesView(activities: mockActivities)
+            .frame(width: 800, height: 600)
+    }
+
+    #Preview("Row") {
+        let activity = Activity(
+            appName: "Xcode",
+            appBundleId: "com.apple.dt.Xcode",
             duration: 1800,
-            startTime: Date().addingTimeInterval(-3600),
-            endTime: Date().addingTimeInterval(-1800)
-        ),
-        Activity(
-            appName: "Code",
-            appBundleId: "com.microsoft.vscode",
-            duration: 900,
-            startTime: Date().addingTimeInterval(-1800),
-            endTime: Date().addingTimeInterval(-900)
+            startTime: Date(),
+            endTime: Date().addingTimeInterval(1800)
         )
-    ]
-    
-    ChronologicalActivitiesView(activities: mockActivities)
-        .frame(width: 800, height: 600)
-}
+        
+        VStack {
+            ChronologicalActivityRow(activity: activity, isSelected: false)
+            ChronologicalActivityRow(activity: activity, isSelected: true)
+        }
+        .padding()
+        .frame(width: 500)
+    }

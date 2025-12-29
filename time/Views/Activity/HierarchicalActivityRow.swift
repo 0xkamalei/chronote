@@ -26,6 +26,7 @@ struct AppIconView: View {
 /// A simple row that displays app activity without collapsible hierarchy
 struct HierarchicalActivityRow: View {
     let group: ActivityGroup
+    let isSelected: Bool
     
     // Default width, but could be made adjustable via binding in parent if needed
     @State private var durationWidth: CGFloat = 60
@@ -35,7 +36,7 @@ struct HierarchicalActivityRow: View {
             // Duration on the left with fixed but wider width
             Text(group.durationString)
                 .font(.system(size: 13, design: .monospaced))
-                .foregroundColor(.secondary)
+                .foregroundColor(isSelected ? .white : .secondary)
                 .frame(width: durationWidth, alignment: .trailing)
                 .lineLimit(1)
             
@@ -47,25 +48,35 @@ struct HierarchicalActivityRow: View {
                 // Or maybe use the clock icon defined in levelIcon
                 Image(systemName: "clock")
                     .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
                     .frame(width: 18)
             } else {
                 Image(systemName: group.levelIcon)
                 .font(.system(size: 14))
-                .foregroundColor(.secondary)
+                .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
                 .frame(width: 18)
             }
             
             // App name
             Text(group.name)
                 .font(.subheadline)
+                .foregroundColor(isSelected ? .white : .primary)
                 .lineLimit(1)
             
             Spacer()
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 12)
+        .background(rowBackground)
+        .cornerRadius(4)
         .contentShape(Rectangle())
+    }
+    
+    private var rowBackground: Color {
+        if isSelected {
+            return Color.accentColor
+        }
+        return Color.clear
     }
 }
 
@@ -78,7 +89,19 @@ struct HierarchicalActivityRow: View {
                 children: [],
                 activities: [],
                 bundleId: "com.apple.Safari"
-            )
+            ),
+            isSelected: false
+        )
+        
+        HierarchicalActivityRow(
+            group: ActivityGroup(
+                name: "Xcode",
+                level: .appName,
+                children: [],
+                activities: [],
+                bundleId: "com.apple.dt.Xcode"
+            ),
+            isSelected: true
         )
     }
     .padding()

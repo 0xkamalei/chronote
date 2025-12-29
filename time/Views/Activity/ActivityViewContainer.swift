@@ -37,7 +37,7 @@ struct ActivityViewContainer: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(Color(.controlBackgroundColor))
+        .background(Color(nsColor: .windowBackgroundColor))
     }
     
     @ViewBuilder
