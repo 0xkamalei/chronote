@@ -56,7 +56,7 @@ class ActivityManager: ObservableObject {
             }
         }
         notificationObservers.append(sleepObserver)
-        
+
         // Idle Observers
         let idleObserver = notificationCenter.addObserver(
             forName: .userDidBecomeIdle,
@@ -79,11 +79,24 @@ class ActivityManager: ObservableObject {
             }
         }
         notificationObservers.append(activeObserver)
-        
+
+        // Background app check observer
+        let backgroundCheckObserver = notificationCenter.addObserver(
+            forName: NSNotification.Name("BackgroundAppCheckNotification"),
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            Task { @MainActor in
+                self?.handleBackgroundAppCheck(notification)
+            }
+        }
+        notificationObservers.append(backgroundCheckObserver)
+
         IdleMonitor.shared.startMonitoring()
+        BackgroundTaskManager.shared.startBackgroundTracking()
 
         logger.info("Started tracking app activities")
-        
+
         // Initial track of current app
         if let app = NSWorkspace.shared.frontmostApplication,
            let bundleId = app.bundleIdentifier {
@@ -100,7 +113,8 @@ class ActivityManager: ObservableObject {
     func stopTracking(modelContext: ModelContext, endTime: Date = Date()) {
         IdleMonitor.shared.stopMonitoring()
         contextMonitor.stopMonitoring()
-        
+        BackgroundTaskManager.shared.stopBackgroundTracking()
+
         if let current = self.currentActivity {
             current.endTime = endTime
             current.duration = current.calculatedDuration
@@ -248,15 +262,31 @@ class ActivityManager: ObservableObject {
 
     private func handleUserActive(_ notification: Notification) {
         logger.info("Handling user active")
-        
+
         // Resume tracking frontmost app
         if let app = NSWorkspace.shared.frontmostApplication,
            let bundleId = app.bundleIdentifier,
            let modelContext = modelContext {
-             
-             let context = WindowMonitor.shared.getContext(for: app.processIdentifier)
-             trackAppSwitch(newApp: bundleId, context: context, modelContext: modelContext)
+
+            let context = WindowMonitor.shared.getContext(for: app.processIdentifier)
+            trackAppSwitch(newApp: bundleId, context: context, modelContext: modelContext)
         }
+    }
+
+    private func handleBackgroundAppCheck(_ notification: Notification) {
+        guard let bundleId = notification.userInfo?["bundleId"] as? String,
+              let processId = notification.userInfo?["processIdentifier"] as? Int32,
+              let modelContext = modelContext else { return }
+
+        // Check if the frontmost app has changed
+        if let currentActivity = self.currentActivity, currentActivity.appBundleId == bundleId {
+            // App hasn't changed, but we still check for context changes (e.g., browser tabs)
+            return
+        }
+
+        // App has changed, track the new app
+        let context = WindowMonitor.shared.getContext(for: processId)
+        trackAppSwitch(newApp: bundleId, context: context, modelContext: modelContext)
     }
 }
 

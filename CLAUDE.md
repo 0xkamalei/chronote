@@ -17,17 +17,17 @@ Don't use Chinese characters in the code.
 ### Building the Project
 ```bash
 # Build using Xcode command line
-xcodebuild -project time.xcodeproj -scheme time -configuration Release build
+xcodebuild -project chronote.xcodeproj -scheme chronote -configuration Release build
 
 # Build and create a distributable DMG package
 ./package.sh
 ```
 
 ### Running the App
-Open `time.xcodeproj` in Xcode and run the scheme `time` (Cmd+R). The app requires macOS 14+ and Accessibility permissions to function properly.
+Open `chronote.xcodeproj` in Xcode and run the scheme `chronote` (Cmd+R). The app requires macOS 14+ and Accessibility permissions to function properly.
 
 ### Project Structure Location
-The Xcode project file is located at `time.xcodeproj/project.pbxproj`.
+The Xcode project file is located at `chronote.xcodeproj/project.pbxproj`.
 
 ## Architecture
 
@@ -35,20 +35,20 @@ The Xcode project file is located at `time.xcodeproj/project.pbxproj`.
 
 The app uses SwiftData for persistence with four main models:
 
-1. **Activity** (`time/Models/Activity/Activity.swift`) - Records of app usage with context
+1. **Activity** (`chronote/Models/Activity/Activity.swift`) - Records of app usage with context
    - Tracks: app name/bundle ID, window title, file path, web URL, domain
    - Links to projects via `projectId` (auto-assigned by rules)
    - Core fields: `startTime`, `endTime`, `duration`
 
-2. **Project** (`time/Models/Project/Project.swift`) - User-defined categorization
+2. **Project** (`chronote/Models/Project/Project.swift`) - User-defined categorization
    - Contains: name, color, sortOrder, productivityRating, isArchived
    - Color stored as serialized `Data` (NSColor/UIColor)
 
-3. **AutoAssignRule** (`time/Models/Project/AutoAssignRule.swift`) - Automatic project assignment
+3. **AutoAssignRule** (`chronote/Models/Project/AutoAssignRule.swift`) - Automatic project assignment
    - Rule types: `appBundleId` or `titleKeyword`
    - Evaluated by `AutoAssignmentManager` when activities are created
 
-4. **Event** (`time/Models/Event/Event.swift`) - Manual time tracking entries
+4. **Event** (`chronote/Models/Event/Event.swift`) - Manual time tracking entries
    - User-started timed events with optional project association
    - Distinct from automatic Activity tracking
 
@@ -56,7 +56,7 @@ The app uses SwiftData for persistence with four main models:
 
 All managers are `@MainActor` singletons accessed via `.shared`:
 
-- **ActivityManager** (`time/Models/Activity/ActivityManager.swift`)
+- **ActivityManager** (`chronote/Models/Activity/ActivityManager.swift`)
   - Singleton responsible for automatic app activity tracking
   - Observes NSWorkspace notifications for app switches, sleep, idle states
   - Delegates to `ContextMonitor` for window title/URL tracking
@@ -64,38 +64,38 @@ All managers are `@MainActor` singletons accessed via `.shared`:
   - Calls `AutoAssignmentManager` to auto-assign projects to new activities
   - Key methods: `startTracking(modelContext:)`, `stopTracking(modelContext:)`, `trackAppSwitch(...)`
 
-- **ProjectManager** (`time/Models/Project/ProjectManager.swift`)
+- **ProjectManager** (`chronote/Models/Project/ProjectManager.swift`)
   - CRUD operations for projects
   - Posts `.projectWasDeleted` notification on deletion
 
-- **EventManager** (`time/Models/Event/EventManager.swift`)
+- **EventManager** (`chronote/Models/Event/EventManager.swift`)
   - Manages manual time tracking events
   - Tracks single `currentEvent` (ongoing event with nil endTime)
   - Can auto-stop events on user idle if configured
 
-- **ActivityQueryManager** (`time/Models/Activity/ActivityQueryManager.swift`)
+- **ActivityQueryManager** (`chronote/Models/Activity/ActivityQueryManager.swift`)
   - Centralized filtering/querying of activities
   - Applies filters: date range, project, sidebar selection, search text
   - Used by ContentView to populate activity lists
 
 ### Monitoring System
 
-- **WindowMonitor** (`time/Models/Activity/WindowMonitor.swift`)
+- **WindowMonitor** (`chronote/Models/Activity/WindowMonitor.swift`)
   - Uses macOS Accessibility APIs to read window titles and browser URLs
   - Returns `ActivityContext` (title, filePath, webUrl)
 
-- **ContextMonitor** (`time/Models/Activity/ContextMonitor.swift`)
+- **ContextMonitor** (`chronote/Models/Activity/ContextMonitor.swift`)
   - Polls a specific PID for context changes (e.g., tab switches in browser)
   - Debounces changes with 5-second delay
   - Notifies `ActivityManager` via `ContextMonitorDelegate`
 
-- **IdleMonitor** (`time/Models/Activity/IdleMonitor.swift`)
+- **IdleMonitor** (`chronote/Models/Activity/IdleMonitor.swift`)
   - Detects user inactivity using `CGEventSource.secondsSinceLastEventType`
   - Posts `.userDidBecomeIdle` and `.userDidBecomeActive` notifications
 
 ### View Architecture
 
-- **ContentView** (`time/Views/ContentView.swift`) - Main application view
+- **ContentView** (`chronote/Views/ContentView.swift`) - Main application view
   - NavigationSplitView with sidebar and detail columns
   - Manages date range selection, timeline zoom, and activity filtering
   - Integrates ActivityQueryManager for filtered results
@@ -103,26 +103,26 @@ All managers are `@MainActor` singletons accessed via `.shared`:
   - Uses debouncing for timeline viewport changes (200ms delay)
 
 - **Views Organization:**
-  - `time/Views/Activity/` - Activity list and related components
-  - `time/Views/Event/` - Manual event tracking UI
-  - `time/Views/Timeline/` - Timeline visualization with zoom/pan
-  - `time/Views/Sidebar/` - Project list and navigation
-  - `time/Views/Settings/` - App preferences
-  - `time/Views/MenuBar/` - Menu bar extra views
-  - `time/Views/Toolbar/` - Main toolbar with date picker
+  - `chronote/Views/Activity/` - Activity list and related components
+  - `chronote/Views/Event/` - Manual event tracking UI
+  - `chronote/Views/Timeline/` - Timeline visualization with zoom/pan
+  - `chronote/Views/Sidebar/` - Project list and navigation
+  - `chronote/Views/Settings/` - App preferences
+  - `chronote/Views/MenuBar/` - Menu bar extra views
+  - `chronote/Views/Toolbar/` - Main toolbar with date picker
 
 ### State Management
 
-- **AppState** (`time/AppState.swift`) - `@Observable` global state
+- **AppState** (`chronote/AppState.swift`) - `@Observable` global state
   - Navigation state: `selectedProject`, `selectedSidebar`, `columnVisibility`
   - Activity view mode: `.unified` or `.chronological`
   - Timer state for manual event tracking
 
-- **App Entry** (`time/App.swift`) - `@main` struct
+- **App Entry** (`chronote/App.swift`) - `@main` struct
   - Creates SwiftData `ModelContainer` with custom store location
   - Handles migration errors by deleting corrupt stores
   - Schema: `[Activity.self, Project.self, AutoAssignRule.self, Event.self]`
-  - Store location: `~/Library/Application Support/time-trace.store`
+  - Store location: `~/Library/Application Support/chronote.store`
   - Provides AppState and EventManager as environment objects
 
 ### Permissions
@@ -157,7 +157,7 @@ WindowMonitor.shared.checkAccessibilityPermissions()
 
 5. **Logging:**
    - Uses `os.Logger` throughout the codebase
-   - Logger subsystem: `com.time.vscode` or `com.time-vscode` (inconsistent naming)
+   - Logger subsystem: `dev.leix.chronote` 
    - Import: `import os` or `import os.log`
 
 6. **Timeline Integration:**
