@@ -13,9 +13,6 @@ struct TimelineView: View {
     // Callback for filtering (Drag Selection)
     var onRangeSelected: ((ClosedRange<Date>) -> Void)?
     
-    @AppStorage("timelineMergeStatisticsEnabled") private var mergeEnabled = false
-    @AppStorage("timelineMergeIntervalMinutes") private var mergeIntervalMinutes = 30
-    
     @State private var renderBlocks: [TimelineRenderBlock] = []
     @State private var eventRenderBlocks: [TimelineRenderBlock] = []
     
@@ -300,12 +297,6 @@ struct TimelineView: View {
             .onChange(of: visibleTimeRange) { _ in
                 recalculate(width: width)
             }
-            .onChange(of: mergeEnabled) { _ in
-                recalculate(width: width)
-            }
-            .onChange(of: mergeIntervalMinutes) { _ in
-                recalculate(width: width)
-            }
             .onAppear {
                 recalculate(width: width)
             }
@@ -320,15 +311,11 @@ struct TimelineView: View {
     }
     
     private func recalculate(width: CGFloat) {
-        let blocks: [TimelineRenderBlock]
-        if mergeEnabled {
-            let interval = TimeInterval(mergeIntervalMinutes * 60)
-            blocks = processor.processMerged(activities: activities, visibleTimeRange: visibleTimeRange, canvasWidth: width, interval: interval)
-        } else {
-            blocks = processor.process(activities: activities, visibleTimeRange: visibleTimeRange, canvasWidth: width)
-        }
+        // NEW: Use session-based aggregation for better visual continuity
+        // This replaces both the old process() and processMerged() methods
+        let blocks = processor.processWithSessionAggregation(activities: activities, visibleTimeRange: visibleTimeRange, canvasWidth: width)
         self.renderBlocks = blocks
-        
+
         let evtBlocks = processor.processEvents(events: events, visibleTimeRange: visibleTimeRange, canvasWidth: width)
         self.eventRenderBlocks = evtBlocks
     }

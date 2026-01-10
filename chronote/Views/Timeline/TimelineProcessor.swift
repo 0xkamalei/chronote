@@ -2,15 +2,23 @@ import Foundation
 import SwiftUI
 import AppKit
 
+/// TimelineProcessor converts activities into renderable timeline blocks.
+///
+/// NEW STRATEGY (based on OpenAI analysis):
+/// 1. First aggregate activities into cognitive sessions (via TimelineSessionAggregator)
+/// 2. Then render sessions (not individual activities) as visual blocks
+/// 3. This separates "statistical merge" (30min) from "visual merge" (30s-90s)
 class TimelineProcessor {
     // Cache for app icons to avoid repeated lookups
     private var iconCache: [String: NSImage] = [:]
-    
+
     // Constants for Level of Detail (LOD)
     private let MERGE_THRESHOLD_PX: CGFloat = 1.0
     private let MIN_DRAW_WIDTH_PX: CGFloat = 2.0 // Draw at least 2px line
     private let TRACK_HEIGHT: CGFloat = 40.0
     private let BLOCK_PADDING: CGFloat = 4.0
+
+    private let sessionAggregator = TimelineSessionAggregator()
     
     // Accumulator for merging
     private struct PendingBlock {
@@ -23,7 +31,65 @@ class TimelineProcessor {
         var endTime: Date
     }
     
-    /// Converts raw activities into renderable blocks
+    /// NEW: Converts raw activities into cognitive sessions, then renders as blocks.
+    /// This is the recommended approach that matches Timing's visual style.
+    ///
+    /// - Parameters:
+    ///   - activities: List of raw activities
+    ///   - visibleTimeRange: The time range currently visible on screen
+    ///   - canvasWidth: The width of the canvas in pixels
+    /// - Returns: A list of `TimelineRenderBlock` ready for drawing
+    func processWithSessionAggregation(activities: [Activity], visibleTimeRange: ClosedRange<Date>, canvasWidth: CGFloat) -> [TimelineRenderBlock] {
+        guard !activities.isEmpty, canvasWidth > 0 else { return [] }
+
+        let totalSeconds = visibleTimeRange.upperBound.timeIntervalSince(visibleTimeRange.lowerBound)
+        guard totalSeconds > 0 else { return [] }
+
+        let pixelsPerSecond = canvasWidth / CGFloat(totalSeconds)
+        let startTime = visibleTimeRange.lowerBound
+
+        // Step 1: Aggregate activities into cognitive sessions
+        let sessions = sessionAggregator.aggregateSessions(from: activities)
+
+        // Step 2: Render sessions as blocks
+        var renderBlocks: [TimelineRenderBlock] = []
+
+        for session in sessions {
+            // Skip sessions outside visible range
+            if session.endTime < visibleTimeRange.lowerBound || session.startTime > visibleTimeRange.upperBound {
+                continue
+            }
+
+            let startX = CGFloat(session.startTime.timeIntervalSince(startTime)) * pixelsPerSecond
+            let endX = CGFloat(session.endTime.timeIntervalSince(startTime)) * pixelsPerSecond
+            let width = endX - startX
+
+            guard width > 0.5 else { continue }
+
+            let visualWidth = max(width, MIN_DRAW_WIDTH_PX)
+            let rect = CGRect(x: startX, y: 0, width: visualWidth, height: TRACK_HEIGHT + 8)
+
+            let color = color(for: session.primaryAppName)
+            let icon = icon(for: session.primaryAppBundleId)
+
+            renderBlocks.append(TimelineRenderBlock(
+                rect: rect,
+                color: color,
+                appBundleId: session.primaryAppBundleId,
+                appName: session.primaryAppName,
+                icon: icon,
+                underlyingActivityIds: session.underlyingActivityIds,
+                totalDuration: session.duration,
+                startTime: session.startTime,
+                endTime: session.endTime
+            ))
+        }
+
+        return renderBlocks
+    }
+
+    /// DEPRECATED: Old approach - converts raw activities into renderable blocks
+    /// Kept for backward compatibility. Use processWithSessionAggregation() instead.
     /// - Parameters:
     ///   - activities: List of raw activities
     ///   - visibleTimeRange: The time range currently visible on screen (or total range)
