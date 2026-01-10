@@ -16,9 +16,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "14F7E02A2E141361000CB627"
-               BuildableName = "time.app"
-               BlueprintName = "time"
-               ReferencedContainer = "container:time.xcodeproj">
+               BuildableName = "chronote.app"
+               BlueprintName = "chronote"
+               ReferencedContainer = "container:chronote.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -45,9 +45,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "14F7E02A2E141361000CB627"
-            BuildableName = "time.app"
-            BlueprintName = "time"
-            ReferencedContainer = "container:time.xcodeproj">
+            BuildableName = "chronote.app"
+            BlueprintName = "chronote"
+            ReferencedContainer = "container:chronote.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -62,9 +62,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "14F7E02A2E141361000CB627"
-            BuildableName = "time.app"
-            BlueprintName = "time"
-            ReferencedContainer = "container:time.xcodeproj">
+            BuildableName = "chronote.app"
+            BlueprintName = "chronote"
+            ReferencedContainer = "container:chronote.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

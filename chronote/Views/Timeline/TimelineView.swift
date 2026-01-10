@@ -18,6 +18,7 @@ struct TimelineView: View {
     
     @State private var hoveredBlock: TimelineRenderBlock? = nil
     @State private var hoverLocation: CGPoint = .zero
+    @State private var hoveredActivity: Activity? = nil  // 悬浮时间戳对应的具体 Activity
     
     @State private var selectedEventId: UUID? = nil
     @State private var showEditEventPopover: Bool = false
@@ -121,9 +122,18 @@ struct TimelineView: View {
                                 if let block = renderBlocks.first(where: { $0.rect.contains(point) }) {
                                     hoveredBlock = block
                                     hoverLocation = point
+
+                                    // 根据鼠标位置计算时间戳
+                                    let hoveredTimestamp = calculateTimestampFromPoint(point.x, width: width)
+
+                                    // 查找该时间戳对应的 Activity
+                                    hoveredActivity = activities.first { activity in
+                                        activity.startTime <= hoveredTimestamp &&
+                                        hoveredTimestamp <= (activity.endTime ?? Date())
+                                    }
                                 } else {
-                                    // If moving within the same track but not on a block, clear
                                     hoveredBlock = nil
+                                    hoveredActivity = nil
                                 }
                             }
                             // Check Event Track (Bottom, > 49)
@@ -131,16 +141,19 @@ struct TimelineView: View {
                                 // Convert point to Event Track coordinate space (y - 49)
                                 let localY = point.y - 49
                                 let localPoint = CGPoint(x: point.x, y: localY)
-                                
+
                                 if let block = eventRenderBlocks.first(where: { $0.rect.contains(localPoint) }) {
                                     hoveredBlock = block
                                     hoverLocation = point
+                                    hoveredActivity = nil  // 事件轨道没有底层 Activity
                                 } else {
                                     hoveredBlock = nil
+                                    hoveredActivity = nil
                                 }
                             } else {
                                 // Divider or out of bounds
                                 hoveredBlock = nil
+                                hoveredActivity = nil
                             }
                         },
                         onHoverEnd: {
@@ -243,12 +256,12 @@ struct TimelineView: View {
             .shadow(radius: 1, y: 1)
             // Tooltip Overlay
             .overlay(alignment: .topLeading) {
-                    if let block = hoveredBlock {
-                        TimelineTooltipView(block: block)
+                    if let activity = hoveredActivity {
+                        TimelineTooltipView(activity: activity)
                             // Position vertically based on track (Top/Bottom)
-                            // Position horizontally centered on the block
+                            // Position horizontally centered on the hover location
                             .position(
-                                x: block.rect.midX,
+                                x: hoverLocation.x,
                                 y: hoverLocation.y > 48 ? 15 : 85
                             )
                             .transition(.opacity)
@@ -298,6 +311,11 @@ struct TimelineView: View {
                 recalculate(width: width)
             }
             .onAppear {
+                // 初次出现时，自动检测活跃时间范围
+                let smartRange = TimelineSmartRangeDetector.detectActiveTimeRange(from: activities)
+                if smartRange != visibleTimeRange {
+                    visibleTimeRange = smartRange
+                }
                 recalculate(width: width)
             }
         }
@@ -318,6 +336,18 @@ struct TimelineView: View {
 
         let evtBlocks = processor.processEvents(events: events, visibleTimeRange: visibleTimeRange, canvasWidth: width)
         self.eventRenderBlocks = evtBlocks
+    }
+
+    /// 根据鼠标 X 位置计算对应的时间戳
+    /// - Parameters:
+    ///   - x: 鼠标的 X 坐标（像素）
+    ///   - width: Timeline 的总宽度（像素）
+    /// - Returns: 对应的时间戳
+    private func calculateTimestampFromPoint(_ x: CGFloat, width: CGFloat) -> Date {
+        let visibleDuration = visibleTimeRange.upperBound.timeIntervalSince(visibleTimeRange.lowerBound)
+        let pixelsPerSecond = width / visibleDuration
+        let secondsFromStart = Double(x) / pixelsPerSecond
+        return visibleTimeRange.lowerBound.addingTimeInterval(secondsFromStart)
     }
 }
 

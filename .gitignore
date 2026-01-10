@@ -30,3 +30,5 @@ DerivedData/
 
 TestResult.xcresult/
 *.logdist/
+
+_docs/

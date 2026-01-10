@@ -6,25 +6,14 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXContainerItemProxy section */
-		14F7E0542E1420C4000CB627 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 14F7E0232E141361000CB627 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 14F7E02A2E141361000CB627;
-			remoteInfo = time;
-		};
-/* End PBXContainerItemProxy section */
-
 /* Begin PBXFileReference section */
-		14F7E02B2E141361000CB627 /* time.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = time.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		14F7E04D2E1420A8000CB627 /* timeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = timeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		14F7E02B2E141361000CB627 /* chronote.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = chronote.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		14F7E02D2E141361000CB627 /* time */ = {
+		14F7E02D2E141361000CB627 /* chronote */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = time;
+			path = chronote;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -37,20 +26,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		14F7E04A2E1420A8000CB627 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		14F7E0222E141361000CB627 = {
 			isa = PBXGroup;
 			children = (
-				14F7E02D2E141361000CB627 /* time */,
+				14F7E02D2E141361000CB627 /* chronote */,
 				14F7E02C2E141361000CB627 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -58,8 +40,7 @@
 		14F7E02C2E141361000CB627 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				14F7E02B2E141361000CB627 /* time.app */,
-				14F7E04D2E1420A8000CB627 /* timeTests.xctest */,
+				14F7E02B2E141361000CB627 /* chronote.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -67,9 +48,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		14F7E02A2E141361000CB627 /* time */ = {
+		14F7E02A2E141361000CB627 /* chronote */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 14F7E0392E141363000CB627 /* Build configuration list for PBXNativeTarget "time" */;
+			buildConfigurationList = 14F7E0392E141363000CB627 /* Build configuration list for PBXNativeTarget "chronote" */;
 			buildPhases = (
 				14F7E0272E141361000CB627 /* Sources */,
 				14F7E0282E141361000CB627 /* Frameworks */,
@@ -80,31 +61,14 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				14F7E02D2E141361000CB627 /* time */,
+				14F7E02D2E141361000CB627 /* chronote */,
 			);
-			name = time;
+			name = chronote;
 			packageProductDependencies = (
 			);
 			productName = "time-vscode";
-			productReference = 14F7E02B2E141361000CB627 /* time.app */;
+			productReference = 14F7E02B2E141361000CB627 /* chronote.app */;
 			productType = "com.apple.product-type.application";
-		};
-		14F7E04B2E1420A8000CB627 /* timeTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 14F7E0532E1420A8000CB627 /* Build configuration list for PBXNativeTarget "timeTests" */;
-			buildPhases = (
-				14F7E0492E1420A8000CB627 /* Sources */,
-				14F7E04A2E1420A8000CB627 /* Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				14F7E0552E1420C4000CB627 /* PBXTargetDependency */,
-			);
-			name = timeTests;
-			productName = timeTests;
-			productReference = 14F7E04D2E1420A8000CB627 /* timeTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -121,7 +85,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 14F7E0262E141361000CB627 /* Build configuration list for PBXProject "time" */;
+			buildConfigurationList = 14F7E0262E141361000CB627 /* Build configuration list for PBXProject "chronote" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -135,8 +99,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				14F7E02A2E141361000CB627 /* time */,
-				14F7E04B2E1420A8000CB627 /* timeTests */,
+				14F7E02A2E141361000CB627 /* chronote */,
 			);
 		};
 /* End PBXProject section */
@@ -159,22 +122,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		14F7E0492E1420A8000CB627 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		14F7E0552E1420C4000CB627 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 14F7E02A2E141361000CB627 /* time */;
-			targetProxy = 14F7E0542E1420C4000CB627 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		14F7E0372E141363000CB627 /* Debug */ = {
@@ -308,8 +256,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = time/time.entitlements;
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -328,7 +275,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.7.3;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.leix.mactimetrace;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.leix.chronote;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -341,8 +288,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = time/time.entitlements;
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -361,7 +307,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.7.3;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.leix.mactimetrace;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.leix.chronote;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -369,54 +315,10 @@
 			};
 			name = Release;
 		};
-		14F7E04E2E1420A8000CB627 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(BUILT_PRODUCTS_DIR)/time.app/Contents/MacOS/time";
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = K8BQ5976GL;
-				GENERATE_INFOPLIST_FILE = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@loader_path/../Frameworks",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 15.7.3;
-				PRODUCT_BUNDLE_IDENTIFIER = io.leilog.timeTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUNDLE_LOADER)";
-			};
-			name = Debug;
-		};
-		14F7E04F2E1420A8000CB627 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(BUILT_PRODUCTS_DIR)/time.app/Contents/MacOS/time";
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = K8BQ5976GL;
-				GENERATE_INFOPLIST_FILE = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@loader_path/../Frameworks",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 15.7.3;
-				PRODUCT_BUNDLE_IDENTIFIER = io.leilog.timeTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUNDLE_LOADER)";
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		14F7E0262E141361000CB627 /* Build configuration list for PBXProject "time" */ = {
+		14F7E0262E141361000CB627 /* Build configuration list for PBXProject "chronote" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				14F7E0372E141363000CB627 /* Debug */,
@@ -425,20 +327,11 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		14F7E0392E141363000CB627 /* Build configuration list for PBXNativeTarget "time" */ = {
+		14F7E0392E141363000CB627 /* Build configuration list for PBXNativeTarget "chronote" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				14F7E03A2E141363000CB627 /* Debug */,
 				14F7E03B2E141363000CB627 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		14F7E0532E1420A8000CB627 /* Build configuration list for PBXNativeTarget "timeTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				14F7E04E2E1420A8000CB627 /* Debug */,
-				14F7E04F2E1420A8000CB627 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
