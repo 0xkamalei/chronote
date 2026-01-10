@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Configuration
-APP_NAME="time"
-PROJECT_NAME="time.xcodeproj"
+APP_NAME="chronote"
+PROJECT_NAME="chronote.xcodeproj"
 SCHEME="time"
-DMG_NAME="TimeApp.dmg"
+DMG_NAME="Chronote.dmg"
 BUILD_DIR="build_output"
 STAGING_DIR="dmg_staging"
 

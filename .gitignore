@@ -32,3 +32,5 @@ TestResult.xcresult/
 *.logdist/
 
 _docs/
+
+*.dmg
