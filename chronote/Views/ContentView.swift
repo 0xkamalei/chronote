@@ -125,12 +125,16 @@ struct ContentView: View {
             
             // Sync initial sidebar filter
             activityQueryManager.setSidebarFilter(appState.selectedSidebar)
-            
-            activityManager.startTracking(modelContext: modelContext)
-            
+
+            // ActivityManager is now started in App.init() for persistent tracking
+            // Only ensure it has the correct modelContext
+            if activityManager.modelContext == nil {
+                activityManager.startTracking(modelContext: modelContext)
+            }
+
             // TODO: Initialize AutoClassificationService when Rules are back
             // AutoClassificationService.shared.loadRules(modelContext: modelContext)
-            
+
             if !WindowMonitor.shared.checkAccessibilityPermissions() {
                 Logger.ui.warning("Accessibility permissions missing. Window titles will not be tracked.")
             }

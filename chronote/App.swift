@@ -87,8 +87,18 @@ struct timApp: App {
                 .environment(appState)
                 .environment(eventManager)
                 .preferredColorScheme(appTheme.colorScheme)
-                .onAppear {
-                    eventManager.setModelContext(sharedModelContainer.mainContext)
+                .task {
+                    // Initialize ActivityManager on app launch (runs once)
+                    await MainActor.run {
+                        let context = sharedModelContainer.mainContext
+                        eventManager.setModelContext(context)
+
+                        // Start tracking if not already started
+                        if ActivityManager.shared.modelContext == nil {
+                            ActivityManager.shared.startTracking(modelContext: context)
+                            Self.logger.info("ActivityManager started from App body")
+                        }
+                    }
                 }
         }
         .modelContainer(sharedModelContainer)

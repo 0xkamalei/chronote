@@ -13,8 +13,8 @@ class ActivityManager: ObservableObject {
 
     private var currentActivity: Activity?
     private var notificationObservers: [NSObjectProtocol] = []
-    private var modelContext: ModelContext?
-    
+    private(set) var modelContext: ModelContext?  // Made accessible for checking initialization
+
     private let contextMonitor = ContextMonitor()
 
     private let logger = Logger(subsystem: "com.time-vscode.ActivityManager", category: "ActivityTracking")
@@ -56,6 +56,17 @@ class ActivityManager: ObservableObject {
             }
         }
         notificationObservers.append(sleepObserver)
+
+        let wakeObserver = notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                await self?.handleSystemWake()
+            }
+        }
+        notificationObservers.append(wakeObserver)
 
         // Idle Observers
         let idleObserver = notificationCenter.addObserver(
@@ -224,9 +235,46 @@ class ActivityManager: ObservableObject {
     }
 
     private func handleSystemSleep() async {
-        if let modelContext = modelContext {
-            stopTracking(modelContext: modelContext)
+        logger.info("System going to sleep, saving current activity")
+
+        // Save current activity but keep observers alive
+        if let modelContext = modelContext, let current = self.currentActivity {
+            current.endTime = Date()
+            current.duration = current.calculatedDuration
+
+            if current.duration > 0 {
+                do {
+                    if current.modelContext == nil {
+                        modelContext.insert(current)
+                    }
+                    try modelContext.save()
+                    logger.info("Saved activity before sleep: \(current.appName)")
+                } catch {
+                    logger.error("Failed to save activity before sleep: \(error.localizedDescription)")
+                }
+            }
+            self.currentActivity = nil
         }
+
+        // Stop context monitoring and background tasks temporarily
+        contextMonitor.stopMonitoring()
+        BackgroundTaskManager.shared.stopBackgroundTracking()
+    }
+
+    private func handleSystemWake() async {
+        logger.info("System woke up, resuming tracking")
+
+        // Resume tracking with current frontmost app
+        if let app = NSWorkspace.shared.frontmostApplication,
+           let bundleId = app.bundleIdentifier,
+           let modelContext = modelContext {
+
+            let context = WindowMonitor.shared.getContext(for: app.processIdentifier)
+            trackAppSwitch(newApp: bundleId, context: context, modelContext: modelContext)
+        }
+
+        // Restart background tasks
+        BackgroundTaskManager.shared.startBackgroundTracking()
     }
 
     private func handleUserIdle(_ notification: Notification) {
