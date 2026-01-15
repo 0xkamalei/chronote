@@ -264,6 +264,10 @@ class ActivityManager: ObservableObject {
     private func handleSystemWake() async {
         logger.info("System woke up, resuming tracking")
 
+        // Add a small delay to ensure system is fully ready after wake
+        // NSWorkspace.frontmostApplication may not be available immediately after wake
+        try? await Task.sleep(for: .milliseconds(500))
+
         // Resume tracking with current frontmost app
         if let app = NSWorkspace.shared.frontmostApplication,
            let bundleId = app.bundleIdentifier,
@@ -271,6 +275,9 @@ class ActivityManager: ObservableObject {
 
             let context = WindowMonitor.shared.getContext(for: app.processIdentifier)
             trackAppSwitch(newApp: bundleId, context: context, modelContext: modelContext)
+            logger.info("Resumed tracking after wake: \(app.localizedName ?? bundleId)")
+        } else {
+            logger.warning("Could not resume tracking after wake: no frontmost app or modelContext")
         }
 
         // Restart background tasks
