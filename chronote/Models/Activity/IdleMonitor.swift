@@ -1,3 +1,4 @@
+import AppKit
 import CoreGraphics
 import Foundation
 import os
@@ -9,6 +10,7 @@ class IdleMonitor: ObservableObject {
     @Published var lastActivityTime: Date = Date()
     
     private var timer: Timer?
+    private var wakeObserver: NSObjectProtocol?
     private let checkInterval: TimeInterval = 10.0
     private let idleThreshold: TimeInterval = 300.0 // 5 minutes (configurable)
     
@@ -22,13 +24,37 @@ class IdleMonitor: ObservableObject {
         timer = Timer.scheduledTimer(withTimeInterval: checkInterval, repeats: true) { [weak self] _ in
             self?.checkIdleStatus()
         }
+        
+        // Listen for system wake to reset idle state
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleSystemWake()
+        }
+        
         logger.info("Idle monitoring started")
     }
     
     func stopMonitoring() {
         timer?.invalidate()
         timer = nil
+        
+        if let observer = wakeObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+            wakeObserver = nil
+        }
+        
         logger.info("Idle monitoring stopped")
+    }
+    
+    /// Reset idle state after system wake
+    /// This prevents false idle detection due to sleep duration being counted as idle time
+    private func handleSystemWake() {
+        logger.info("System wake detected, resetting idle state")
+        isIdle = false
+        lastActivityTime = Date()
     }
     
     private func checkIdleStatus() {
