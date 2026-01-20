@@ -312,8 +312,9 @@ class TimelineProcessor {
             let endX = getX(eventEnd)
             let width = max(2.0, endX - startX)
             
-            // Rect relative to the track height (40)
-            let rect = CGRect(x: startX, y: 4, width: width, height: 32)
+            // Rect relative to the track height (matches Activity track height)
+            // TRACK_HEIGHT (40) + 8 = 48
+            let rect = CGRect(x: startX, y: 0, width: width, height: TRACK_HEIGHT + 8)
             
             let color = self.color(for: event.name)
             

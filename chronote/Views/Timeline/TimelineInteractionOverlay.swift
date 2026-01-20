@@ -50,6 +50,21 @@ struct TimelineInteractionOverlay: NSViewRepresentable {
     
     func updateNSView(_ nsView: NSView, context: Context) {
         context.coordinator.parent = self
+        
+        if let interactionView = nsView as? InteractionView {
+            interactionView.onHover = { point in
+                self.onHover?(point)
+            }
+            interactionView.onHoverEnd = {
+                self.onHoverEnd?()
+            }
+            interactionView.onClick = { point in
+                self.onClick?(point)
+            }
+            interactionView.onDoubleClick = { point in
+                self.onDoubleClick?(point)
+            }
+        }
     }
     
     func makeCoordinator() -> Coordinator {
@@ -180,9 +195,14 @@ struct TimelineInteractionOverlay: NSViewRepresentable {
             super.updateTrackingAreas()
             trackingAreas.forEach { removeTrackingArea($0) }
             
-            let options: NSTrackingArea.Options = [.mouseEnteredAndExited, .mouseMoved, .activeInKeyWindow]
-            let trackingArea = NSTrackingArea(rect: bounds, options: options, owner: self, userInfo: nil)
+            let options: NSTrackingArea.Options = [.mouseEnteredAndExited, .mouseMoved, .activeInActiveApp, .inVisibleRect]
+            let trackingArea = NSTrackingArea(rect: .zero, options: options, owner: self, userInfo: nil)
             addTrackingArea(trackingArea)
+        }
+        
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            updateTrackingAreas()
         }
         
         override func mouseMoved(with event: NSEvent) {

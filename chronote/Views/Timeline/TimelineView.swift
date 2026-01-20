@@ -158,6 +158,7 @@ struct TimelineView: View {
                         },
                         onHoverEnd: {
                             hoveredBlock = nil
+                            hoveredActivity = nil
                         },
                         onClick: { point in
                             // Single click logic (e.g. Selection)
