@@ -42,51 +42,45 @@ class TimelineSessionAggregator {
         for activity in sortedActivities {
             let activityEnd = activity.endTime ?? Date()
             let activityDuration = activityEnd.timeIntervalSince(activity.startTime)
-
-            // If this activity is noise, try to merge it
-            if activityDuration < noiseThreshold {
-                if let builder = currentSession {
-                    // Noise + same app = extend current session
-                    if activity.appBundleId == builder.primaryAppBundleId {
-                        builder.addActivity(activity, isNoise: true)
-                        continue
-                    } else {
-                        // Noise + different app = merge into primary anyway to avoid clutter
-                        builder.addActivity(activity, isNoise: true)
-                        continue
-                    }
-                } else {
-                    // No current session, so start one with noise
-                    currentSession = TimelineSessionBuilder(from: activity, isNoise: true)
-                    continue
-                }
-            }
-
-            // Activity is NOT noise
+            let isNoise = activityDuration < noiseThreshold
+            
             if var builder = currentSession {
                 let gap = activity.startTime.timeIntervalSince(builder.endTime)
-
-                // Check merge conditions
-                // Note: projectId is stored as String in Activity
-                let sameProject = (activity.projectId != nil && activity.projectId == builder.primaryProjectId)
                 let shortGap = gap <= visualContinuityThreshold
-                let sameApp = activity.appBundleId == builder.primaryAppBundleId
-
-                // Merge if: short gap AND (same project OR same app)
-                // This maintains perception of continuous work despite minor interruptions
-                if shortGap && (sameProject || sameApp) {
-                    builder.addActivity(activity, isNoise: false)
+                
+                var shouldMerge = false
+                
+                if isNoise {
+                    // Only merge noise if it's close enough to the previous session
+                    if shortGap {
+                        shouldMerge = true
+                    }
+                } else {
+                    // Standard merge logic for non-noise activities
+                    // Note: projectId is stored as String in Activity
+                    let sameProject = (activity.projectId != nil && activity.projectId == builder.primaryProjectId)
+                    let sameApp = activity.appBundleId == builder.primaryAppBundleId
+                    
+                    // Merge if: short gap AND (same project OR same app)
+                    if shortGap && (sameProject || sameApp) {
+                        shouldMerge = true
+                    }
+                }
+                
+                if shouldMerge {
+                    builder.addActivity(activity, isNoise: isNoise)
                     currentSession = builder
                 } else {
-                    // Start new session
+                    // Close previous session
                     if let session = builder.build(minDuration: minSessionDuration) {
                         sessions.append(session)
                     }
-                    currentSession = TimelineSessionBuilder(from: activity, isNoise: false)
+                    // Start new session
+                    currentSession = TimelineSessionBuilder(from: activity, isNoise: isNoise)
                 }
             } else {
                 // Start first session
-                currentSession = TimelineSessionBuilder(from: activity, isNoise: false)
+                currentSession = TimelineSessionBuilder(from: activity, isNoise: isNoise)
             }
         }
 

@@ -1,30 +1,43 @@
 import SwiftUI
 
 struct SettingsView: View {
-    private enum Tab: Hashable {
-        case general
-        case tracking
-        case rules
+    private enum Tab: String, CaseIterable, Identifiable {
+        case general = "General"
+        case tracking = "Tracking"
+        
+        var id: String { rawValue }
     }
     
-    @State private var selectedTab: Tab = .general
+    @State private var selectedTab: Tab? = .general
     
     var body: some View {
-        TabView(selection: $selectedTab) {
-            GeneralSettingsView()
-                .tabItem {
-                    Label("General", systemImage: "gearshape")
+        NavigationSplitView {
+            List(Tab.allCases, selection: $selectedTab) { tab in
+                NavigationLink(value: tab) {
+                    Label(tab.rawValue, systemImage: icon(for: tab))
                 }
-                .tag(Tab.general)
-            
-            TrackingSettingsView()
-                .tabItem {
-                    Label("Tracking", systemImage: "timer")
-                }
-                .tag(Tab.tracking)
+            }
+            .listStyle(.sidebar)
+            .navigationSplitViewColumnWidth(min: 150, ideal: 180, max: 200)
+        } detail: {
+            switch selectedTab {
+            case .general:
+                GeneralSettingsView()
+            case .tracking:
+                TrackingSettingsView()
+                    .padding()
+            case nil:
+                Text("Select a setting")
+            }
         }
-        .padding(20)
-        .frame(width: 550, height: 400)
+        .frame(width: 750, height: 450)
+    }
+    
+    private func icon(for tab: Tab) -> String {
+        switch tab {
+        case .general: return "gearshape"
+        case .tracking: return "timer"
+        }
     }
 }
 
@@ -93,7 +106,6 @@ struct GeneralSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .scrollDisabled(true)
     }
     
     private func formatInterval(_ minutes: Int) -> String {

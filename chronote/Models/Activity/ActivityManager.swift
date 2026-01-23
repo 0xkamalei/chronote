@@ -15,6 +15,10 @@ class ActivityManager: ObservableObject {
     private var notificationObservers: [NSObjectProtocol] = []
     private(set) var modelContext: ModelContext?  // Made accessible for checking initialization
 
+    private let ignoredBundleIds: Set<String> = [
+        "com.apple.loginwindow"
+    ]
+
     private let contextMonitor = ContextMonitor()
 
     private let logger = Logger(subsystem: "com.time-vscode.ActivityManager", category: "ActivityTracking")
@@ -178,6 +182,14 @@ class ActivityManager: ObservableObject {
                     logger.error("Failed to save activity: \(error.localizedDescription)")
                 }
             }
+        }
+
+        // Check if the new app is ignored
+        if ignoredBundleIds.contains(newApp) {
+            logger.info("Ignored app switch to: \(newApp)")
+            self.currentActivity = nil
+            contextMonitor.stopMonitoring()
+            return
         }
 
         // Create a new activity for the new app
