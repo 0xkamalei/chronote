@@ -4,7 +4,7 @@ on:
   push:
     branches: ["main"]
     paths:
-      - 'docs/**'
+      - 'landing-page/**'
   workflow_dispatch:
 
 permissions:
@@ -26,13 +26,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install and Build
+        run: |
+          cd landing-page/chronote
+          bun install
+          bun run build
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'docs'
+          path: 'landing-page/chronote/dist'
 
       - name: Deploy to GitHub Pages
         id: deployment

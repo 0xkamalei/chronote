@@ -34,3 +34,6 @@ TestResult.xcresult/
 _docs/
 
 *.dmg
+
+build_output_*/
+docs/
