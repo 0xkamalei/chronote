@@ -13,6 +13,11 @@ struct timApp: App {
             Project.self,
             AutoAssignRule.self,
             Event.self,
+            // Analysis models
+            Session.self,
+            BehavioralBlock.self,
+            TimeStructure.self,
+            DailyInsight.self,
         ])
         
         // Define a custom store URL

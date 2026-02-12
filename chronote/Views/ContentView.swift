@@ -54,33 +54,40 @@ struct ContentView: View {
         ActivityViewContainer(activities: viewportActivities)
     }
 
+    @ViewBuilder
     private var detailView: some View {
-        VStack(spacing: 0) {
-            // Timeline Visualization
-            if !activityQueryManager.activities.isEmpty {
-                let start = min(selectedDateRange.startDate, selectedDateRange.endDate)
-                let end = max(selectedDateRange.startDate, selectedDateRange.endDate)
+        // Route to Insight view if selected
+        if appState.selectedSidebar == "Today's Insight" {
+            InsightView(date: selectedDateRange.startDate)
+        } else {
+            // Original activities view
+            VStack(spacing: 0) {
+                // Timeline Visualization
+                if !activityQueryManager.activities.isEmpty {
+                    let start = min(selectedDateRange.startDate, selectedDateRange.endDate)
+                    let end = max(selectedDateRange.startDate, selectedDateRange.endDate)
+                    
+                    TimelineView(
+                        activities: activityQueryManager.activities,
+                        events: viewportEvents,
+                        visibleTimeRange: $timelineVisibleRange,
+                        totalTimeRange: start...end,
+                        selectedTimeRange: filterDateRange,
+                        onRangeSelected: { newRange in
+                            filterDateRange = newRange
+                        }
+                    )
+                    .frame(height: 140) // Adjusted container height
+                    .padding(8) // Outer padding
+                    .zIndex(1) // Ensure Tooltip floats above the list below
+                    
+                    Divider()
+                }
                 
-                TimelineView(
-                    activities: activityQueryManager.activities,
-                    events: viewportEvents,
-                    visibleTimeRange: $timelineVisibleRange,
-                    totalTimeRange: start...end,
-                    selectedTimeRange: filterDateRange,
-                    onRangeSelected: { newRange in
-                        filterDateRange = newRange
-                    }
-                )
-                .frame(height: 140) // Adjusted container height
-                .padding(8) // Outer padding
-                .zIndex(1) // Ensure Tooltip floats above the list below
-                
-                Divider()
+                activitiesView
             }
-            
-            activitiesView
+            .frame(minWidth: 600, minHeight: 400)
         }
-        .frame(minWidth: 600, minHeight: 400)
     }
 
     @State private var timelineDebounceTask: Task<Void, Never>?
@@ -174,6 +181,12 @@ struct ContentView: View {
         .onChange(of: searchText) { _, newSearchText in
             activityQueryManager.setSearchText(newSearchText)
             Logger.ui.debug("Search text changed: \(newSearchText, privacy: .private)")
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            Task {
+                await activityQueryManager.refreshActivities()
+                Logger.ui.info("App became active. Refreshed activities.")
+            }
         }
     }
 }

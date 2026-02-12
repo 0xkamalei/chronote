@@ -25,7 +25,7 @@ struct MenuBarView: View {
                 Button {
                     openApp()
                 } label: {
-                    Label("Open Time Trace", systemImage: "macwindow")
+                    Label("Open Main Window", systemImage: "macwindow")
                 }
                 .buttonStyle(.plain)
                 .font(.caption)

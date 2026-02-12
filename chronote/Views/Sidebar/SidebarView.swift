@@ -14,6 +14,7 @@ struct SidebarView: View {
     
     // Unified selection enum
     enum SidebarSelection: Hashable {
+        case todayInsight  // NEW: Insight view
         case allActivities
         case unassigned
         case myProjects // Parent category, though usually not selectable in the same way, but needed for consistency
@@ -26,6 +27,7 @@ struct SidebarView: View {
                 return .project(project)
             } else if let sidebar = appState.selectedSidebar {
                 switch sidebar {
+                case "Today's Insight": return .todayInsight
                 case "All Activities": return .allActivities
                 case "Unassigned": return .unassigned
                 case "My Projects": return .myProjects
@@ -35,6 +37,8 @@ struct SidebarView: View {
             return nil
         } set: { newValue in
             switch newValue {
+            case .todayInsight:
+                appState.selectSpecialItem("Today's Insight")
             case .allActivities:
                 appState.selectSpecialItem("All Activities")
             case .unassigned:
@@ -52,6 +56,16 @@ struct SidebarView: View {
     
     var body: some View {
         List(selection: selection) {
+            Section {
+                NavigationLink(value: SidebarSelection.todayInsight) {
+                    Label("Today's Insight", systemImage: "chart.bar.doc.horizontal")
+                        .padding(.vertical, 2)
+                }
+                .accessibilityIdentifier("sidebar.todayInsight")
+            } header: {
+                Text("Insights")
+            }
+            
             Section {
                 NavigationLink(value: SidebarSelection.allActivities) {
                     Label("All Activities", systemImage: "tray.full")
