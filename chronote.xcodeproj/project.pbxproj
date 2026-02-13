@@ -8,6 +8,7 @@
 
 /* Begin PBXFileReference section */
 		14F7E02B2E141361000CB627 /* chronote.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = chronote.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B2C3D42F13AA1100C1D001 /* chronote-cli */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "chronote-cli"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -16,10 +17,22 @@
 			path = chronote;
 			sourceTree = "<group>";
 		};
+		A1B2C3D42F13AA1100C1D002 /* cli */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "cli/Sources/chronote-cli";
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		14F7E0282E141361000CB627 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3D42F13AA1100C1D005 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +46,7 @@
 			isa = PBXGroup;
 			children = (
 				14F7E02D2E141361000CB627 /* chronote */,
+				A1B2C3D42F13AA1100C1D002 /* cli */,
 				14F7E02C2E141361000CB627 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +55,7 @@
 			isa = PBXGroup;
 			children = (
 				14F7E02B2E141361000CB627 /* chronote.app */,
+				A1B2C3D42F13AA1100C1D001 /* chronote-cli */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -70,6 +85,27 @@
 			productReference = 14F7E02B2E141361000CB627 /* chronote.app */;
 			productType = "com.apple.product-type.application";
 		};
+		A1B2C3D42F13AA1100C1D007 /* chronote-cli */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B2C3D42F13AA1100C1D00A /* Build configuration list for PBXNativeTarget "chronote-cli" */;
+			buildPhases = (
+				A1B2C3D42F13AA1100C1D006 /* Sources */,
+				A1B2C3D42F13AA1100C1D005 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A1B2C3D42F13AA1100C1D002 /* cli */,
+			);
+			name = "chronote-cli";
+			packageProductDependencies = (
+			);
+			productName = "chronote-cli";
+			productReference = A1B2C3D42F13AA1100C1D001 /* chronote-cli */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -81,6 +117,9 @@
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					14F7E02A2E141361000CB627 = {
+						CreatedOnToolsVersion = 16.4;
+					};
+					A1B2C3D42F13AA1100C1D007 = {
 						CreatedOnToolsVersion = 16.4;
 					};
 				};
@@ -100,6 +139,7 @@
 			projectRoot = "";
 			targets = (
 				14F7E02A2E141361000CB627 /* chronote */,
+				A1B2C3D42F13AA1100C1D007 /* chronote-cli */,
 			);
 		};
 /* End PBXProject section */
@@ -116,6 +156,13 @@
 
 /* Begin PBXSourcesBuildPhase section */
 		14F7E0272E141361000CB627 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3D42F13AA1100C1D006 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -315,6 +362,45 @@
 			};
 			name = Release;
 		};
+		A1B2C3D42F13AA1100C1D008 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				DEVELOPMENT_TEAM = K8BQ5976GL;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.7.3;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lsqlite3",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.leix.chronote.cli;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		A1B2C3D42F13AA1100C1D009 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				DEVELOPMENT_TEAM = K8BQ5976GL;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.7.3;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lsqlite3",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.leix.chronote.cli;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -332,6 +418,15 @@
 			buildConfigurations = (
 				14F7E03A2E141363000CB627 /* Debug */,
 				14F7E03B2E141363000CB627 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1B2C3D42F13AA1100C1D00A /* Build configuration list for PBXNativeTarget "chronote-cli" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3D42F13AA1100C1D008 /* Debug */,
+				A1B2C3D42F13AA1100C1D009 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

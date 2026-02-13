@@ -1,4 +1,4 @@
-# TimeTrace - 免费开源的 Mac 时间追踪工具
+# Chronote - 免费开源的 Mac 时间追踪工具
 
 [English](#english) | [中文](#中文)
 
@@ -15,9 +15,9 @@
 - **项目计费不准确** - 无法精确统计在每个客户项目上花费的时间
 - **Timing App 订阅太贵** - 每年 $96+ 的订阅费用让人望而却步
 
-### ✨ TimeTrace 是什么？
+### ✨ Chronote 是什么？
 
-TimeTrace 是一款**完全免费、开源**的 macOS 时间追踪应用，作为 [Timing App](https://timingapp.com/) 的替代方案。它能够：
+Chronote 是一款**完全免费、开源**的 macOS 时间追踪应用，作为 [Timing App](https://timingapp.com/) 的替代方案。它能够：
 
 - 🔄 **自动追踪** - 后台静默记录每个应用的使用时间，无需手动操作
 - 🏷️ **智能分类** - 根据窗口标题自动将活动归类到不同项目
@@ -35,15 +35,15 @@ TimeTrace 是一款**完全免费、开源**的 macOS 时间追踪应用，作�
 
 ```bash
 # 克隆仓库
-git clone https://github.com/your-username/mac-time-trace.git
+git clone https://github.com/0xkamalei/chronote.git
 
 # 使用 Xcode 打开项目
-open time.xcodeproj
+open chronote.xcodeproj
 ```
 
 ### 🔐 权限说明
 
-TimeTrace 需要以下系统权限才能正常工作：
+Chronote 需要以下系统权限才能正常工作：
 
 - **辅助功能权限** - 用于读取窗口标题以实现智能分类
 
@@ -120,9 +120,9 @@ As a freelancer, remote worker, or professional who needs accurate billing, have
 - **Inaccurate project billing** - Can't precisely track time spent on each client project
 - **Timing App subscription is expensive** - $96+/year subscription cost is prohibitive
 
-### ✨ What is TimeTrace?
+### ✨ What is Chronote?
 
-TimeTrace is a **completely free, open-source** macOS time tracking application, serving as an alternative to [Timing App](https://timingapp.com/). It offers:
+Chronote is a **completely free, open-source** macOS time tracking application, serving as an alternative to [Timing App](https://timingapp.com/). It offers:
 
 - 🔄 **Automatic Tracking** - Silently records app usage in the background, no manual input needed
 - 🏷️ **Smart Classification** - Automatically categorizes activities into projects based on window titles
@@ -148,7 +148,7 @@ open time.xcodeproj
 
 ### 🔐 Permissions
 
-TimeTrace requires the following system permissions to function properly:
+Chronote requires the following system permissions to function properly:
 
 - **Accessibility Permission** - Required to read window titles for smart classification
 
