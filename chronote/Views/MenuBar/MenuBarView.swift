@@ -2,13 +2,15 @@ import SwiftUI
 import SwiftData
 
 struct MenuBarView: View {
+    @Environment(\.openWindow) private var openWindow
     @Environment(EventManager.self) private var eventManager
     @State private var newEventName: String = ""
     @State private var recentNames: [String] = []
+    @AppStorage("showInDock") private var showInDock: Bool = true
+    private let menuWidth: CGFloat = 344
     
     var body: some View {
         VStack(spacing: 0) {
-            // Main Content Area
             VStack(alignment: .leading, spacing: 16) {
                 if let currentEvent = eventManager.currentEvent {
                     runningEventView(currentEvent)
@@ -16,36 +18,94 @@ struct MenuBarView: View {
                     startEventView()
                 }
             }
-            .padding(16)
+            .padding(14)
+            .background(
+                LinearGradient(
+                    colors: [
+                        Color(nsColor: .windowBackgroundColor),
+                        Color(nsColor: .underPageBackgroundColor).opacity(0.8)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
             
             Divider()
             
-            // Footer
-            HStack {
-                Button {
-                    openApp()
-                } label: {
-                    Label("Open Main Window", systemImage: "macwindow")
+            footerView
+        }
+        .frame(width: menuWidth)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .onAppear {
+            recentNames = eventManager.getRecentEventNames()
+            AppVisibilityController.apply(showInDock: showInDock)
+        }
+        .onChange(of: eventManager.currentEvent) { _, _ in
+            recentNames = eventManager.getRecentEventNames()
+        }
+    }
+
+    private var footerView: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Button {
+                openApp()
+            } label: {
+                Label("Open Main Window", systemImage: "macwindow")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Color(nsColor: .quaternarySystemFill))
+                    )
+            }
+            .buttonStyle(.plain)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.primary)
+            .onHover { inside in
+                if inside {
+                    NSCursor.pointingHand.push()
+                } else {
+                    NSCursor.pop()
                 }
-                .buttonStyle(.plain)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .onHover { inside in
-                    if inside {
-                        NSCursor.pointingHand.push()
-                    } else {
-                        NSCursor.pop()
-                    }
+            }
+
+            HStack(spacing: 8) {
+                HStack(spacing: 8) {
+                    Image(systemName: "dock.rectangle")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("Show in Dock")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.primary)
+                    Spacer(minLength: 0)
+                    Toggle("", isOn: $showInDock)
+                        .toggleStyle(.switch)
+                        .labelsHidden()
+                        .onChange(of: showInDock) { _, newValue in
+                            AppVisibilityController.apply(showInDock: newValue)
+                        }
                 }
-                
-                Spacer()
-                
+                .padding(.horizontal, 9)
+                .padding(.vertical, 5)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(Color(nsColor: .quaternarySystemFill))
+                )
+
                 Button {
                     NSApplication.shared.terminate(nil)
                 } label: {
-                    Image(systemName: "power")
-                        .font(.caption)
+                    Label("Quit", systemImage: "power")
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
+                        .frame(minWidth: 84)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(Color(nsColor: .quaternarySystemFill))
+                        )
                 }
                 .buttonStyle(.plain)
                 .help("Quit")
@@ -57,45 +117,43 @@ struct MenuBarView: View {
                     }
                 }
             }
-            .padding(.vertical, 10)
-            .padding(.horizontal, 16)
-            .background(Color(nsColor: .controlBackgroundColor))
         }
-        .frame(width: 320)
-        .onAppear {
-            recentNames = eventManager.getRecentEventNames()
-        }
-        .onChange(of: eventManager.currentEvent) { _, _ in
-            recentNames = eventManager.getRecentEventNames()
-        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(Color(nsColor: .controlBackgroundColor))
     }
     
     private func runningEventView(_ event: Event) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "record.circle.fill")
-                            .foregroundStyle(.red)
-                            .symbolEffect(.pulse, options: .repeating)
-                        Text("Running")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    
-                    Text(event.name)
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                        .lineLimit(2)
-                }
-                
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 8) {
+                Label("Tracking", systemImage: "record.circle.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.red)
+                    .symbolEffect(.pulse, options: .repeating)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(.red.opacity(0.12))
+                    )
+
                 Spacer()
-                
+
                 EventDurationView(startTime: event.startTime)
-                    .font(.monospacedDigit(.body)())
+                    .font(.monospacedDigit(.callout)())
                     .foregroundStyle(.secondary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color(nsColor: .quaternarySystemFill))
+                    )
             }
-            
+
+            Text(event.name)
+                .font(.title3.weight(.semibold))
+                .lineLimit(2)
+
             Button(role: .destructive) {
                 eventManager.stopCurrentEvent()
             } label: {
@@ -104,69 +162,130 @@ struct MenuBarView: View {
                     Text("Stop Event")
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
+                .padding(.vertical, 10)
             }
             .buttonStyle(.borderedProminent)
             .tint(.red)
-            .controlSize(.large)
+            .controlSize(.regular)
         }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color(nsColor: .quaternarySystemFill))
+        )
     }
     
     private func startEventView() -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Ready to Track")
-                    .font(.headline)
-                
-                HStack(spacing: 8) {
-                    TextField("What are you working on?", text: $newEventName)
-                        .textFieldStyle(.plain)
-                        .padding(8)
-                        .background(Color(nsColor: .controlBackgroundColor))
-                        .cornerRadius(6)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6)
-                                .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
-                        )
-                        .onSubmit {
-                            startEvent()
-                        }
-                    
-                    Button {
-                        startEvent()
-                    } label: {
-                        Image(systemName: "play.fill")
-                            .frame(width: 16, height: 16)
-                            .padding(8)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(newEventName.isEmpty)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Ready to Track")
+                        .font(.title3.weight(.bold))
+                    Text("Start a session in one click.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
+
+                Spacer()
+
+                Image(systemName: "timer")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.blue)
+                    .padding(8)
+                    .background(
+                        Circle()
+                            .fill(.blue.opacity(0.14))
+                    )
+            }
+
+            HStack(spacing: 8) {
+                TextField("What are you working on?", text: $newEventName)
+                    .textFieldStyle(.plain)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 11)
+                    .background(
+                        RoundedRectangle(cornerRadius: 11, style: .continuous)
+                            .fill(Color(nsColor: .textBackgroundColor))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 11, style: .continuous)
+                            .stroke(Color.secondary.opacity(0.22), lineWidth: 1)
+                    )
+                    .onSubmit {
+                        startEvent()
+                    }
+
+                Button {
+                    startEvent()
+                } label: {
+                    Image(systemName: "play.fill")
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 52, height: 46)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [.blue.opacity(0.85), .blue],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                        )
+                }
+                .buttonStyle(.plain)
+                .disabled(newEventName.isEmpty)
+                .opacity(newEventName.isEmpty ? 0.5 : 1)
             }
             
             if !recentNames.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Recent")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    
-                    VStack(spacing: 4) {
-                        ForEach(recentNames, id: \.self) { name in
+                    HStack {
+                        Text("Recent")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text("\(recentNames.count)")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(
+                                Capsule(style: .continuous)
+                                    .fill(Color(nsColor: .quaternarySystemFill))
+                            )
+                    }
+
+                    VStack(spacing: 6) {
+                        ForEach(Array(recentNames.prefix(5)), id: \.self) { name in
                             Button {
                                 eventManager.startEvent(name: name)
                             } label: {
-                                HStack {
+                                HStack(spacing: 9) {
+                                    Image(systemName: "clock.arrow.trianglehead.counterclockwise.rotate.90")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+
                                     Text(name)
                                         .lineLimit(1)
                                         .foregroundStyle(.primary)
+
                                     Spacer()
-                                    Image(systemName: "play.circle")
-                                        .foregroundStyle(.secondary.opacity(0.5))
+
+                                    Text("Start")
+                                        .font(.caption2.weight(.semibold))
+                                        .foregroundStyle(.secondary)
                                 }
-                                .padding(.vertical, 6)
-                                .padding(.horizontal, 8)
-                                .background(Color.primary.opacity(0.05))
-                                .cornerRadius(6)
+                                .padding(.vertical, 9)
+                                .padding(.horizontal, 10)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .fill(Color(nsColor: .quaternarySystemFill))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .stroke(Color.secondary.opacity(0.14), lineWidth: 1)
+                                )
                             }
                             .buttonStyle(.plain)
                             .onHover { isHovered in
@@ -179,6 +298,7 @@ struct MenuBarView: View {
                         }
                     }
                 }
+                .padding(.top, 2)
             }
         }
     }
@@ -190,9 +310,10 @@ struct MenuBarView: View {
     }
     
     private func openApp() {
-        NSApp.activate(ignoringOtherApps: true)
-        if let window = NSApp.windows.first {
-            window.makeKeyAndOrderFront(nil)
+        openWindow(id: "main")
+        DispatchQueue.main.async {
+            MainWindowRegistry.presentMainWindow()
+            AppVisibilityController.activateApp()
         }
     }
 }

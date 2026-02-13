@@ -85,6 +85,7 @@ struct timApp: App {
     @State private var appState = AppState()
     @State private var eventManager = EventManager()
     @AppStorage("appTheme") private var appTheme: AppTheme = .system
+    @AppStorage("showInDock") private var showInDock: Bool = true
 
     init() {
         UserDefaults.standard.register(defaults: [
@@ -96,11 +97,18 @@ struct timApp: App {
     }
 
     var body: some Scene {
-        WindowGroup("") {
+        Window("Chronote", id: "main") {
             ContentView()
                 .environment(appState)
                 .environment(eventManager)
                 .preferredColorScheme(appTheme.colorScheme)
+                .background(MainWindowAccessor())
+                .onAppear {
+                    AppVisibilityController.apply(showInDock: showInDock)
+                }
+                .onChange(of: showInDock) { _, newValue in
+                    AppVisibilityController.apply(showInDock: newValue)
+                }
                 .task {
                     // Initialize ActivityManager on app launch (runs once)
                     await MainActor.run {
