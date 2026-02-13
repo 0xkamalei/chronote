@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import {
   Clock, Brain, Layers, TrendingUp, MessageSquare, Apple,
   CheckCircle, ArrowRight, Star, Download, Menu, X, ChevronRight,
-  Zap, BarChart3, Shield, Sparkles
+  Zap, BarChart3, Shield, Sparkles, Bot
 } from 'lucide-react';
+
+const PURCHASE_LINK = "https://kamaleiz.gumroad.com/l/chronote";
 
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -23,6 +25,7 @@ function App() {
       <FeaturesSection />
       <HowItWorks />
       <Differentiator />
+      <UseCasesAndAlternatives />
       <Testimonials />
       <Pricing />
       <CTASection />
@@ -51,8 +54,9 @@ function Navigation({ isMenuOpen, setIsMenuOpen, scrollY }: {
         <div className="hidden md:flex items-center gap-8">
           <a href="#features" className="text-zinc-400 hover:text-white transition-colors text-sm">Features</a>
           <a href="#how-it-works" className="text-zinc-400 hover:text-white transition-colors text-sm">How It Works</a>
+          <a href="#alternatives" className="text-zinc-400 hover:text-white transition-colors text-sm">Use Cases</a>
           <a href="#pricing" className="text-zinc-400 hover:text-white transition-colors text-sm">Pricing</a>
-          <a href="#download" className="bg-amber-500 hover:bg-amber-400 text-black font-medium px-5 py-2.5 rounded-lg transition-all hover:shadow-lg hover:shadow-amber-500/20 text-sm">
+          <a href={PURCHASE_LINK} target="_blank" rel="noopener noreferrer" className="bg-amber-500 hover:bg-amber-400 text-black font-medium px-5 py-2.5 rounded-lg transition-all hover:shadow-lg hover:shadow-amber-500/20 text-sm">
             Download for Mac
           </a>
         </div>
@@ -70,8 +74,9 @@ function Navigation({ isMenuOpen, setIsMenuOpen, scrollY }: {
           <div className="px-6 py-4 flex flex-col gap-4">
             <a href="#features" className="text-zinc-400 hover:text-white transition-colors">Features</a>
             <a href="#how-it-works" className="text-zinc-400 hover:text-white transition-colors">How It Works</a>
+            <a href="#alternatives" className="text-zinc-400 hover:text-white transition-colors">Use Cases</a>
             <a href="#pricing" className="text-zinc-400 hover:text-white transition-colors">Pricing</a>
-            <a href="#download" className="bg-amber-500 hover:bg-amber-400 text-black font-medium px-5 py-3 rounded-lg text-center">
+            <a href={PURCHASE_LINK} target="_blank" rel="noopener noreferrer" className="bg-amber-500 hover:bg-amber-400 text-black font-medium px-5 py-3 rounded-lg text-center">
               Download for Mac
             </a>
           </div>
@@ -104,7 +109,7 @@ function Hero() {
       <div className="relative z-10 max-w-6xl mx-auto px-6 pt-24 pb-12 text-center">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-800/50 border border-zinc-700/50 mb-8 backdrop-blur-sm">
           <Apple className="w-4 h-4 text-amber-400" />
-          <span className="text-sm text-zinc-300">Built exclusively for macOS</span>
+          <span className="text-sm text-zinc-300">Built exclusively for macOS · Agent-ready via CLI + MCP</span>
         </div>
 
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-[0.95] mb-6">
@@ -121,12 +126,14 @@ function Hero() {
 
         <p className="text-xl md:text-2xl text-zinc-400 max-w-3xl mx-auto mb-10 leading-relaxed">
           Finally understand where your day went. Chronote analyzes your behavior patterns
-          and tells you WHY your time disappeared.
+          and tells you WHY your time disappeared, then makes those insights available to your agents.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
           <a
-            href="#download"
+            href={PURCHASE_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
             className="group bg-amber-500 hover:bg-amber-400 text-black font-semibold px-8 py-4 rounded-xl transition-all hover:shadow-xl hover:shadow-amber-500/30 flex items-center gap-2 text-lg"
           >
             <Download className="w-5 h-5" />
@@ -145,12 +152,21 @@ function Hero() {
         <div className="relative max-w-4xl mx-auto">
           <div className="absolute -inset-4 bg-gradient-to-r from-amber-500/20 via-amber-400/10 to-amber-500/20 rounded-2xl blur-2xl opacity-50" />
           <img
-            src="./imgs/app_mockup.png"
-            alt="Chronote App Interface"
+            src="./imgs/live.png"
+            alt="Chronote live dashboard for macOS time tracking"
             className="relative w-full rounded-xl shadow-2xl shadow-black/50 border border-zinc-800/50"
             loading="lazy"
             onError={(e) => { e.currentTarget.style.display = 'none'; }}
           />
+          <div className="relative mt-5 ml-auto w-[78%] md:w-[66%]">
+            <img
+              src="./imgs/live2.png"
+              alt="Chronote timeline and behavior analysis live view"
+              className="relative w-full rounded-xl shadow-2xl shadow-black/50 border border-zinc-800/50"
+              loading="lazy"
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
+          </div>
         </div>
       </div>
 
@@ -234,6 +250,13 @@ function FeaturesSection() {
       description: "Human-readable summaries: \"You had 2 deep focus sessions today, but 17 context switches interrupted your flow.\"",
       highlight: "Stories, not spreadsheets"
     },
+    {
+      icon: Bot,
+      img: "./imgs/icon_patterns.png",
+      title: "Agent-Ready via CLI + MCP",
+      description: "Expose summaries, activities, and projects to your AI workflow through chronote-cli and MCP stdio server.",
+      highlight: "Plug into your agent stack"
+    },
   ];
 
   return (
@@ -288,12 +311,17 @@ function FeaturesSection() {
               <p className="text-zinc-400 leading-relaxed">
                 Native macOS app with beautiful menu bar integration. All data stays on your Mac -
                 no cloud uploads, no subscriptions, no tracking. Your productivity data belongs to you.
+                Connect `chronote-cli` to MCP clients when you want agent-driven reports and automations.
               </p>
             </div>
-            <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-3 flex-shrink-0 flex-wrap">
               <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                 <Shield className="w-5 h-5 text-emerald-400" />
                 <span className="text-emerald-400 text-sm font-medium">100% Local</span>
+              </div>
+              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <Bot className="w-5 h-5 text-amber-400" />
+                <span className="text-amber-400 text-sm font-medium">Agent Ready</span>
               </div>
             </div>
           </div>
@@ -367,7 +395,7 @@ function Differentiator() {
     "Explains WHY time disappeared",
     "Fully automatic tracking",
     "Narrative insights with context",
-    "AI explains patterns for you"
+    "AI + agent workflows via CLI/MCP"
   ];
 
   return (
@@ -412,6 +440,66 @@ function Differentiator() {
             <ul className="space-y-4">
               {chronote.map((item, i) => (
                 <li key={i} className="flex items-start gap-3 text-zinc-200">
+                  <CheckCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function UseCasesAndAlternatives() {
+  const nicheUseCases = [
+    "Freelancers who need accurate client billing without manual timers.",
+    "Indie makers and solo founders optimizing deep-work windows.",
+    "ADHD and context-switch heavy workflows that need behavior-level clarity.",
+    "Knowledge workers who want local-first analytics and private data."
+  ];
+
+  const alternatives = [
+    "A practical Timing alternative for macOS users who prefer local data ownership.",
+    "A RescueTime alternative focused on narrative behavioral analysis instead of top-level scorecards.",
+    "A Toggl alternative for people who hate manual start/stop tracking.",
+    "A Rize alternative for builders who want agent automation via CLI and MCP."
+  ];
+
+  return (
+    <section id="alternatives" className="py-24 md:py-32 bg-[#0A0A0A]">
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="text-center mb-14">
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 text-white">
+            Built for niche workflows,
+            <br />
+            and as a modern tracker alternative
+          </h2>
+          <p className="text-xl text-zinc-400 max-w-3xl mx-auto">
+            Chronote helps people with specific workflows and teams replacing mainstream time-tracking software.
+            It combines local-first privacy, behavior intelligence, and agent integration in one macOS app.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="p-8 rounded-2xl bg-zinc-900/40 border border-zinc-800">
+            <h3 className="text-2xl font-semibold text-white mb-5">Niche use cases Chronote supports</h3>
+            <ul className="space-y-4">
+              {nicheUseCases.map((item, i) => (
+                <li key={i} className="flex items-start gap-3 text-zinc-300">
+                  <CheckCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="p-8 rounded-2xl bg-zinc-900/40 border border-zinc-800">
+            <h3 className="text-2xl font-semibold text-white mb-5">Looking for alternatives?</h3>
+            <ul className="space-y-4">
+              {alternatives.map((item, i) => (
+                <li key={i} className="flex items-start gap-3 text-zinc-300">
                   <CheckCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
                   <span>{item}</span>
                 </li>
@@ -522,7 +610,9 @@ function Pricing() {
                 </div>
               </div>
               <a
-                href="#download"
+                href={PURCHASE_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="bg-amber-500 hover:bg-amber-400 text-black font-semibold px-8 py-4 rounded-xl transition-all hover:shadow-xl hover:shadow-amber-500/30 flex items-center gap-2"
               >
                 <Download className="w-5 h-5" />
@@ -564,7 +654,9 @@ function CTASection() {
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <a
-            href="#"
+            href={PURCHASE_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
             className="group bg-amber-500 hover:bg-amber-400 text-black font-semibold px-10 py-5 rounded-xl transition-all hover:shadow-xl hover:shadow-amber-500/30 flex items-center gap-3 text-lg"
           >
             <Apple className="w-6 h-6" />
