@@ -2,12 +2,39 @@ import Foundation
 import SwiftUI
 import AppKit
 
+struct TimelineEventSnapshot: Sendable {
+    let id: UUID
+    let name: String
+    let startTime: Date
+    let endTime: Date
+    let projectId: String?
+
+    init(from event: Event, fallbackEndTime: Date) {
+        let resolvedEndTime = max(event.endTime ?? fallbackEndTime, event.startTime)
+        self.id = event.id
+        self.name = event.name
+        self.startTime = event.startTime
+        self.endTime = resolvedEndTime
+        self.projectId = event.projectId
+    }
+
+    var duration: TimeInterval {
+        endTime.timeIntervalSince(startTime)
+    }
+}
+
+struct TimelineProcessingResult {
+    let activityBlocks: [TimelineRenderBlock]
+    let eventBlocks: [TimelineRenderBlock]
+}
+
 /// TimelineProcessor converts activities into renderable timeline blocks.
 ///
 /// NEW STRATEGY (based on OpenAI analysis):
 /// 1. First aggregate activities into cognitive sessions (via TimelineSessionAggregator)
 /// 2. Then render sessions (not individual activities) as visual blocks
 /// 3. This separates "statistical merge" (30min) from "visual merge" (30s-90s)
+@MainActor
 class TimelineProcessor {
     // Cache for app icons to avoid repeated lookups
     private var iconCache: [String: NSImage] = [:]
@@ -18,8 +45,6 @@ class TimelineProcessor {
     private let TRACK_HEIGHT: CGFloat = 40.0
     private let BLOCK_PADDING: CGFloat = 4.0
 
-    private let sessionAggregator = TimelineSessionAggregator()
-    
     // Accumulator for merging
     private struct PendingBlock {
         var startX: CGFloat
@@ -29,6 +54,75 @@ class TimelineProcessor {
         var activityIds: [UUID]
         var startTime: Date
         var endTime: Date
+    }
+
+    private struct ComputedActivityBlock: Sendable {
+        var startX: CGFloat
+        var width: CGFloat
+        var appBundleId: String
+        var appName: String
+        var underlyingActivityIds: [UUID]
+        var totalDuration: TimeInterval
+        var startTime: Date
+        var endTime: Date
+    }
+
+    private struct ComputedEventBlock: Sendable {
+        var startX: CGFloat
+        var width: CGFloat
+        var appName: String
+        var totalDuration: TimeInterval
+        var startTime: Date
+        var endTime: Date
+        var eventId: UUID
+        var projectId: String?
+    }
+
+    private struct DetachedComputationResult: Sendable {
+        let activityBlocks: [ComputedActivityBlock]
+        let eventBlocks: [ComputedEventBlock]
+    }
+
+    func processAsync(
+        activities: [Activity],
+        events: [Event],
+        visibleTimeRange: ClosedRange<Date>,
+        canvasWidth: CGFloat,
+        eventBlockHeight: CGFloat = 24
+    ) async -> TimelineProcessingResult {
+        let now = Date()
+        let activitySnapshots = activities.map { TimelineActivitySnapshot(from: $0, fallbackEndTime: now) }
+        let eventSnapshots = events.map { TimelineEventSnapshot(from: $0, fallbackEndTime: now) }
+        let minDrawWidth = MIN_DRAW_WIDTH_PX
+        let trackHeight = TRACK_HEIGHT
+
+        let computed = await Task.detached(priority: .userInitiated) {
+            let activityBlocks = Self.computeSessionBlocks(
+                activitySnapshots: activitySnapshots,
+                visibleTimeRange: visibleTimeRange,
+                canvasWidth: canvasWidth,
+                minDrawWidth: minDrawWidth
+            )
+            let eventBlocks = Self.computeEventBlocks(
+                eventSnapshots: eventSnapshots,
+                visibleTimeRange: visibleTimeRange,
+                canvasWidth: canvasWidth,
+                minDrawWidth: minDrawWidth
+            )
+            return DetachedComputationResult(activityBlocks: activityBlocks, eventBlocks: eventBlocks)
+        }.value
+
+        let hydratedActivityBlocks = computed.activityBlocks.map {
+            makeActivityRenderBlock(from: $0, trackHeight: trackHeight)
+        }
+        let hydratedEventBlocks = computed.eventBlocks.map {
+            makeEventRenderBlock(from: $0, blockHeight: eventBlockHeight)
+        }
+
+        return TimelineProcessingResult(
+            activityBlocks: hydratedActivityBlocks,
+            eventBlocks: hydratedEventBlocks
+        )
     }
     
     /// NEW: Converts raw activities into cognitive sessions, then renders as blocks.
@@ -40,52 +134,14 @@ class TimelineProcessor {
     ///   - canvasWidth: The width of the canvas in pixels
     /// - Returns: A list of `TimelineRenderBlock` ready for drawing
     func processWithSessionAggregation(activities: [Activity], visibleTimeRange: ClosedRange<Date>, canvasWidth: CGFloat) -> [TimelineRenderBlock] {
-        guard !activities.isEmpty, canvasWidth > 0 else { return [] }
-
-        let totalSeconds = visibleTimeRange.upperBound.timeIntervalSince(visibleTimeRange.lowerBound)
-        guard totalSeconds > 0 else { return [] }
-
-        let pixelsPerSecond = canvasWidth / CGFloat(totalSeconds)
-        let startTime = visibleTimeRange.lowerBound
-
-        // Step 1: Aggregate activities into cognitive sessions
-        let sessions = sessionAggregator.aggregateSessions(from: activities)
-
-        // Step 2: Render sessions as blocks
-        var renderBlocks: [TimelineRenderBlock] = []
-
-        for session in sessions {
-            // Skip sessions outside visible range
-            if session.endTime < visibleTimeRange.lowerBound || session.startTime > visibleTimeRange.upperBound {
-                continue
-            }
-
-            let startX = CGFloat(session.startTime.timeIntervalSince(startTime)) * pixelsPerSecond
-            let endX = CGFloat(session.endTime.timeIntervalSince(startTime)) * pixelsPerSecond
-            let width = endX - startX
-
-            guard width > 0.5 else { continue }
-
-            let visualWidth = max(width, MIN_DRAW_WIDTH_PX)
-            let rect = CGRect(x: startX, y: 0, width: visualWidth, height: TRACK_HEIGHT + 8)
-
-            let color = color(for: session.primaryAppName)
-            let icon = icon(for: session.primaryAppBundleId)
-
-            renderBlocks.append(TimelineRenderBlock(
-                rect: rect,
-                color: color,
-                appBundleId: session.primaryAppBundleId,
-                appName: session.primaryAppName,
-                icon: icon,
-                underlyingActivityIds: session.underlyingActivityIds,
-                totalDuration: session.duration,
-                startTime: session.startTime,
-                endTime: session.endTime
-            ))
-        }
-
-        return renderBlocks
+        let snapshots = activities.map { TimelineActivitySnapshot(from: $0, fallbackEndTime: Date()) }
+        let computedBlocks = Self.computeSessionBlocks(
+            activitySnapshots: snapshots,
+            visibleTimeRange: visibleTimeRange,
+            canvasWidth: canvasWidth,
+            minDrawWidth: MIN_DRAW_WIDTH_PX
+        )
+        return computedBlocks.map { makeActivityRenderBlock(from: $0, trackHeight: TRACK_HEIGHT) }
     }
 
     /// DEPRECATED: Old approach - converts raw activities into renderable blocks
@@ -286,52 +342,14 @@ class TimelineProcessor {
     }
     
     func processEvents(events: [Event], visibleTimeRange: ClosedRange<Date>, canvasWidth: CGFloat, blockHeight: CGFloat = 24) -> [TimelineRenderBlock] {
-        guard !events.isEmpty, canvasWidth > 0 else { return [] }
-        
-        let totalSeconds = visibleTimeRange.upperBound.timeIntervalSince(visibleTimeRange.lowerBound)
-        guard totalSeconds > 0 else { return [] }
-        
-        let pixelsPerSecond = canvasWidth / CGFloat(totalSeconds)
-        let startTime = visibleTimeRange.lowerBound
-        
-        func getX(_ date: Date) -> CGFloat {
-            return CGFloat(date.timeIntervalSince(startTime)) * pixelsPerSecond
-        }
-        
-        var blocks: [TimelineRenderBlock] = []
-        
-        for event in events {
-            let eventEnd = event.endTime ?? Date()
-            
-            // Filter
-            if eventEnd < visibleTimeRange.lowerBound || event.startTime > visibleTimeRange.upperBound {
-                continue
-            }
-            
-            let startX = getX(event.startTime)
-            let endX = getX(eventEnd)
-            let width = max(2.0, endX - startX)
-            
-            // Event block uses a compact height so labels remain readable but less visually heavy
-            let rect = CGRect(x: startX, y: 0, width: width, height: blockHeight)
-            
-            let color = self.color(for: event.name)
-            
-            blocks.append(TimelineRenderBlock(
-                rect: rect,
-                color: color,
-                appBundleId: "ManualEvent",
-                appName: event.name,
-                icon: nil,
-                underlyingActivityIds: [],
-                totalDuration: event.duration,
-                startTime: event.startTime,
-                endTime: eventEnd,
-                eventId: event.id,
-                projectId: event.projectId
-            ))
-        }
-        return blocks
+        let snapshots = events.map { TimelineEventSnapshot(from: $0, fallbackEndTime: Date()) }
+        let computedBlocks = Self.computeEventBlocks(
+            eventSnapshots: snapshots,
+            visibleTimeRange: visibleTimeRange,
+            canvasWidth: canvasWidth,
+            minDrawWidth: MIN_DRAW_WIDTH_PX
+        )
+        return computedBlocks.map { makeEventRenderBlock(from: $0, blockHeight: blockHeight) }
     }
     
     private func createBlock(from pending: PendingBlock) -> TimelineRenderBlock? {
@@ -374,6 +392,130 @@ class TimelineProcessor {
             startTime: pending.startTime,
             endTime: pending.endTime
         )
+    }
+
+    private func makeActivityRenderBlock(from computed: ComputedActivityBlock, trackHeight: CGFloat) -> TimelineRenderBlock {
+        let rect = CGRect(
+            x: computed.startX,
+            y: 0,
+            width: computed.width,
+            height: trackHeight + 8
+        )
+
+        return TimelineRenderBlock(
+            rect: rect,
+            color: color(for: computed.appName),
+            appBundleId: computed.appBundleId,
+            appName: computed.appName,
+            icon: icon(for: computed.appBundleId),
+            underlyingActivityIds: computed.underlyingActivityIds,
+            totalDuration: computed.totalDuration,
+            startTime: computed.startTime,
+            endTime: computed.endTime
+        )
+    }
+
+    private func makeEventRenderBlock(from computed: ComputedEventBlock, blockHeight: CGFloat) -> TimelineRenderBlock {
+        let rect = CGRect(
+            x: computed.startX,
+            y: 0,
+            width: computed.width,
+            height: blockHeight
+        )
+
+        return TimelineRenderBlock(
+            rect: rect,
+            color: color(for: computed.appName),
+            appBundleId: "ManualEvent",
+            appName: computed.appName,
+            icon: nil,
+            underlyingActivityIds: [],
+            totalDuration: computed.totalDuration,
+            startTime: computed.startTime,
+            endTime: computed.endTime,
+            eventId: computed.eventId,
+            projectId: computed.projectId
+        )
+    }
+
+    nonisolated private static func computeSessionBlocks(
+        activitySnapshots: [TimelineActivitySnapshot],
+        visibleTimeRange: ClosedRange<Date>,
+        canvasWidth: CGFloat,
+        minDrawWidth: CGFloat
+    ) -> [ComputedActivityBlock] {
+        guard !activitySnapshots.isEmpty, canvasWidth > 0 else { return [] }
+
+        let totalSeconds = visibleTimeRange.upperBound.timeIntervalSince(visibleTimeRange.lowerBound)
+        guard totalSeconds > 0 else { return [] }
+
+        let pixelsPerSecond = canvasWidth / CGFloat(totalSeconds)
+        let rangeStart = visibleTimeRange.lowerBound
+        let aggregator = TimelineSessionAggregator()
+        let sessions = aggregator.aggregateSessions(from: activitySnapshots, visibleTimeRange: visibleTimeRange)
+
+        return sessions.compactMap { session in
+            if session.endTime <= visibleTimeRange.lowerBound || session.startTime >= visibleTimeRange.upperBound {
+                return nil
+            }
+
+            let clippedStart = max(session.startTime, visibleTimeRange.lowerBound)
+            let clippedEnd = min(session.endTime, visibleTimeRange.upperBound)
+            let startX = CGFloat(clippedStart.timeIntervalSince(rangeStart)) * pixelsPerSecond
+            let endX = CGFloat(clippedEnd.timeIntervalSince(rangeStart)) * pixelsPerSecond
+            let width = endX - startX
+            guard width > 0.5 else { return nil }
+
+            return ComputedActivityBlock(
+                startX: startX,
+                width: max(width, minDrawWidth),
+                appBundleId: session.primaryAppBundleId,
+                appName: session.primaryAppName,
+                underlyingActivityIds: session.underlyingActivityIds,
+                totalDuration: session.duration,
+                startTime: session.startTime,
+                endTime: session.endTime
+            )
+        }
+    }
+
+    nonisolated private static func computeEventBlocks(
+        eventSnapshots: [TimelineEventSnapshot],
+        visibleTimeRange: ClosedRange<Date>,
+        canvasWidth: CGFloat,
+        minDrawWidth: CGFloat
+    ) -> [ComputedEventBlock] {
+        guard !eventSnapshots.isEmpty, canvasWidth > 0 else { return [] }
+
+        let totalSeconds = visibleTimeRange.upperBound.timeIntervalSince(visibleTimeRange.lowerBound)
+        guard totalSeconds > 0 else { return [] }
+
+        let pixelsPerSecond = canvasWidth / CGFloat(totalSeconds)
+        let rangeStart = visibleTimeRange.lowerBound
+
+        return eventSnapshots.compactMap { event in
+            if event.endTime <= visibleTimeRange.lowerBound || event.startTime >= visibleTimeRange.upperBound {
+                return nil
+            }
+
+            let clippedStart = max(event.startTime, visibleTimeRange.lowerBound)
+            let clippedEnd = min(event.endTime, visibleTimeRange.upperBound)
+            let startX = CGFloat(clippedStart.timeIntervalSince(rangeStart)) * pixelsPerSecond
+            let endX = CGFloat(clippedEnd.timeIntervalSince(rangeStart)) * pixelsPerSecond
+            let width = endX - startX
+            guard width > 0 else { return nil }
+
+            return ComputedEventBlock(
+                startX: startX,
+                width: max(width, minDrawWidth),
+                appName: event.name,
+                totalDuration: event.duration,
+                startTime: event.startTime,
+                endTime: event.endTime,
+                eventId: event.id,
+                projectId: event.projectId
+            )
+        }
     }
     
     // MARK: - Helpers

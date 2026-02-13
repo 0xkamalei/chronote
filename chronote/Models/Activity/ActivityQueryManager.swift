@@ -112,40 +112,15 @@ class ActivityQueryManager: ObservableObject {
         }
 
         do {
-            // Fetch all activities first, then filter in memory
-            // This avoids potential issues with SwiftData #Predicate and Date comparisons
-            var allDescriptor = FetchDescriptor<Activity>(
-                sortBy: [SortDescriptor(\Activity.startTime, order: .reverse)]
-            )
-            allDescriptor.fetchLimit = 5000 // Reasonable limit
+            let descriptor = buildFetchDescriptor()
+            let fetchedActivities = try context.fetch(descriptor)
+            logger.info("Activities fetched by descriptor: \(fetchedActivities.count)")
             
-            let allActivities = try context.fetch(allDescriptor)
-            logger.info("Total activities fetched: \(allActivities.count)")
-            
-            // Apply date range filter in memory
-            var fetchedActivities = allActivities
-            if let range = currentDateRange {
-                fetchedActivities = allActivities.filter { activity in
-                    activity.startTime >= range.start && activity.startTime < range.end
-                }
-                logger.info("After date filter: \(fetchedActivities.count) activities")
-                
-                // Debug: if no results, show sample data
-                if fetchedActivities.isEmpty && !allActivities.isEmpty {
-                    let formatter = ISO8601DateFormatter()
-                    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-                    logger.warning("No activities in date range. Sample activities:")
-                    for activity in allActivities.prefix(5) {
-                        logger.info("  - \(activity.appName): \(formatter.string(from: activity.startTime))")
-                    }
-                }
-            }
-
-            // Apply other filters in memory
+            // Keep in-memory pass as a safety net for consistency with existing logic.
             let filteredActivities = applyInMemoryFilters(fetchedActivities)
 
             self.totalCount = filteredActivities.count
-            activities = Array(filteredActivities.prefix(1000)) // Limit to 1000 for display
+            activities = filteredActivities
 
             logger.info("Refreshed activities: \(self.activities.count) loaded, total: \(self.totalCount)")
 
@@ -159,35 +134,11 @@ class ActivityQueryManager: ObservableObject {
     }
 
     private func applyInMemoryFilters(_ activities: [Activity]) -> [Activity] {
-        var filtered = activities
+        guard !currentSearchText.isEmpty else { return activities }
 
-        if !currentSearchText.isEmpty {
-            filtered = filtered.filter { activity in
+        return activities.filter { activity in
                 activity.appName.localizedStandardContains(currentSearchText)
-            }
         }
-
-        if let project = currentProjectFilter {
-            filtered = filtered.filter { $0.projectId == project.id }
-            logger.info("Project filter applied in memory: \(project.name)")
-        }
-
-        if let sidebarFilter = currentSidebarFilter {
-            switch sidebarFilter {
-            case "All Activities":
-                break
-            case "Unassigned":
-                filtered = filtered.filter { $0.projectId == nil }
-                logger.info("Unassigned filter applied in memory")
-            case "My Projects":
-                filtered = filtered.filter { $0.projectId != nil }
-                logger.info("My Projects filter applied in memory")
-            default:
-                break
-            }
-        }
-
-        return filtered
     }
 
     func getCurrentFilterDescription() -> String {
@@ -220,11 +171,11 @@ class ActivityQueryManager: ObservableObject {
         var descriptor = FetchDescriptor<Activity>(
             sortBy: [SortDescriptor(\Activity.startTime, order: .reverse)]
         )
+        descriptor.fetchLimit = nil
 
         let range = currentDateRange
         let project = currentProjectFilter
         let sidebar = currentSidebarFilter
-        let searchText = currentSearchText
 
         if let range = range {
             let start = range.start
@@ -266,13 +217,8 @@ class ActivityQueryManager: ObservableObject {
                     return false
                 }
             }
-        } else if !searchText.isEmpty {
-            descriptor.predicate = #Predicate<Activity> { activity in
-                activity.appName.localizedStandardContains(searchText)
-            }
         }
 
-        descriptor.fetchLimit = 1000 // 最多加载1000条记录
 
         return descriptor
     }

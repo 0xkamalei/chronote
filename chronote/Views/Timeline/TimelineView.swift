@@ -30,6 +30,7 @@ struct TimelineView: View {
     @State private var dragCreateEndTime: Date?
     @State private var dragCreateLocation: CGPoint = .zero
     @State private var eventProjectColors: [UUID: Color] = [:]
+    @State private var recalcTask: Task<Void, Never>? = nil
     
     private let processor = TimelineProcessor()
     private let activityTrackHeight: CGFloat = 48
@@ -299,11 +300,11 @@ struct TimelineView: View {
                         .frame(width: 1, height: 1)
                         .position(dragCreateLocation) // Use the captured block location
                         .popover(isPresented: $showEditEventPopover) {
-                             EditEventView(event: event)
-                                 .onDisappear {
-                                     // Trigger recalculation after edit
-                                     recalculate(width: width)
-                                 }
+                            EditEventView(event: event)
+                                .onDisappear {
+                                    // Trigger recalculation after edit
+                                    scheduleRecalculate(width: width, debounceNanoseconds: 0)
+                                }
                         }
                  }
             }
@@ -317,25 +318,25 @@ struct TimelineView: View {
                             StartEventView(initialStartTime: dragCreateStartTime, initialEndTime: dragCreateEndTime)
                                 .onDisappear {
                                     // Trigger recalculation after create
-                                    recalculate(width: width)
+                                    scheduleRecalculate(width: width, debounceNanoseconds: 0)
                                 }
                         }
                 }
             }
-            .onChange(of: width) { newWidth in
-                recalculate(width: newWidth)
+            .onChange(of: width) { _, newWidth in
+                scheduleRecalculate(width: newWidth)
             }
-            .onChange(of: activities) { _ in
-                recalculate(width: width)
+            .onChange(of: activities) { _, _ in
+                scheduleRecalculate(width: width)
             }
-            .onChange(of: events) { _ in
-                recalculate(width: width)
+            .onChange(of: events) { _, _ in
+                scheduleRecalculate(width: width)
             }
-            .onChange(of: projects) { _ in
-                recalculate(width: width)
+            .onChange(of: projects) { _, _ in
+                scheduleRecalculate(width: width)
             }
-            .onChange(of: visibleTimeRange) { _ in
-                recalculate(width: width)
+            .onChange(of: visibleTimeRange) { _, _ in
+                scheduleRecalculate(width: width)
             }
             .onAppear {
                 // 初次出现时，自动检测活跃时间范围
@@ -343,7 +344,10 @@ struct TimelineView: View {
                 if smartRange != visibleTimeRange {
                     visibleTimeRange = smartRange
                 }
-                recalculate(width: width)
+                scheduleRecalculate(width: width, debounceNanoseconds: 0)
+            }
+            .onDisappear {
+                recalcTask?.cancel()
             }
         }
         .frame(height: isFullyZoomedOut ? 102 : 118)
@@ -355,20 +359,27 @@ struct TimelineView: View {
         return visibleDuration >= totalDuration * 0.99
     }
     
-    private func recalculate(width: CGFloat) {
-        // NEW: Use session-based aggregation for better visual continuity
-        // This replaces both the old process() and processMerged() methods
-        let blocks = processor.processWithSessionAggregation(activities: activities, visibleTimeRange: visibleTimeRange, canvasWidth: width)
-        self.renderBlocks = blocks
+    private func scheduleRecalculate(width: CGFloat, debounceNanoseconds: UInt64 = 16_000_000) {
+        recalcTask?.cancel()
+        recalcTask = Task { @MainActor in
+            if debounceNanoseconds > 0 {
+                try? await Task.sleep(nanoseconds: debounceNanoseconds)
+            }
+            guard !Task.isCancelled else { return }
 
-        let evtBlocks = processor.processEvents(
-            events: events,
-            visibleTimeRange: visibleTimeRange,
-            canvasWidth: width,
-            blockHeight: eventTrackHeight
-        )
-        self.eventRenderBlocks = evtBlocks
-        self.eventProjectColors = buildEventProjectColorMap()
+            let result = await processor.processAsync(
+                activities: activities,
+                events: events,
+                visibleTimeRange: visibleTimeRange,
+                canvasWidth: width,
+                eventBlockHeight: eventTrackHeight
+            )
+            guard !Task.isCancelled else { return }
+
+            renderBlocks = result.activityBlocks
+            eventRenderBlocks = result.eventBlocks
+            eventProjectColors = buildEventProjectColorMap()
+        }
     }
 
     private func buildEventProjectColorMap() -> [UUID: Color] {

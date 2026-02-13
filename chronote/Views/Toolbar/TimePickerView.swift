@@ -13,8 +13,10 @@ struct TimePickerView: View {
         _isPresented = isPresented
         _selectedDateRange = selectedDateRange
         _selectedPreset = selectedPreset
-        _startDate = State(initialValue: selectedDateRange.wrappedValue.startDate)
-        _endDate = State(initialValue: selectedDateRange.wrappedValue.endDate)
+        let calendar = Calendar.current
+        let range = selectedDateRange.wrappedValue
+        _startDate = State(initialValue: range.displayStartDate(calendar: calendar))
+        _endDate = State(initialValue: range.displayEndDate(calendar: calendar))
     }
 
     var body: some View {
@@ -80,24 +82,11 @@ struct TimePickerView: View {
                         .clipped()
                         .onChange(of: startDate) { _, newValue in
                             guard !isUpdatingPresets else { return }
-                            DispatchQueue.main.async {
-                                let calendar = Calendar.current
-                                let startOfDay = calendar.startOfDay(for: newValue)
-                                let endOfDayRange = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
-                                
-                                // 检查当前是否是单日模式
-                                let currentStartOfDay = calendar.startOfDay(for: selectedDateRange.startDate)
-                                let currentEndOfDayRange = calendar.date(byAdding: .day, value: 1, to: currentStartOfDay)!
-                                let isSingleDayMode = calendar.isDate(selectedDateRange.endDate, equalTo: currentEndOfDayRange, toGranularity: .minute)
-                                
-                                if isSingleDayMode || calendar.isDate(selectedDateRange.startDate, inSameDayAs: selectedDateRange.endDate) {
-                                    endDate = endOfDayRange
-                                    selectedDateRange = AppDateRange(startDate: startOfDay, endDate: endOfDayRange)
-                                } else {
-                                    selectedDateRange = AppDateRange(startDate: startOfDay, endDate: endDate)
-                                }
-                                selectedPreset = nil
+                            let normalizedStart = Calendar.current.startOfDay(for: newValue)
+                            if normalizedStart > endDate {
+                                endDate = normalizedStart
                             }
+                            syncSelectedDateRangeFromPicker()
                         }
 
                     DatePicker("", selection: $endDate, displayedComponents: .date)
@@ -106,13 +95,11 @@ struct TimePickerView: View {
                         .clipped()
                         .onChange(of: endDate) { _, newValue in
                             guard !isUpdatingPresets else { return }
-                            DispatchQueue.main.async {
-                                let calendar = Calendar.current
-                                let startOfDay = calendar.startOfDay(for: newValue)
-                                let endOfDayRange = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
-                                selectedDateRange = AppDateRange(startDate: startDate, endDate: endOfDayRange)
-                                selectedPreset = nil
+                            let normalizedEnd = Calendar.current.startOfDay(for: newValue)
+                            if normalizedEnd < startDate {
+                                startDate = normalizedEnd
                             }
+                            syncSelectedDateRangeFromPicker()
                         }
                 }
             }
@@ -125,8 +112,9 @@ struct TimePickerView: View {
     private func updateDateRange(for preset: AppDateRangePreset) {
         isUpdatingPresets = true
         let range = preset.dateRange
-        startDate = range.startDate
-        endDate = range.endDate
+        let calendar = Calendar.current
+        startDate = range.displayStartDate(calendar: calendar)
+        endDate = range.displayEndDate(calendar: calendar)
         selectedDateRange = range
         
         DispatchQueue.main.async {
@@ -138,6 +126,15 @@ struct TimePickerView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy/MM/dd"
         return formatter.string(from: date)
+    }
+
+    private func syncSelectedDateRangeFromPicker() {
+        let calendar = Calendar.current
+        let normalizedStart = calendar.startOfDay(for: startDate)
+        let normalizedEndInclusive = calendar.startOfDay(for: endDate)
+        let normalizedExclusiveEnd = calendar.date(byAdding: .day, value: 1, to: normalizedEndInclusive) ?? normalizedEndInclusive
+        selectedDateRange = AppDateRange(startDate: normalizedStart, endDate: normalizedExclusiveEnd)
+        selectedPreset = nil
     }
 }
 
