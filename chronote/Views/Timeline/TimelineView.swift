@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct TimelineView: View {
-    var activities: [Activity]
+    var activities: [ActivitySnapshot]
     var events: [Event]
     @Query(sort: \Project.name) private var projects: [Project]
     
@@ -19,7 +19,7 @@ struct TimelineView: View {
     
     @State private var hoveredBlock: TimelineRenderBlock? = nil
     @State private var hoverLocation: CGPoint = .zero
-    @State private var hoveredActivity: Activity? = nil  // 悬浮时间戳对应的具体 Activity
+    @State private var hoveredActivity: ActivitySnapshot? = nil  // 悬浮时间戳对应的具体 Activity
     
     @State private var selectedEventId: UUID? = nil
     @State private var showEditEventPopover: Bool = false
@@ -30,15 +30,16 @@ struct TimelineView: View {
     @State private var dragCreateEndTime: Date?
     @State private var dragCreateLocation: CGPoint = .zero
     @State private var eventProjectColors: [UUID: Color] = [:]
+    @State private var activitiesById: [UUID: ActivitySnapshot] = [:]
     @State private var recalcTask: Task<Void, Never>? = nil
     
-    private let processor = TimelineProcessor()
+    @State private var processor = TimelineProcessor()
     private let activityTrackHeight: CGFloat = 48
     private let eventTrackHeight: CGFloat = 24
     private let projectLineHeight: CGFloat = 4
     private let trackDividerHeight: CGFloat = 1
     
-    init(activities: [Activity], events: [Event] = [], visibleTimeRange: Binding<ClosedRange<Date>>, totalTimeRange: ClosedRange<Date>, selectedTimeRange: ClosedRange<Date>? = nil, onRangeSelected: ((ClosedRange<Date>) -> Void)? = nil) {
+    init(activities: [ActivitySnapshot], events: [Event] = [], visibleTimeRange: Binding<ClosedRange<Date>>, totalTimeRange: ClosedRange<Date>, selectedTimeRange: ClosedRange<Date>? = nil, onRangeSelected: ((ClosedRange<Date>) -> Void)? = nil) {
         self.activities = activities
         self.events = events
         self._visibleTimeRange = visibleTimeRange
@@ -151,11 +152,7 @@ struct TimelineView: View {
                                     // 根据鼠标位置计算时间戳
                                     let hoveredTimestamp = calculateTimestampFromPoint(point.x, width: width)
 
-                                    // 查找该时间戳对应的 Activity
-                                    hoveredActivity = activities.first { activity in
-                                        activity.startTime <= hoveredTimestamp &&
-                                        hoveredTimestamp <= (activity.endTime ?? Date())
-                                    }
+                                    hoveredActivity = resolveHoveredActivity(block: block, timestamp: hoveredTimestamp)
                                 } else {
                                     hoveredBlock = nil
                                     hoveredActivity = nil
@@ -376,6 +373,7 @@ struct TimelineView: View {
             )
             guard !Task.isCancelled else { return }
 
+            activitiesById = Dictionary(uniqueKeysWithValues: activities.map { ($0.id, $0) })
             renderBlocks = result.activityBlocks
             eventRenderBlocks = result.eventBlocks
             eventProjectColors = buildEventProjectColorMap()
@@ -407,6 +405,16 @@ struct TimelineView: View {
         let pixelsPerSecond = width / visibleDuration
         let secondsFromStart = Double(x) / pixelsPerSecond
         return visibleTimeRange.lowerBound.addingTimeInterval(secondsFromStart)
+    }
+
+    private func resolveHoveredActivity(block: TimelineRenderBlock, timestamp: Date) -> ActivitySnapshot? {
+        for activityId in block.underlyingActivityIds {
+            guard let activity = activitiesById[activityId] else { continue }
+            if activity.startTime <= timestamp && timestamp <= activity.resolvedEndTime {
+                return activity
+            }
+        }
+        return nil
     }
 }
 

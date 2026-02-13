@@ -84,7 +84,7 @@ class TimelineProcessor {
     }
 
     func processAsync(
-        activities: [Activity],
+        activities: [ActivitySnapshot],
         events: [Event],
         visibleTimeRange: ClosedRange<Date>,
         canvasWidth: CGFloat,
@@ -133,7 +133,7 @@ class TimelineProcessor {
     ///   - visibleTimeRange: The time range currently visible on screen
     ///   - canvasWidth: The width of the canvas in pixels
     /// - Returns: A list of `TimelineRenderBlock` ready for drawing
-    func processWithSessionAggregation(activities: [Activity], visibleTimeRange: ClosedRange<Date>, canvasWidth: CGFloat) -> [TimelineRenderBlock] {
+    func processWithSessionAggregation(activities: [ActivitySnapshot], visibleTimeRange: ClosedRange<Date>, canvasWidth: CGFloat) -> [TimelineRenderBlock] {
         let snapshots = activities.map { TimelineActivitySnapshot(from: $0, fallbackEndTime: Date()) }
         let computedBlocks = Self.computeSessionBlocks(
             activitySnapshots: snapshots,
@@ -151,7 +151,7 @@ class TimelineProcessor {
     ///   - visibleTimeRange: The time range currently visible on screen (or total range)
     ///   - canvasWidth: The width of the canvas in pixels
     /// - Returns: A list of `TimelineRenderBlock` ready for drawing
-    func process(activities: [Activity], visibleTimeRange: ClosedRange<Date>, canvasWidth: CGFloat) -> [TimelineRenderBlock] {
+    func process(activities: [ActivitySnapshot], visibleTimeRange: ClosedRange<Date>, canvasWidth: CGFloat) -> [TimelineRenderBlock] {
         guard !activities.isEmpty, canvasWidth > 0 else { return [] }
         
         let totalSeconds = visibleTimeRange.upperBound.timeIntervalSince(visibleTimeRange.lowerBound)
@@ -173,7 +173,7 @@ class TimelineProcessor {
         var pending: PendingBlock?
         
         for activity in sortedActivities {
-            let activityEnd = activity.endTime ?? Date()
+            let activityEnd = activity.endTime ?? activity.capturedAt
             
             // Skip activities strictly outside range? 
             // We keep them if they overlap. 
@@ -238,7 +238,7 @@ class TimelineProcessor {
     }
     
     /// Converts raw activities into aggregated blocks based on time intervals
-    func processMerged(activities: [Activity], visibleTimeRange: ClosedRange<Date>, canvasWidth: CGFloat, interval: TimeInterval) -> [TimelineRenderBlock] {
+    func processMerged(activities: [ActivitySnapshot], visibleTimeRange: ClosedRange<Date>, canvasWidth: CGFloat, interval: TimeInterval) -> [TimelineRenderBlock] {
         guard !activities.isEmpty, canvasWidth > 0, interval > 0 else { return [] }
         
         let totalSeconds = visibleTimeRange.upperBound.timeIntervalSince(visibleTimeRange.lowerBound)
@@ -269,7 +269,7 @@ class TimelineProcessor {
             var appActivityIds: [String: [UUID]] = [:]
             
             for activity in activities {
-                let actEnd = activity.endTime ?? Date()
+                let actEnd = activity.endTime ?? activity.capturedAt
                 if actEnd <= bucketStart || activity.startTime >= bucketEnd {
                     continue
                 }

@@ -24,7 +24,7 @@ struct TimelineActivitySnapshot: Sendable {
         self.endTime = max(endTime, startTime)
     }
 
-    init(from activity: Activity, fallbackEndTime: Date) {
+    init(from activity: ActivitySnapshot, fallbackEndTime: Date) {
         self.init(
             id: activity.id,
             appBundleId: activity.appBundleId,

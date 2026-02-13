@@ -25,30 +25,8 @@ struct ContentView: View {
 
     // Filter Range State (separate from visual zoom)
     @State private var filterDateRange: ClosedRange<Date> = Date()...Date()
-
-    // Debounced Viewport State
-    @State private var debouncedVisibleRange: ClosedRange<Date> = Date()...Date()
-    
-    // Filtered activities based on debounced viewport
-    private var viewportEvents: [Event] {
-        let start = filterDateRange.lowerBound
-        let end = filterDateRange.upperBound
-        return allEvents.filter { event in
-            let eventEnd = event.endTime ?? Date()
-            return event.startTime < end && eventEnd > start
-        }
-    }
-
-    private var viewportActivities: [Activity] {
-        let start = filterDateRange.lowerBound
-        let end = filterDateRange.upperBound
-        return activityQueryManager.activities.filter { activity in
-            // Keep activity if it overlaps with visible range
-            // Overlap logic: (ActStart < ViewEnd) AND (ActEnd > ViewStart)
-            let actEnd = activity.endTime ?? Date()
-            return activity.startTime < end && actEnd > start
-        }
-    }
+    @State private var viewportEvents: [Event] = []
+    @State private var viewportActivities: [ActivitySnapshot] = []
 
     private var activitiesView: some View {
         ActivityViewContainer(activities: viewportActivities)
@@ -91,7 +69,6 @@ struct ContentView: View {
         }
     }
 
-    @State private var timelineDebounceTask: Task<Void, Never>?
     @AppStorage("cliPathPromptDismissed") private var cliPathPromptDismissed: Bool = false
     @State private var showCLIPathPrompt: Bool = false
     @State private var showCLIPathResult: Bool = false
@@ -133,7 +110,7 @@ struct ContentView: View {
             activityQueryManager.setDateRange(initialInterval)
             timelineVisibleRange = start...end
             filterDateRange = start...end
-            debouncedVisibleRange = start...end
+            recomputeViewportData()
             
             // Sync initial sidebar filter
             activityQueryManager.setSidebarFilter(appState.selectedSidebar)
@@ -169,20 +146,17 @@ struct ContentView: View {
             // Reset timeline zoom when global range changes
             timelineVisibleRange = start...end
             filterDateRange = start...end
-            debouncedVisibleRange = start...end
+            recomputeViewportData()
             Logger.ui.debug("Date range changed: \(start, privacy: .public) - \(end, privacy: .public)")
         }
-        .onChange(of: timelineVisibleRange) { _, newRange in
-            // Debounce update to activities list to avoid lag
-            timelineDebounceTask?.cancel()
-            timelineDebounceTask = Task {
-                try? await Task.sleep(nanoseconds: 200_000_000) // 200ms
-                if !Task.isCancelled {
-                    await MainActor.run {
-                        self.debouncedVisibleRange = newRange
-                    }
-                }
-            }
+        .onChange(of: filterDateRange) { _, _ in
+            recomputeViewportData()
+        }
+        .onChange(of: allEvents) { _, _ in
+            recomputeViewportData()
+        }
+        .onChange(of: activityQueryManager.activities) { _, _ in
+            recomputeViewportData()
         }
         .onChange(of: searchText) { _, newSearchText in
             activityQueryManager.setSearchText(newSearchText)
@@ -230,6 +204,20 @@ struct ContentView: View {
         } catch {
             cliPathResultMessage = error.localizedDescription
             showCLIPathResult = true
+        }
+    }
+
+    private func recomputeViewportData() {
+        let start = filterDateRange.lowerBound
+        let end = filterDateRange.upperBound
+
+        viewportEvents = allEvents.filter { event in
+            let eventEnd = event.endTime ?? Date()
+            return event.startTime < end && eventEnd > start
+        }
+
+        viewportActivities = activityQueryManager.activities.filter { activity in
+            activity.startTime < end && activity.resolvedEndTime > start
         }
     }
 }

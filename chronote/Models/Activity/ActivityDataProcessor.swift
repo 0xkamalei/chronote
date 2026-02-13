@@ -62,14 +62,14 @@ class ActivityDataProcessor {
     ///   - projects: List of available projects
     /// - Returns: Array of ActivityGroup at .project level
     static func groupByProject(
-        activities: [Activity],
+        activities: [ActivitySnapshot],
         projects: [Project]
     ) -> [ActivityGroup] {
         var groups: [ActivityGroup] = []
         
         // 1. Group activities by project ID
-        var activitiesByProject: [String: [Activity]] = [:]
-        var unassignedActivities: [Activity] = []
+        var activitiesByProject: [String: [ActivitySnapshot]] = [:]
+        var unassignedActivities: [ActivitySnapshot] = []
         
         for activity in activities {
             if let projectId = activity.projectId {
@@ -120,11 +120,11 @@ class ActivityDataProcessor {
     /// Groups activities by app
     /// - Parameter activities: List of activities to group (assumed to be filtered by project)
     /// - Returns: Array of ActivityGroup at .appName level
-    static func groupByApp(activities: [Activity], parentId: String? = nil) -> [ActivityGroup]? {
+    static func groupByApp(activities: [ActivitySnapshot], parentId: String? = nil) -> [ActivityGroup]? {
         var groups: [ActivityGroup] = []
         
         // 1. Group by Bundle ID
-        var activitiesByApp: [String: [Activity]] = [:]
+        var activitiesByApp: [String: [ActivitySnapshot]] = [:]
         
         for activity in activities {
             activitiesByApp[activity.appBundleId, default: []].append(activity)
@@ -163,9 +163,9 @@ class ActivityDataProcessor {
     /// Groups activities by Domain (for Browser apps)
     /// - Parameter activities: List of activities to group (assumed to be filtered by app)
     /// - Returns: Array of ActivityGroup at .domain level
-    static func groupByDomain(activities: [Activity], parentId: String) -> [ActivityGroup]? {
+    static func groupByDomain(activities: [ActivitySnapshot], parentId: String) -> [ActivityGroup]? {
         var groups: [ActivityGroup] = []
-        var activitiesByDomain: [String: [Activity]] = [:]
+        var activitiesByDomain: [String: [ActivitySnapshot]] = [:]
         
         for activity in activities {
             var domain = activity.domain
@@ -204,9 +204,9 @@ class ActivityDataProcessor {
     /// Groups activities by context (Title/URL/FilePath)
     /// - Parameter activities: List of activities to group (assumed to be filtered by app)
     /// - Returns: Array of ActivityGroup at .appContext level
-    static func groupByAppContext(activities: [Activity], parentId: String) -> [ActivityGroup]? {
+    static func groupByAppContext(activities: [ActivitySnapshot], parentId: String) -> [ActivityGroup]? {
         var groups: [ActivityGroup] = []
-        var activitiesByContext: [String: [Activity]] = [:]
+        var activitiesByContext: [String: [ActivitySnapshot]] = [:]
         
         for activity in activities {
             let context = getContextName(for: activity)
@@ -239,9 +239,9 @@ class ActivityDataProcessor {
     /// Maps activities to individual record groups (Detail level) without re-sorting
     /// - Parameter activities: List of activities
     /// - Returns: Array of ActivityGroup at .detail level
-    static func mapToRecordGroups(activities: [Activity], parentId: String) -> [ActivityGroup]? {
+    static func mapToRecordGroups(activities: [ActivitySnapshot], parentId: String) -> [ActivityGroup]? {
         let slices: [ActivityDetailSlice] = activities.map { activity in
-            let endTime = activity.endTime ?? Date()
+            let endTime = activity.endTime ?? activity.capturedAt
             return ActivityDetailSlice(
                 id: activity.id,
                 startTime: activity.startTime,
@@ -280,7 +280,7 @@ class ActivityDataProcessor {
         return formatter.string(from: date)
     }
     
-    private static func getContextName(for activity: Activity) -> String {
+    private static func getContextName(for activity: ActivitySnapshot) -> String {
         if let title = activity.appTitle, !title.isEmpty {
             return title
         }
@@ -294,7 +294,7 @@ class ActivityDataProcessor {
     }
 
     /// Calculate total duration for activities
-    static func calculateTotalDuration(for activities: [Activity]) -> TimeInterval {
+    static func calculateTotalDuration(for activities: [ActivitySnapshot]) -> TimeInterval {
         activities.reduce(0) { $0 + $1.calculatedDuration }
     }
 

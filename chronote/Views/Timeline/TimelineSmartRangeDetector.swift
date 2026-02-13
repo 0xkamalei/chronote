@@ -10,7 +10,7 @@ class TimelineSmartRangeDetector {
     ///   - buffer: 在检测到的范围前后添加的缓冲时间（秒），默认 10 分钟
     /// - Returns: 推荐的可见时间范围；如果无活动则返回整天范围
     static func detectActiveTimeRange(
-        from activities: [Activity],
+        from activities: [ActivitySnapshot],
         buffer: TimeInterval = 10 * 60  // 默认 10 分钟缓冲
     ) -> ClosedRange<Date> {
         guard !activities.isEmpty else {
@@ -27,7 +27,7 @@ class TimelineSmartRangeDetector {
                 earliestStart = activity.startTime
             }
 
-            let actEnd = activity.endTime ?? Date()
+            let actEnd = activity.endTime ?? activity.capturedAt
             if latestEnd == nil || actEnd > latestEnd! {
                 latestEnd = actEnd
             }
@@ -58,7 +58,7 @@ class TimelineSmartRangeDetector {
     ///   - gapThreshold: 认为是"间隙"的最小时间长度（秒），默认 1 小时
     /// - Returns: 间隙列表，每个元素是 (gap_start, gap_end, gap_duration)
     static func detectGaps(
-        from activities: [Activity],
+        from activities: [ActivitySnapshot],
         gapThreshold: TimeInterval = 3600  // 1 小时
     ) -> [(start: Date, end: Date, duration: TimeInterval)] {
         guard activities.count > 1 else { return [] }
@@ -67,7 +67,7 @@ class TimelineSmartRangeDetector {
         var gaps: [(start: Date, end: Date, duration: TimeInterval)] = []
 
         for i in 0 ..< sorted.count - 1 {
-            let currentEnd = sorted[i].endTime ?? Date()
+            let currentEnd = sorted[i].endTime ?? sorted[i].capturedAt
             let nextStart = sorted[i + 1].startTime
 
             let gapDuration = nextStart.timeIntervalSince(currentEnd)
@@ -95,7 +95,7 @@ class TimelineSmartRangeDetector {
     ///   - bucketSize: 时间桶大小（秒），默认 1 小时
     /// - Returns: 最活跃时间段的起始日期
     static func getMostActiveTimeBucket(
-        from activities: [Activity],
+        from activities: [ActivitySnapshot],
         bucketSize: TimeInterval = 3600  // 1 小时
     ) -> Date? {
         guard !activities.isEmpty else { return nil }

@@ -1,15 +1,41 @@
 import SwiftUI
 import AppKit
 
+@MainActor
+final class AppIconCache {
+    static let shared = AppIconCache()
+
+    private var icons: [String: NSImage] = [:]
+    private var missingBundleIds: Set<String> = []
+
+    private init() {}
+
+    func icon(for bundleId: String) -> NSImage? {
+        if let cached = icons[bundleId] {
+            return cached
+        }
+        if missingBundleIds.contains(bundleId) {
+            return nil
+        }
+
+        guard let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleId) else {
+            missingBundleIds.insert(bundleId)
+            return nil
+        }
+
+        let icon = NSWorkspace.shared.icon(forFile: appURL.path)
+        icons[bundleId] = icon
+        return icon
+    }
+}
+
 /// Helper to get app icon from bundle ID
 struct AppIconView: View {
     let bundleId: String?
     let size: CGFloat
     
     var body: some View {
-        if let bundleId = bundleId,
-           let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleId) {
-            let icon = NSWorkspace.shared.icon(forFile: appURL.path)
+        if let bundleId = bundleId, let icon = AppIconCache.shared.icon(for: bundleId) {
             Image(nsImage: icon)
                 .resizable()
                 .aspectRatio(contentMode: .fit)

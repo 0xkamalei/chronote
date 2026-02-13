@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Container view that includes the view mode selector and the corresponding activity view
 struct ActivityViewContainer: View {
-    let activities: [Activity]
+    let activities: [ActivitySnapshot]
     @Environment(AppState.self) private var appState
     
     var body: some View {
@@ -80,20 +80,35 @@ struct ActivityViewContainer: View {
 }
 
 #Preview {
+    let now = Date()
     let mockActivities = [
-        Activity(
+        ActivitySnapshot(
+            id: UUID(),
             appName: "Safari",
             appBundleId: "com.apple.Safari",
-            duration: 3600,
-            startTime: Date().addingTimeInterval(-3600),
-            endTime: Date()
+            appTitle: nil,
+            filePath: nil,
+            webUrl: nil,
+            domain: nil,
+            icon: nil,
+            projectId: nil,
+            startTime: now.addingTimeInterval(-3600),
+            endTime: now,
+            capturedAt: now
         ),
-        Activity(
+        ActivitySnapshot(
+            id: UUID(),
             appName: "Xcode",
             appBundleId: "com.apple.dt.Xcode",
-            duration: 1800,
-            startTime: Date().addingTimeInterval(-1800),
-            endTime: Date()
+            appTitle: nil,
+            filePath: nil,
+            webUrl: nil,
+            domain: nil,
+            icon: nil,
+            projectId: nil,
+            startTime: now.addingTimeInterval(-1800),
+            endTime: now,
+            capturedAt: now
         )
     ]
     

@@ -15,7 +15,7 @@ struct ActivityGroup: Identifiable {
     let name: String
     let level: ActivityGroupLevel
     let children: [ActivityGroup]? // Kept for structure, but typically empty in lazy loading
-    let activities: [Activity] // The activities belonging to this group
+    let activities: [ActivitySnapshot] // The activities belonging to this group
     let bundleId: String? // App bundle identifier for icon lookup
 
     /// Calculate total duration for this group
@@ -63,7 +63,7 @@ struct ActivityGroup: Identifiable {
     }
     
     /// Initializer
-    init(id: String? = nil, name: String, level: ActivityGroupLevel, children: [ActivityGroup]? = nil, activities: [Activity], bundleId: String? = nil) {
+    init(id: String? = nil, name: String, level: ActivityGroupLevel, children: [ActivityGroup]? = nil, activities: [ActivitySnapshot], bundleId: String? = nil) {
         self.id = id ?? UUID().uuidString
         self.name = name
         self.level = level

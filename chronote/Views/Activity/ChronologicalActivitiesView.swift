@@ -3,9 +3,9 @@ import SwiftUI
 
 /// Chronological view displaying activities in a flat, time-ordered list
 struct ChronologicalActivitiesView: View {
-    let activities: [Activity]
+    let activities: [ActivitySnapshot]
     
-    @State private var sortedActivities: [Activity] = []
+    @State private var sortedActivities: [ActivitySnapshot] = []
     @State private var selection: Set<UUID> = []
     
     var body: some View {
@@ -64,7 +64,7 @@ struct ChronologicalActivitiesView: View {
 
 /// Individual row for chronological activity display
 struct ChronologicalActivityRow: View {
-    let activity: Activity
+    let activity: ActivitySnapshot
     let isSelected: Bool
     
     private var dateTimeFormatter: DateFormatter {
@@ -220,28 +220,49 @@ struct ChronologicalActivityRow: View {
 }
 
 #Preview {
+        let now = Date()
         let mockActivities = [
-            Activity(
+            ActivitySnapshot(
+                id: UUID(),
                 appName: "Finder",
                 appBundleId: "com.apple.finder",
                 appTitle: "7% Code, 6% LDX",
-                duration: 3600,
-                startTime: Date().addingTimeInterval(-7200),
-                endTime: Date().addingTimeInterval(-3600)
+                filePath: nil,
+                webUrl: nil,
+                domain: nil,
+                icon: nil,
+                projectId: nil,
+                startTime: now.addingTimeInterval(-7200),
+                endTime: now.addingTimeInterval(-3600),
+                capturedAt: now
             ),
-            Activity(
+            ActivitySnapshot(
+                id: UUID(),
                 appName: "LDX",
                 appBundleId: "com.ldx.app",
-                duration: 1800,
-                startTime: Date().addingTimeInterval(-3600),
-                endTime: Date().addingTimeInterval(-1800)
+                appTitle: nil,
+                filePath: nil,
+                webUrl: nil,
+                domain: nil,
+                icon: nil,
+                projectId: nil,
+                startTime: now.addingTimeInterval(-3600),
+                endTime: now.addingTimeInterval(-1800),
+                capturedAt: now
             ),
-            Activity(
+            ActivitySnapshot(
+                id: UUID(),
                 appName: "Code",
                 appBundleId: "com.microsoft.vscode",
-                duration: 900,
-                startTime: Date().addingTimeInterval(-1800),
-                endTime: Date().addingTimeInterval(-900)
+                appTitle: nil,
+                filePath: nil,
+                webUrl: nil,
+                domain: nil,
+                icon: nil,
+                projectId: nil,
+                startTime: now.addingTimeInterval(-1800),
+                endTime: now.addingTimeInterval(-900),
+                capturedAt: now
             )
         ]
         
@@ -250,12 +271,20 @@ struct ChronologicalActivityRow: View {
     }
 
     #Preview("Row") {
-        let activity = Activity(
+        let now = Date()
+        let activity = ActivitySnapshot(
+            id: UUID(),
             appName: "Xcode",
             appBundleId: "com.apple.dt.Xcode",
-            duration: 1800,
-            startTime: Date(),
-            endTime: Date().addingTimeInterval(1800)
+            appTitle: nil,
+            filePath: nil,
+            webUrl: nil,
+            domain: nil,
+            icon: nil,
+            projectId: nil,
+            startTime: now,
+            endTime: now.addingTimeInterval(1800),
+            capturedAt: now
         )
         
         VStack {

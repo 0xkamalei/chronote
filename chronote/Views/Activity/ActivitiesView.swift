@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Main view displaying activities in a hierarchical, collapsible structure
 struct ActivitiesView: View {
-    let activities: [Activity]
+    let activities: [ActivitySnapshot]
     let initialGroupingLevel: ActivityGroupLevel
     
     @Query(sort: \Project.name) private var projects: [Project]
@@ -11,7 +11,7 @@ struct ActivitiesView: View {
     @State private var activityGroups: [ActivityGroup] = []
     @State private var selection: Set<String> = []
     
-    init(activities: [Activity], initialGroupingLevel: ActivityGroupLevel = .project) {
+    init(activities: [ActivitySnapshot], initialGroupingLevel: ActivityGroupLevel = .project) {
         self.activities = activities
         self.initialGroupingLevel = initialGroupingLevel
     }
@@ -160,12 +160,7 @@ struct RecursiveActivityRow: View {
     }
     
     private func assignToProject(_ project: Project?) {
-        // Update all activities in this group
-        for activity in group.activities {
-            activity.projectId = project?.id
-        }
-        
-        // Save changes
-        try? modelContext.save()
+        let ids = group.activities.map(\.id)
+        try? ActivityQueryManager.shared.assignProject(activityIDs: ids, to: project, using: modelContext)
     }
 }

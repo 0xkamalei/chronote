@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct TimelineTooltipView: View {
-    let activity: Activity
+    let activity: ActivitySnapshot
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -37,7 +37,7 @@ struct TimelineTooltipView: View {
                         Text("End")
                             .font(.caption2)
                             .foregroundColor(.secondary)
-                        Text(formatTime(activity.endTime ?? Date()))
+                        Text(formatTime(activity.endTime ?? activity.capturedAt))
                             .font(.caption)
                             .fontWeight(.medium)
                     }
