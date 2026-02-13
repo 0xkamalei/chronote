@@ -2,6 +2,58 @@ import Foundation
 
 /// Utility class for processing and organizing activity data
 class ActivityDataProcessor {
+    private struct ActivityDetailSlice {
+        let id: UUID
+        let startTime: Date
+        let endTime: Date
+        let duration: TimeInterval
+    }
+
+    private struct ActivityDetailCluster {
+        let slices: [ActivityDetailSlice]
+        let startTime: Date
+        let endTime: Date
+        let totalDuration: TimeInterval
+    }
+
+    /// Short switches within this gap are treated as one detail block.
+    private static let detailGapThreshold: TimeInterval = 90
+
+    private static func aggregateDetailSlices(
+        slices: [ActivityDetailSlice],
+        gapThreshold: TimeInterval = detailGapThreshold
+    ) -> [ActivityDetailCluster] {
+        guard !slices.isEmpty else { return [] }
+
+        let sorted = slices.sorted { $0.startTime < $1.startTime }
+        var clusters: [ActivityDetailCluster] = []
+
+        for slice in sorted {
+            if let last = clusters.last {
+                let gap = slice.startTime.timeIntervalSince(last.endTime)
+                if gap <= gapThreshold {
+                    clusters[clusters.count - 1] = ActivityDetailCluster(
+                        slices: last.slices + [slice],
+                        startTime: min(last.startTime, slice.startTime),
+                        endTime: max(last.endTime, slice.endTime),
+                        totalDuration: last.totalDuration + slice.duration
+                    )
+                    continue
+                }
+            }
+
+            clusters.append(
+                ActivityDetailCluster(
+                    slices: [slice],
+                    startTime: slice.startTime,
+                    endTime: slice.endTime,
+                    totalDuration: slice.duration
+                )
+            )
+        }
+
+        return clusters
+    }
  
 
     /// Groups activities by project
@@ -188,22 +240,33 @@ class ActivityDataProcessor {
     /// - Parameter activities: List of activities
     /// - Returns: Array of ActivityGroup at .detail level
     static func mapToRecordGroups(activities: [Activity], parentId: String) -> [ActivityGroup]? {
-        // Ensure strictly sorted by start time descending (newest first)
-        // Using stable sort to preserve order of identical times if any
-        let sortedActivities = activities.sorted { $0.startTime > $1.startTime }
-        
-        return sortedActivities.map { activity in
-            let startTimeStr = formatTime(activity.startTime)
-            let endTimeStr = activity.endTime != nil ? formatTime(activity.endTime!) : "Now"
-            let timeRange = "\(startTimeStr) - \(endTimeStr)"
-            
+        let slices: [ActivityDetailSlice] = activities.map { activity in
+            let endTime = activity.endTime ?? Date()
+            return ActivityDetailSlice(
+                id: activity.id,
+                startTime: activity.startTime,
+                endTime: max(endTime, activity.startTime),
+                duration: activity.calculatedDuration
+            )
+        }
+
+        let clustered = aggregateDetailSlices(slices: slices)
+        let activitiesById = Dictionary(uniqueKeysWithValues: activities.map { ($0.id, $0) })
+
+        return clustered.reversed().enumerated().map { index, cluster in
+            let startTimeStr = formatTime(cluster.startTime)
+            let endTimeStr = formatTime(cluster.endTime)
+            let clusterActivities = cluster.slices.compactMap { activitiesById[$0.id] }
+            let switchCountText = "\(clusterActivities.count)"
+            let timeRange = "\(startTimeStr) ～ \(endTimeStr) · \(switchCountText)"
+
             return ActivityGroup(
-                id: "\(parentId):\(activity.id.uuidString)",
+                id: "\(parentId):cluster-\(index)-\(Int(cluster.startTime.timeIntervalSince1970))",
                 name: timeRange,
                 level: .detail,
                 children: nil, // Leaf node
-                activities: [activity],
-                bundleId: activity.appBundleId
+                activities: clusterActivities,
+                bundleId: clusterActivities.first?.appBundleId
             )
         }
     }

@@ -13,6 +13,8 @@ final class SessionAnalyzer {
     
     // Configuration
     private let sessionGapThreshold: TimeInterval = 5 * 60 // 5 minutes
+    /// Keep session granularity useful for timeline visualization.
+    private let maxSessionDuration: TimeInterval = 60 * 60 // 60 minutes
     
     static let shared = SessionAnalyzer()
     
@@ -43,8 +45,11 @@ final class SessionAnalyzer {
                 // Check if this activity belongs to current session
                 let lastActivity = currentSessionActivities.last!
                 let gap = activity.startTime.timeIntervalSince(lastActivity.endTime ?? lastActivity.startTime)
+                let currentSessionStart = currentSessionActivities.first!.startTime
+                let activityEnd = activity.endTime ?? activity.startTime
+                let projectedSessionDuration = activityEnd.timeIntervalSince(currentSessionStart)
                 
-                if gap <= sessionGapThreshold {
+                if gap <= sessionGapThreshold && projectedSessionDuration <= maxSessionDuration {
                     // Continue current session
                     currentSessionActivities.append(activity)
                 } else {

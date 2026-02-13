@@ -27,7 +27,7 @@ struct SidebarView: View {
                 return .project(project)
             } else if let sidebar = appState.selectedSidebar {
                 switch sidebar {
-                case "Today's Insight": return .todayInsight
+                case "Day Insight": return .todayInsight
                 case "All Activities": return .allActivities
                 case "Unassigned": return .unassigned
                 case "My Projects": return .myProjects
@@ -38,7 +38,7 @@ struct SidebarView: View {
         } set: { newValue in
             switch newValue {
             case .todayInsight:
-                appState.selectSpecialItem("Today's Insight")
+                appState.selectSpecialItem("Day Insight")
             case .allActivities:
                 appState.selectSpecialItem("All Activities")
             case .unassigned:
@@ -58,7 +58,7 @@ struct SidebarView: View {
         List(selection: selection) {
             Section {
                 NavigationLink(value: SidebarSelection.todayInsight) {
-                    Label("Today's Insight", systemImage: "chart.bar.doc.horizontal")
+                    Label("Day Insight", systemImage: "chart.bar.doc.horizontal")
                         .padding(.vertical, 2)
                 }
                 .accessibilityIdentifier("sidebar.todayInsight")

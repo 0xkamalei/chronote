@@ -12,6 +12,8 @@ struct InsightView: View {
     @State private var insight: DailyInsight?
     @State private var timeStructure: TimeStructure?
     @State private var behavioralBlocks: [BehavioralBlock] = []
+    @State private var sessions: [Session] = []
+    @State private var dayActivities: [Activity] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
     
@@ -34,6 +36,15 @@ struct InsightView: View {
                     
                     if let structure = timeStructure {
                         TimeStructureView(structure: structure)
+                    }
+
+                    if !sessions.isEmpty {
+                        BehaviorTimelineView(
+                            date: date,
+                            sessions: sessions,
+                            blocks: behavioralBlocks,
+                            activities: dayActivities
+                        )
                     }
                     
                     if !behavioralBlocks.isEmpty {
@@ -115,11 +126,15 @@ struct InsightView: View {
             // Load related data
             let loadedStructure = try analysisManager.getTimeStructure(for: date, modelContext: modelContext)
             let loadedBlocks = try analysisManager.getBehavioralBlocks(for: date, modelContext: modelContext)
+            let loadedSessions = try analysisManager.getSessions(for: date, modelContext: modelContext)
+            let loadedActivities = try analysisManager.getActivities(for: date, modelContext: modelContext)
             
             await MainActor.run {
                 insight = loadedInsight
                 timeStructure = loadedStructure
                 behavioralBlocks = loadedBlocks
+                sessions = loadedSessions
+                dayActivities = loadedActivities
                 isLoading = false
             }
             

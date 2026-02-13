@@ -18,7 +18,7 @@ struct BehavioralBlocksListView: View {
                 
                 Spacer()
                 
-                Text("\(blocks.count) blocks today")
+                Text("\(blocks.count) blocks")
                     .font(.system(size: 14))
                     .foregroundStyle(.secondary)
             }

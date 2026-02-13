@@ -9,7 +9,7 @@ struct NarrativeHeaderView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Label
-            Text("TODAY'S INSIGHT")
+            Text("DAY INSIGHT")
                 .font(.system(size: 11, weight: .semibold))
                 .tracking(1)
                 .foregroundStyle(.blue)

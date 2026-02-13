@@ -35,12 +35,9 @@ struct MainToolbarView: ToolbarContent {
             Button {
                 appTheme = appTheme.next
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: 0) {
                     Image(systemName: appTheme.systemImage)
                         .font(.system(size: 14, weight: .semibold))
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 10, weight: .semibold))
-                        .opacity(0.8)
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 9)

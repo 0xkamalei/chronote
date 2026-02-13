@@ -7,6 +7,7 @@ import os
 @MainActor
 final class AnalysisManager: ObservableObject {
     private let logger = Logger(subsystem: "dev.leix.chronote", category: "AnalysisManager")
+    static let currentAnalysisVersion = "3"
     
     static let shared = AnalysisManager()
     
@@ -78,13 +79,24 @@ final class AnalysisManager: ObservableObject {
     func getOrCreateInsight(for date: Date, modelContext: ModelContext) async throws -> DailyInsight {
         // Check if insight already exists
         if let existing = try insightGenerator.getInsight(for: date, modelContext: modelContext) {
-            logger.debug("Using existing insight for \(date)")
-            cachedInsight = existing
-            return existing
+            let version = existing.keyMetrics["analysisVersion"]
+            if version == Self.currentAnalysisVersion {
+                logger.debug("Using existing insight for \(date)")
+                cachedInsight = existing
+                return existing
+            }
+
+            logger.info("Insight version mismatch for \(date). Reanalyzing.")
+            return try await reanalyzeDay(date, modelContext: modelContext)
         }
-        
+
         // Generate new insight
         return try await analyzeDay(date, modelContext: modelContext)
+    }
+
+    /// Gets the analysis version currently used by the app.
+    static func analysisVersion() -> String {
+        currentAnalysisVersion
     }
     
     /// Gets time structure for a date
@@ -100,6 +112,11 @@ final class AnalysisManager: ObservableObject {
     /// Gets sessions for a date
     func getSessions(for date: Date, modelContext: ModelContext) throws -> [Session] {
         return try sessionAnalyzer.getSessions(for: date, modelContext: modelContext)
+    }
+
+    /// Gets activities for a date
+    func getActivities(for date: Date, modelContext: ModelContext) throws -> [Activity] {
+        return try fetchActivities(for: date, modelContext: modelContext)
     }
     
     /// Fetches activities for a given date
@@ -137,7 +154,6 @@ final class AnalysisManager: ObservableObject {
     
     /// Forces reanalysis for a date
     func reanalyzeDay(_ date: Date, modelContext: ModelContext) async throws -> DailyInsight {
-        try clearAnalysis(for: date, modelContext: modelContext)
         return try await analyzeDay(date, modelContext: modelContext)
     }
 }

@@ -57,7 +57,7 @@ struct ContentView: View {
     @ViewBuilder
     private var detailView: some View {
         // Route to Insight view if selected
-        if appState.selectedSidebar == "Today's Insight" {
+        if appState.selectedSidebar == "Day Insight" {
             InsightView(date: selectedDateRange.startDate)
         } else {
             // Original activities view

@@ -26,7 +26,8 @@ final class InsightGenerator {
         let subtext = generateSubtext(structure: structure, blocks: blocks)
         
         // Extract key metrics
-        let keyMetrics = extractKeyMetrics(blocks: blocks)
+        var keyMetrics = extractKeyMetrics(blocks: blocks)
+        keyMetrics["analysisVersion"] = AnalysisManager.analysisVersion()
         
         let insight = DailyInsight(
             date: date,
@@ -51,7 +52,7 @@ final class InsightGenerator {
         
         // Determine dominant pattern
         if structure.deepPercentage > 40 {
-            return "Today was productive with \(deepBlocks.count) deep focus sessions totaling \(structure.deepDurationFormatted)."
+            return "This day was productive with \(deepBlocks.count) deep focus sessions totaling \(structure.deepDurationFormatted)."
         } else if structure.fragmentedPercentage > 50 {
             let deepSessionCount = deepBlocks.count
             if deepSessionCount == 0 {
@@ -60,12 +61,12 @@ final class InsightGenerator {
                 return "Your day was mostly fragmented. Only \(deepSessionCount) deep focus sessions occurred, totaling \(structure.deepDurationFormatted)."
             }
         } else if structure.communicationPercentage > 30 {
-            return "Today was communication-heavy with \(structure.communicationDurationFormatted) in meetings and messages."
+            return "This day was communication-heavy with \(structure.communicationDurationFormatted) in meetings and messages."
         } else if structure.passivePercentage > 40 {
-            return "You spent significant time in passive consumption (\(structure.passiveDurationFormatted)) today."
+            return "You spent significant time in passive consumption (\(structure.passiveDurationFormatted)) on this day."
         } else {
             // Balanced day
-            return "Today was balanced across different types of work (\(totalMinutes)m total tracked)."
+            return "This day was balanced across different types of work (\(totalMinutes)m total tracked)."
         }
     }
     
@@ -84,7 +85,7 @@ final class InsightGenerator {
         } else if blocks.count > 10 {
             return "You switched contexts \(blocks.count) times throughout the day, indicating high fragmentation."
         } else if structure.totalTracked < 2 * 3600 { // Less than 2 hours
-            return "Limited tracking data today - consider keeping your tracking running longer."
+            return "Limited tracking data for this day - consider keeping your tracking running longer."
         } else {
             return "Your work pattern shows a mix of focused and fragmented periods."
         }

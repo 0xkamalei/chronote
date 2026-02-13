@@ -22,7 +22,7 @@ struct ActivityViewContainer: View {
     private var headerView: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("All Activities: \(formatTotalDuration())")
+                Text("\(headerTitle): \(formatTotalDuration())")
                     .font(.headline)
                 
                 Text("\(activities.count) activities")
@@ -60,6 +60,18 @@ struct ActivityViewContainer: View {
     }
     
     // MARK: - Helper Methods
+
+    private var headerTitle: String {
+        if let project = appState.selectedProject {
+            return "\(project.name) Activities"
+        }
+
+        if appState.selectedSidebar == "Unassigned" {
+            return "Unassigned Activities"
+        }
+
+        return "All Activities"
+    }
     
     private func formatTotalDuration() -> String {
         let totalDuration = activities.reduce(0) { $0 + $1.calculatedDuration }

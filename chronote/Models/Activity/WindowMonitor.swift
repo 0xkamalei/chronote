@@ -83,6 +83,28 @@ class WindowMonitor {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
         return AXIsProcessTrustedWithOptions(options as CFDictionary)
     }
+
+    /// Tries to trigger macOS Automation permission prompt for running browsers.
+    /// There is no direct API to query/request this permission; sending an Apple Event
+    /// is what causes the system prompt for each target app (e.g. Chrome/Safari).
+    func requestBrowserAutomationPermissions() {
+        let preferredOrder = [
+            "com.google.Chrome",
+            "com.apple.Safari",
+            "com.microsoft.edgemac",
+            "com.brave.Browser",
+            "company.thebrowser.Browser"
+        ]
+
+        // Ask for every installed browser so Automation list can be populated
+        // even when a browser isn't currently frontmost.
+        let installedBundleIds = preferredOrder.filter {
+            NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) != nil
+        }
+        for bundleId in installedBundleIds {
+            triggerBrowserAutomationProbe(for: bundleId)
+        }
+    }
     
     // MARK: - Private Helper Methods
     
@@ -145,5 +167,23 @@ class WindowMonitor {
         }
         
         return nil
+    }
+
+    private func triggerBrowserAutomationProbe(for bundleId: String) {
+        let source = """
+        tell application id "\(bundleId)"
+            get name
+        end tell
+        """
+        var error: NSDictionary?
+        let script = NSAppleScript(source: source)
+        _ = script?.executeAndReturnError(&error)
+        if let error = error {
+            if let code = error[NSAppleScript.errorNumber] as? Int, code == -1743 {
+                logger.error("Automation permission denied for \(bundleId). Grant access in System Settings > Privacy & Security > Automation.")
+            } else {
+                logger.debug("Automation probe result for \(bundleId): \(error)")
+            }
+        }
     }
 }

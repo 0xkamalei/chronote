@@ -46,6 +46,7 @@ open chronote.xcodeproj
 Chronote 需要以下系统权限才能正常工作：
 
 - **辅助功能权限** - 用于读取窗口标题以实现智能分类
+- **自动化权限（Automation）** - 用于控制浏览器并读取当前标签页 URL
 
 ### 🤖 Agent CLI（独立可执行文件）
 
@@ -151,6 +152,7 @@ open time.xcodeproj
 Chronote requires the following system permissions to function properly:
 
 - **Accessibility Permission** - Required to read window titles for smart classification
+- **Automation Permission** - Required to control browsers and read active tab URLs
 
 ### 🤖 Agent CLI (Standalone Executable)
 

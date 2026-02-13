@@ -17,7 +17,7 @@
 			path = chronote;
 			sourceTree = "<group>";
 		};
-		A1B2C3D42F13AA1100C1D002 /* cli */ = {
+		A1B2C3D42F13AA1100C1D002 /* cli/Sources/chronote-cli */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "cli/Sources/chronote-cli";
 			sourceTree = "<group>";
@@ -46,7 +46,7 @@
 			isa = PBXGroup;
 			children = (
 				14F7E02D2E141361000CB627 /* chronote */,
-				A1B2C3D42F13AA1100C1D002 /* cli */,
+				A1B2C3D42F13AA1100C1D002 /* cli/Sources/chronote-cli */,
 				14F7E02C2E141361000CB627 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -97,7 +97,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				A1B2C3D42F13AA1100C1D002 /* cli */,
+				A1B2C3D42F13AA1100C1D002 /* cli/Sources/chronote-cli */,
 			);
 			name = "chronote-cli";
 			packageProductDependencies = (
@@ -114,7 +114,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1640;
-				LastUpgradeCheck = 2600;
+				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					14F7E02A2E141361000CB627 = {
 						CreatedOnToolsVersion = 16.4;
@@ -303,13 +303,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				AUTOMATION_APPLE_EVENTS = YES;
+				CODE_SIGN_ENTITLEMENTS = chronote/chronote.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 14;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = K8BQ5976GL;
-				ENABLE_APP_SANDBOX = NO;
+				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
@@ -335,13 +337,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				AUTOMATION_APPLE_EVENTS = YES;
+				CODE_SIGN_ENTITLEMENTS = chronote/chronote.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 14;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = K8BQ5976GL;
-				ENABLE_APP_SANDBOX = NO;
+				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;

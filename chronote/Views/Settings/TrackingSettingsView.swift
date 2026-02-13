@@ -3,6 +3,7 @@ import SwiftUI
 
 struct TrackingSettingsView: View {
     @State private var isAccessibilityEnabled: Bool = false
+    @State private var automationRequestHint: String?
     @State private var timer = Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()
     @AppStorage("stopEventOnIdle") private var stopEventOnIdle: Bool = false
 
@@ -15,6 +16,7 @@ struct TrackingSettingsView: View {
 
                 trackingBehaviorCard
                 accessibilityCard
+                browserAutomationCard
             }
             .padding(20)
         }
@@ -71,6 +73,31 @@ struct TrackingSettingsView: View {
         }
     }
 
+    private var browserAutomationCard: some View {
+        SettingCard(title: "Browser Automation Permission", systemImage: "safari") {
+            Text("Chronote needs Automation permission to read browser tab URLs (Chrome/Safari/Edge/Brave/Arc).")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 10) {
+                Button(action: requestBrowserAutomationAndOpenSettings) {
+                    Label("Request Permission & Open Automation Settings", systemImage: "link.badge.plus")
+                }
+                .buttonStyle(.borderedProminent)
+
+                Text("Keep the target browser running, then click the button. macOS grants permission per browser app.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                if let hint = automationRequestHint {
+                    Text(hint)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
     private func checkPermissions() {
         isAccessibilityEnabled = WindowMonitor.shared.checkAccessibilityPermissions()
     }
@@ -78,6 +105,13 @@ struct TrackingSettingsView: View {
     private func requestPermissionAndOpenSettings() {
         _ = WindowMonitor.shared.requestAccessibilityPermissions()
         let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
+        NSWorkspace.shared.open(url)
+    }
+
+    private func requestBrowserAutomationAndOpenSettings() {
+        WindowMonitor.shared.requestBrowserAutomationPermissions()
+        automationRequestHint = "If no prompt appears, remove existing denied entries for Chronote under Automation and retry."
+        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation")!
         NSWorkspace.shared.open(url)
     }
 }

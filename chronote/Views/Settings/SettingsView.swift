@@ -72,6 +72,7 @@ struct SettingsView: View {
 struct GeneralSettingsView: View {
     @AppStorage("timelineMergeStatisticsEnabled") private var mergeEnabled = true
     @AppStorage("timelineMergeIntervalMinutes") private var mergeIntervalMinutes = 30
+    @AppStorage("deepFocusMinMinutes") private var deepFocusMinMinutes: Int = 20
 
     @State private var launchManager = LaunchAtLoginManager.shared
     @State private var cliStatus: CLIInstallStatus = .unknown
@@ -97,15 +98,28 @@ struct GeneralSettingsView: View {
 
                     if mergeEnabled {
                         Divider()
-                        Stepper(value: $mergeIntervalMinutes, in: 10...1440, step: 10) {
-                            HStack {
-                                Text("Merge Interval")
-                                Spacer()
-                                Text(formatInterval(mergeIntervalMinutes))
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
+                        DurationSettingRow(
+                            title: "Merge Interval",
+                            detail1: "Activities with short gaps inside this interval will be merged into one block.",
+                            detail2: "Applies to timeline statistics and grouped activity views.",
+                            valueText: formatInterval(mergeIntervalMinutes),
+                            value: $mergeIntervalMinutes,
+                            range: 10...1440,
+                            step: 10
+                        )
                     }
+                }
+
+                SettingCard(title: "Insights", systemImage: "brain.head.profile") {
+                    DurationSettingRow(
+                        title: "Deep Focus Minimum Duration",
+                        detail1: "Sessions at or above this duration (with low switches) are classified as Deep Focus.",
+                        detail2: "Changes apply to newly generated day insights.",
+                        valueText: "\(deepFocusMinMinutes) min",
+                        value: $deepFocusMinMinutes,
+                        range: 5...120,
+                        step: 5
+                    )
                 }
 
                 SettingCard(title: "Startup", systemImage: "power.circle") {
@@ -210,6 +224,39 @@ struct GeneralSettingsView: View {
             .fill(cliStatus.color)
             .frame(width: 10, height: 10)
             .padding(.top, 5)
+    }
+}
+
+private struct DurationSettingRow: View {
+    let title: String
+    let detail1: String
+    let detail2: String
+    let valueText: String
+    @Binding var value: Int
+    let range: ClosedRange<Int>
+    let step: Int
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                Text(detail1)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(detail2)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 12)
+            HStack(spacing: 10) {
+                Text(valueText)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+                    .frame(width: 78, alignment: .trailing)
+                Stepper("", value: $value, in: range, step: step)
+                    .labelsHidden()
+            }
+        }
     }
 }
 

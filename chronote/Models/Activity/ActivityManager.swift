@@ -16,7 +16,11 @@ class ActivityManager: ObservableObject {
     private(set) var modelContext: ModelContext?  // Made accessible for checking initialization
 
     private let ignoredBundleIds: Set<String> = [
-        "com.apple.loginwindow"
+        "com.apple.loginwindow",
+        // Universal Control / continuity control surfaces should not be tracked as work activity.
+        "com.apple.universalcontrol",
+        "com.apple.UniversalControl",
+        "com.apple.universalcontrold"
     ]
 
     private let contextMonitor = ContextMonitor()
