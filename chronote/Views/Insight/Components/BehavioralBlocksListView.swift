@@ -3,11 +3,6 @@ import SwiftUI
 /// Displays a list of behavioral blocks for the day
 struct BehavioralBlocksListView: View {
     let blocks: [BehavioralBlock]
-    @State private var showAll = false
-    
-    private var displayedBlocks: [BehavioralBlock] {
-        showAll ? blocks : Array(blocks.prefix(4))
-    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -25,29 +20,12 @@ struct BehavioralBlocksListView: View {
             
             // List
             VStack(spacing: 0) {
-                ForEach(Array(displayedBlocks.enumerated()), id: \.element.id) { index, block in
+                ForEach(Array(blocks.enumerated()), id: \.element.id) { index, block in
                     BehaviorBlockRowView(block: block)
                     
-                    if index < displayedBlocks.count - 1 {
+                    if index < blocks.count - 1 {
                         Divider()
                     }
-                }
-                
-                if !showAll && blocks.count > 4 {
-                    Button {
-                        showAll = true
-                    } label: {
-                        HStack(spacing: 8) {
-                            Text("Show \(blocks.count - 4) more blocks")
-                                .font(.system(size: 13, weight: .medium))
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 12))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color(white: 0.98))
-                    }
-                    .buttonStyle(.plain)
                 }
             }
             .background(Color(NSColor.controlBackgroundColor))

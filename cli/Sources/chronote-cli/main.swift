@@ -79,30 +79,414 @@ struct EventsResponse: Encodable {
     let events: [EventDTO]
 }
 
-struct AppSummaryDTO: Encodable {
+struct InsightActivityDTO: Encodable {
+    let index: Int
     let appName: String
-    let count: Int
-    let durationSeconds: Double
-}
-
-struct ProjectSummaryDTO: Encodable {
+    let bundleId: String
+    let title: String?
+    let filePath: String?
+    let webURL: String?
+    let domain: String?
     let projectId: String?
     let projectName: String?
-    let count: Int
-    let durationSeconds: Double
+    let startTime: String
+    let endTime: String?
+    let storedDurationSeconds: Double
+    let calculatedDurationSeconds: Double
+    let contextLabel: String
 }
 
-struct DailySummaryResponse: Encodable {
+struct InsightSessionDTO: Encodable {
+    let index: Int
+    let startTime: String
+    let endTime: String
+    let durationSeconds: Double
+    let dominantAppBundleId: String?
+    let dominantAppName: String?
+    let contextSwitchCount: Int
+    let activityIndices: [Int]
+}
+
+struct InsightBehavioralBlockDTO: Encodable {
+    let index: Int
+    let blockType: String
+    let startTime: String
+    let endTime: String
+    let durationSeconds: Double
+    let dominantActivity: String?
+    let dominantAppBundleId: String?
+    let focusScore: Double
+    let contextSwitchCount: Int
+    let sessionIndices: [Int]
+}
+
+struct InsightTimeStructureDTO: Encodable {
+    let totalTrackedSeconds: Double
+    let deepDurationSeconds: Double
+    let fragmentedDurationSeconds: Double
+    let passiveDurationSeconds: Double
+    let communicationDurationSeconds: Double
+    let idleDurationSeconds: Double
+    let deepPercentage: Double
+    let fragmentedPercentage: Double
+    let passivePercentage: Double
+    let communicationPercentage: Double
+    let idlePercentage: Double
+    let totalTrackedFormatted: String
+    let deepDurationFormatted: String
+    let fragmentedDurationFormatted: String
+    let passiveDurationFormatted: String
+    let communicationDurationFormatted: String
+    let idleDurationFormatted: String
+}
+
+struct InsightNarrativeDTO: Encodable {
+    let headline: String
+    let subtext: String
+    let keyMetrics: [String: String]
+}
+
+struct InsightComparisonDTO: Encodable {
+    let name: String
+    let value: String
+    let change: Double
+    let isPositive: Bool
+    let changeFormatted: String
+}
+
+struct InsightActivitiesLayerDTO: Encodable {
+    let count: Int
+    let totalDurationSeconds: Double
+    let items: [InsightActivityDTO]
+}
+
+struct InsightSessionsLayerDTO: Encodable {
+    let count: Int
+    let items: [InsightSessionDTO]
+}
+
+struct InsightBehavioralBlocksLayerDTO: Encodable {
+    let count: Int
+    let items: [InsightBehavioralBlockDTO]
+}
+
+struct InsightComparisonLayerDTO: Encodable {
+    let count: Int
+    let items: [InsightComparisonDTO]
+    let formattedByMetric: [String: String]
+}
+
+struct TodayInsightComputationDTO: Encodable {
+    let analysisVersion: String
+    let activities: InsightActivitiesLayerDTO
+    let sessions: InsightSessionsLayerDTO
+    let behavioralBlocks: InsightBehavioralBlocksLayerDTO
+    let timeStructure: InsightTimeStructureDTO
+    let insight: InsightNarrativeDTO?
+    let comparisonWithYesterday: InsightComparisonLayerDTO
+}
+
+struct DailyInsightSummaryResponse: Encodable {
     let date: String
     let windowStart: String
     let windowEnd: String
-    let activityCount: Int
-    let totalDurationSeconds: Double
-    let topApps: [AppSummaryDTO]
-    let projects: [ProjectSummaryDTO]
+    let todayInsight: TodayInsightComputationDTO
+}
+
+private struct InsightActivityRecord {
+    let index: Int
+    let appName: String
+    let bundleId: String
+    let title: String?
+    let filePath: String?
+    let webURL: String?
+    let domain: String?
+    let projectId: String?
+    let projectName: String?
+    let startTime: Date
+    let endTime: Date?
+    let storedDurationSeconds: Double
+
+    func calculatedDuration(at referenceNow: Date) -> Double {
+        if let endTime {
+            return max(0, endTime.timeIntervalSince(startTime))
+        }
+        return max(0, referenceNow.timeIntervalSince(startTime))
+    }
+}
+
+private struct InsightSessionSnapshot {
+    let index: Int
+    let startTime: Date
+    let endTime: Date
+    let dominantAppBundleId: String?
+    let dominantAppName: String?
+    let contextSwitchCount: Int
+    let activityIndices: [Int]
+
+    var duration: Double {
+        max(0, endTime.timeIntervalSince(startTime))
+    }
+}
+
+private enum InsightBlockType: String {
+    case deep
+    case fragmented
+    case passive
+    case communication
+    case idle
+}
+
+private struct InsightBehavioralBlockSnapshot {
+    let index: Int
+    let startTime: Date
+    let endTime: Date
+    let blockType: InsightBlockType
+    let dominantActivity: String?
+    let dominantAppBundleId: String?
+    let focusScore: Double
+    let contextSwitchCount: Int
+    let sessionIndices: [Int]
+
+    var duration: Double {
+        max(0, endTime.timeIntervalSince(startTime))
+    }
+}
+
+private struct InsightTimeStructureSnapshot {
+    let deepDuration: Double
+    let fragmentedDuration: Double
+    let passiveDuration: Double
+    let communicationDuration: Double
+    let idleDuration: Double
+
+    var totalTracked: Double {
+        deepDuration + fragmentedDuration + passiveDuration + communicationDuration + idleDuration
+    }
+
+    var deepPercentage: Double {
+        percentage(of: deepDuration)
+    }
+
+    var fragmentedPercentage: Double {
+        percentage(of: fragmentedDuration)
+    }
+
+    var passivePercentage: Double {
+        percentage(of: passiveDuration)
+    }
+
+    var communicationPercentage: Double {
+        percentage(of: communicationDuration)
+    }
+
+    var idlePercentage: Double {
+        percentage(of: idleDuration)
+    }
+
+    var totalTrackedFormatted: String {
+        ChronoteCLI.formatInsightDuration(totalTracked)
+    }
+
+    var deepDurationFormatted: String {
+        ChronoteCLI.formatInsightDuration(deepDuration)
+    }
+
+    var fragmentedDurationFormatted: String {
+        ChronoteCLI.formatInsightDuration(fragmentedDuration)
+    }
+
+    var passiveDurationFormatted: String {
+        ChronoteCLI.formatInsightDuration(passiveDuration)
+    }
+
+    var communicationDurationFormatted: String {
+        ChronoteCLI.formatInsightDuration(communicationDuration)
+    }
+
+    var idleDurationFormatted: String {
+        ChronoteCLI.formatInsightDuration(idleDuration)
+    }
+
+    private func percentage(of value: Double) -> Double {
+        guard totalTracked > 0 else { return 0 }
+        return (value / totalTracked) * 100
+    }
+}
+
+private struct InsightNarrativeSnapshot {
+    let headline: String
+    let subtext: String
+    let keyMetrics: [String: String]
+}
+
+private struct InsightComparisonSnapshot {
+    let name: String
+    let value: String
+    let change: Double
+    let isPositive: Bool
+
+    var changeFormatted: String {
+        let prefix = change >= 0 ? "+" : ""
+        return "\(prefix)\(Int(change))%"
+    }
+}
+
+private struct InsightBehaviorBlockBuilder {
+    let blockType: InsightBlockType
+    private(set) var startTime: Date = .distantFuture
+    private(set) var endTime: Date = .distantPast
+    private(set) var sessionIndices: [Int] = []
+    private(set) var contextSwitchCount = 0
+
+    private var focusScoreWeightedSum: Double = 0
+    private var totalDuration: Double = 0
+    private var appDurationsByName: [String: Double] = [:]
+    private var appDurationsByBundle: [String: Double] = [:]
+    private var domainDurations: [String: Double] = [:]
+    private var contextDurations: [String: Double] = [:]
+
+    init(blockType: InsightBlockType) {
+        self.blockType = blockType
+    }
+
+    mutating func add(
+        session: InsightSessionSnapshot,
+        focusScore: Double,
+        activities: [InsightActivityRecord],
+        referenceNow: Date
+    ) {
+        startTime = min(startTime, session.startTime)
+        endTime = max(endTime, session.endTime)
+        sessionIndices.append(session.index)
+        contextSwitchCount += session.contextSwitchCount
+
+        let duration = max(0, session.duration)
+        totalDuration += duration
+        focusScoreWeightedSum += focusScore * duration
+
+        if let name = session.dominantAppName {
+            appDurationsByName[name, default: 0] += duration
+        }
+        if let bundle = session.dominantAppBundleId {
+            appDurationsByBundle[bundle, default: 0] += duration
+        }
+
+        for activity in activities {
+            let activityDuration = max(0, activity.calculatedDuration(at: referenceNow))
+            let context = ChronoteCLI.contextLabel(for: activity)
+            contextDurations[context, default: 0] += activityDuration
+
+            if let domain = ChronoteCLI.extractDomain(from: activity) {
+                domainDurations[domain, default: 0] += activityDuration
+            }
+        }
+    }
+
+    var averageFocusScore: Double {
+        guard totalDuration > 0 else { return 0.0 }
+        return focusScoreWeightedSum / totalDuration
+    }
+
+    var dominantAppBundleId: String? {
+        appDurationsByBundle.max(by: { $0.value < $1.value })?.key
+    }
+
+    var dominantActivity: String? {
+        let topContexts = contextDurations.sorted { $0.value > $1.value }.map(\.key)
+        let topDomains = domainDurations.sorted { $0.value > $1.value }.map(\.key)
+
+        if blockType == .passive, let firstDomain = topDomains.first {
+            if topDomains.count > 1 {
+                return "\(firstDomain) + \(topDomains[1])"
+            }
+            return firstDomain
+        }
+
+        if blockType == .deep, let firstContext = topContexts.first {
+            if topContexts.count > 1 {
+                return "\(firstContext) + \(topContexts[1])"
+            }
+            return firstContext
+        }
+
+        let sortedApps = appDurationsByName.sorted { $0.value > $1.value }.map(\.key)
+        guard let first = sortedApps.first else { return nil }
+        guard sortedApps.count > 1 else { return first }
+
+        switch blockType {
+        case .fragmented:
+            return "Multiple apps"
+        case .deep, .passive, .communication:
+            return "\(first) + \(sortedApps[1])"
+        case .idle:
+            return "Idle"
+        }
+    }
 }
 
 struct ChronoteCLI {
+    private static let insightAnalysisVersion = "3"
+
+    private static let sessionGapThreshold: TimeInterval = 5 * 60
+    private static let maxSessionDuration: TimeInterval = 60 * 60
+
+    private static let deepFocusMinMinutesKey = "deepFocusMinMinutes"
+    private static let defaultDeepFocusMinMinutes = 20
+    private static let deepWorkMaxSwitches = 3
+    private static let fragmentedHighSwitchThreshold = 5
+    private static let fragmentedShortDurationThreshold: TimeInterval = 10 * 60
+    private static let blockMergeGapThreshold: TimeInterval = 20 * 60
+
+    private static let communicationBundleIds: Set<String> = [
+        "com.apple.mail",
+        "com.tinyspeck.slackmacgap",
+        "com.microsoft.teams",
+        "com.apple.iChat",
+        "com.microsoft.Outlook",
+        "com.readdle.smartemail-Mac",
+        "com.postbox-inc.postboxapp",
+    ]
+
+    private static let passiveFallbackBundleIds: Set<String> = [
+        "com.apple.Safari",
+        "com.google.Chrome",
+        "org.mozilla.firefox",
+        "com.apple.news",
+        "com.reederapp.macOS",
+        "com.apple.Preview",
+    ]
+
+    private static let passiveDomainKeywords: [String] = [
+        "youtube.com", "youtu.be",
+        "bilibili.com",
+        "x.com", "twitter.com",
+        "weibo.com",
+        "reddit.com",
+        "news.ycombinator.com",
+        "medium.com",
+        "zhihu.com",
+        "instagram.com",
+        "facebook.com",
+        "tiktok.com",
+    ]
+
+    private static let communicationDomainKeywords: [String] = [
+        "slack.com",
+        "discord.com",
+        "teams.microsoft.com",
+        "mail.google.com",
+        "outlook.office.com",
+        "web.whatsapp.com",
+        "wechat.com",
+    ]
+
+    private static var deepWorkMinDuration: TimeInterval {
+        let configuredMinutes = UserDefaults.standard.integer(forKey: deepFocusMinMinutesKey)
+        let minutes = configuredMinutes > 0 ? configuredMinutes : defaultDeepFocusMinMinutes
+        return TimeInterval(minutes * 60)
+    }
+
     static func main() -> Int32 {
         do {
             let args = try parseArguments(CommandLine.arguments)
@@ -636,90 +1020,657 @@ struct ChronoteCLI {
         )
     }
 
-    private static func summary(db: SQLiteDatabase, args: Arguments) throws -> DailySummaryResponse {
-        let targetDate: Date
-        if let dateArg = args.options["date"] {
-            targetDate = try parseDateOnly(dateArg)
-        } else {
-            targetDate = Date()
-        }
-
+    private static func summary(db: SQLiteDatabase, args: Arguments) throws -> DailyInsightSummaryResponse {
+        let targetDate = try args.options["date"].map(parseDateOnly) ?? Date()
         let calendar = Calendar.current
         let dayStart = calendar.startOfDay(for: targetDate)
         guard let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) else {
             throw CLIError.invalidArguments("Failed to compute day window")
         }
 
-        let startTs = toAppleTimestamp(dayStart)
-        let endTs = toAppleTimestamp(dayEnd)
+        let now = Date()
         let projects = try projectMap(db: db)
-
-        let totalRows = try db.query(
-            sql: """
-            SELECT COUNT(*) AS C, COALESCE(SUM(ZDURATION), 0) AS S
-            FROM ZACTIVITY
-            WHERE ZSTARTTIME >= ? AND ZSTARTTIME < ?
-            """,
-            params: [.double(startTs), .double(endTs)]
+        let activities = try fetchInsightActivities(
+            db: db,
+            start: dayStart,
+            end: dayEnd,
+            projects: projects
         )
-        let totalRow = totalRows.first
-        let count = totalRow?.int("C") ?? 0
-        let duration = totalRow?.double("S") ?? 0
 
-        let appRows = try db.query(
-            sql: """
-            SELECT ZAPPNAME AS APP, COUNT(*) AS C, COALESCE(SUM(ZDURATION), 0) AS S
-            FROM ZACTIVITY
-            WHERE ZSTARTTIME >= ? AND ZSTARTTIME < ?
-            GROUP BY ZAPPNAME
-            ORDER BY S DESC
-            LIMIT 20
-            """,
-            params: [.double(startTs), .double(endTs)]
+        let sessions = analyzeInsightSessions(from: activities, referenceNow: now)
+        let blocks = analyzeInsightBlocks(
+            from: sessions,
+            activities: activities,
+            referenceNow: now
         )
-        let topApps = appRows.map { row in
-            AppSummaryDTO(
-                appName: row.string("APP") ?? "",
-                count: row.int("C") ?? 0,
-                durationSeconds: row.double("S") ?? 0
+        let structure = analyzeInsightTimeStructure(from: blocks)
+
+        let narrative: InsightNarrativeSnapshot? = activities.isEmpty
+            ? nil
+            : generateInsightNarrative(structure: structure, blocks: blocks)
+
+        var comparisonItems: [InsightComparisonSnapshot] = []
+        if !activities.isEmpty,
+           let yesterdayStart = calendar.date(byAdding: .day, value: -1, to: dayStart) {
+            let yesterdayActivities = try fetchInsightActivities(
+                db: db,
+                start: yesterdayStart,
+                end: dayStart,
+                projects: projects
             )
+            if !yesterdayActivities.isEmpty {
+                let yesterdaySessions = analyzeInsightSessions(from: yesterdayActivities, referenceNow: now)
+                let yesterdayBlocks = analyzeInsightBlocks(
+                    from: yesterdaySessions,
+                    activities: yesterdayActivities,
+                    referenceNow: now
+                )
+                let yesterdayStructure = analyzeInsightTimeStructure(from: yesterdayBlocks)
+                comparisonItems = compareInsightStructures(today: structure, yesterday: yesterdayStructure)
+            }
         }
 
-        let projectRows = try db.query(
-            sql: """
-            SELECT ZPROJECTID AS PID, COUNT(*) AS C, COALESCE(SUM(ZDURATION), 0) AS S
-            FROM ZACTIVITY
-            WHERE ZSTARTTIME >= ? AND ZSTARTTIME < ?
-            GROUP BY ZPROJECTID
-            ORDER BY S DESC
-            """,
-            params: [.double(startTs), .double(endTs)]
+        let comparisonLayer = InsightComparisonLayerDTO(
+            count: comparisonItems.count,
+            items: comparisonItems.map {
+                InsightComparisonDTO(
+                    name: $0.name,
+                    value: $0.value,
+                    change: $0.change,
+                    isPositive: $0.isPositive,
+                    changeFormatted: $0.changeFormatted
+                )
+            },
+            formattedByMetric: Dictionary(uniqueKeysWithValues: comparisonItems.map {
+                ($0.name, "\($0.value) (\($0.changeFormatted))")
+            })
         )
-
-        let projectStats = projectRows.map { row in
-            let pid = row.string("PID")
-            return ProjectSummaryDTO(
-                projectId: pid,
-                projectName: pid.flatMap { projects[$0] } ?? (pid == nil ? "Unassigned" : nil),
-                count: row.int("C") ?? 0,
-                durationSeconds: row.double("S") ?? 0
-            )
-        }
 
         let dateFormatter = DateFormatter()
         dateFormatter.locale = Locale(identifier: "en_US_POSIX")
         dateFormatter.timeZone = TimeZone.current
         dateFormatter.dateFormat = "yyyy-MM-dd"
 
-        return DailySummaryResponse(
+        return DailyInsightSummaryResponse(
             date: dateFormatter.string(from: dayStart),
             windowStart: isoString(dayStart),
             windowEnd: isoString(dayEnd),
-            activityCount: count,
-            totalDurationSeconds: duration,
-            topApps: topApps,
-            projects: projectStats
+            todayInsight: TodayInsightComputationDTO(
+                analysisVersion: insightAnalysisVersion,
+                activities: InsightActivitiesLayerDTO(
+                    count: activities.count,
+                    totalDurationSeconds: activities.reduce(0) { $0 + $1.calculatedDuration(at: now) },
+                    items: activities.map {
+                        InsightActivityDTO(
+                            index: $0.index,
+                            appName: $0.appName,
+                            bundleId: $0.bundleId,
+                            title: $0.title,
+                            filePath: $0.filePath,
+                            webURL: $0.webURL,
+                            domain: $0.domain,
+                            projectId: $0.projectId,
+                            projectName: $0.projectName,
+                            startTime: isoString($0.startTime),
+                            endTime: $0.endTime.map(isoString),
+                            storedDurationSeconds: $0.storedDurationSeconds,
+                            calculatedDurationSeconds: $0.calculatedDuration(at: now),
+                            contextLabel: contextLabel(for: $0)
+                        )
+                    }
+                ),
+                sessions: InsightSessionsLayerDTO(
+                    count: sessions.count,
+                    items: sessions.map {
+                        InsightSessionDTO(
+                            index: $0.index,
+                            startTime: isoString($0.startTime),
+                            endTime: isoString($0.endTime),
+                            durationSeconds: $0.duration,
+                            dominantAppBundleId: $0.dominantAppBundleId,
+                            dominantAppName: $0.dominantAppName,
+                            contextSwitchCount: $0.contextSwitchCount,
+                            activityIndices: $0.activityIndices
+                        )
+                    }
+                ),
+                behavioralBlocks: InsightBehavioralBlocksLayerDTO(
+                    count: blocks.count,
+                    items: blocks.map {
+                        InsightBehavioralBlockDTO(
+                            index: $0.index,
+                            blockType: $0.blockType.rawValue,
+                            startTime: isoString($0.startTime),
+                            endTime: isoString($0.endTime),
+                            durationSeconds: $0.duration,
+                            dominantActivity: $0.dominantActivity,
+                            dominantAppBundleId: $0.dominantAppBundleId,
+                            focusScore: $0.focusScore,
+                            contextSwitchCount: $0.contextSwitchCount,
+                            sessionIndices: $0.sessionIndices
+                        )
+                    }
+                ),
+                timeStructure: InsightTimeStructureDTO(
+                    totalTrackedSeconds: structure.totalTracked,
+                    deepDurationSeconds: structure.deepDuration,
+                    fragmentedDurationSeconds: structure.fragmentedDuration,
+                    passiveDurationSeconds: structure.passiveDuration,
+                    communicationDurationSeconds: structure.communicationDuration,
+                    idleDurationSeconds: structure.idleDuration,
+                    deepPercentage: structure.deepPercentage,
+                    fragmentedPercentage: structure.fragmentedPercentage,
+                    passivePercentage: structure.passivePercentage,
+                    communicationPercentage: structure.communicationPercentage,
+                    idlePercentage: structure.idlePercentage,
+                    totalTrackedFormatted: structure.totalTrackedFormatted,
+                    deepDurationFormatted: structure.deepDurationFormatted,
+                    fragmentedDurationFormatted: structure.fragmentedDurationFormatted,
+                    passiveDurationFormatted: structure.passiveDurationFormatted,
+                    communicationDurationFormatted: structure.communicationDurationFormatted,
+                    idleDurationFormatted: structure.idleDurationFormatted
+                ),
+                insight: narrative.map {
+                    InsightNarrativeDTO(
+                        headline: $0.headline,
+                        subtext: $0.subtext,
+                        keyMetrics: $0.keyMetrics
+                    )
+                },
+                comparisonWithYesterday: comparisonLayer
+            )
         )
+    }
+
+    private static func fetchInsightActivities(
+        db: SQLiteDatabase,
+        start: Date,
+        end: Date,
+        projects: [String: String]
+    ) throws -> [InsightActivityRecord] {
+        let rows = try db.query(
+            sql: """
+            SELECT ZAPPNAME, ZAPPBUNDLEID, ZAPPTITLE, ZFILEPATH, ZWEBURL, ZDOMAIN, ZPROJECTID, ZSTARTTIME, ZENDTIME, ZDURATION
+            FROM ZACTIVITY
+            WHERE ZSTARTTIME >= ? AND ZSTARTTIME < ?
+            ORDER BY ZSTARTTIME ASC
+            """,
+            params: [.double(toAppleTimestamp(start)), .double(toAppleTimestamp(end))]
+        )
+
+        return rows.enumerated().compactMap { offset, row in
+            guard let startTime = fromAppleTimestampDate(row.double("ZSTARTTIME")) else { return nil }
+            let projectId = row.string("ZPROJECTID")
+            return InsightActivityRecord(
+                index: offset,
+                appName: row.string("ZAPPNAME") ?? "",
+                bundleId: row.string("ZAPPBUNDLEID") ?? "",
+                title: row.string("ZAPPTITLE"),
+                filePath: row.string("ZFILEPATH"),
+                webURL: row.string("ZWEBURL"),
+                domain: row.string("ZDOMAIN"),
+                projectId: projectId,
+                projectName: projectId.flatMap { projects[$0] },
+                startTime: startTime,
+                endTime: fromAppleTimestampDate(row.double("ZENDTIME")),
+                storedDurationSeconds: row.double("ZDURATION") ?? 0
+            )
+        }
+    }
+
+    private static func analyzeInsightSessions(
+        from activities: [InsightActivityRecord],
+        referenceNow: Date
+    ) -> [InsightSessionSnapshot] {
+        let sortedActivities = activities.sorted { $0.startTime < $1.startTime }
+        guard !sortedActivities.isEmpty else { return [] }
+
+        var sessions: [InsightSessionSnapshot] = []
+        var currentActivities: [InsightActivityRecord] = []
+        var sessionIndex = 0
+
+        for activity in sortedActivities {
+            if currentActivities.isEmpty {
+                currentActivities.append(activity)
+                continue
+            }
+
+            let lastActivity = currentActivities[currentActivities.count - 1]
+            let gap = activity.startTime.timeIntervalSince(lastActivity.endTime ?? lastActivity.startTime)
+            let currentSessionStart = currentActivities[0].startTime
+            let activityEnd = activity.endTime ?? activity.startTime
+            let projectedDuration = activityEnd.timeIntervalSince(currentSessionStart)
+
+            if gap <= sessionGapThreshold && projectedDuration <= maxSessionDuration {
+                currentActivities.append(activity)
+            } else {
+                if let session = createInsightSession(
+                    from: currentActivities,
+                    index: sessionIndex,
+                    referenceNow: referenceNow
+                ) {
+                    sessions.append(session)
+                    sessionIndex += 1
+                }
+                currentActivities = [activity]
+            }
+        }
+
+        if let session = createInsightSession(
+            from: currentActivities,
+            index: sessionIndex,
+            referenceNow: referenceNow
+        ) {
+            sessions.append(session)
+        }
+
+        return sessions
+    }
+
+    private static func createInsightSession(
+        from activities: [InsightActivityRecord],
+        index: Int,
+        referenceNow: Date
+    ) -> InsightSessionSnapshot? {
+        guard !activities.isEmpty else { return nil }
+
+        let startTime = activities[0].startTime
+        let endTime = activities[activities.count - 1].endTime ?? referenceNow
+
+        var bundleDurations: [String: Double] = [:]
+        for activity in activities {
+            bundleDurations[activity.bundleId, default: 0] += activity.calculatedDuration(at: referenceNow)
+        }
+
+        let dominantBundle = bundleDurations.max(by: { $0.value < $1.value })?.key
+        let dominantName = activities.first(where: { $0.bundleId == dominantBundle })?.appName
+
+        return InsightSessionSnapshot(
+            index: index,
+            startTime: startTime,
+            endTime: endTime,
+            dominantAppBundleId: dominantBundle,
+            dominantAppName: dominantName,
+            contextSwitchCount: max(0, activities.count - 1),
+            activityIndices: activities.map(\.index)
+        )
+    }
+
+    private static func analyzeInsightBlocks(
+        from sessions: [InsightSessionSnapshot],
+        activities: [InsightActivityRecord],
+        referenceNow: Date
+    ) -> [InsightBehavioralBlockSnapshot] {
+        guard !sessions.isEmpty else { return [] }
+        let sortedSessions = sessions.sorted { $0.startTime < $1.startTime }
+        let activitiesByIndex = Dictionary(uniqueKeysWithValues: activities.map { ($0.index, $0) })
+        var builders: [InsightBehaviorBlockBuilder] = []
+
+        for session in sortedSessions {
+            let sessionActivities = session.activityIndices.compactMap { activitiesByIndex[$0] }
+            let blockType = classifyInsightSession(session, activities: sessionActivities, referenceNow: referenceNow)
+            let focusScore = calculateInsightFocusScore(session: session, blockType: blockType)
+
+            if var last = builders.last {
+                let gap = session.startTime.timeIntervalSince(last.endTime)
+                if last.blockType == blockType && gap <= blockMergeGapThreshold {
+                    last.add(
+                        session: session,
+                        focusScore: focusScore,
+                        activities: sessionActivities,
+                        referenceNow: referenceNow
+                    )
+                    builders[builders.count - 1] = last
+                    continue
+                }
+            }
+
+            var builder = InsightBehaviorBlockBuilder(blockType: blockType)
+            builder.add(
+                session: session,
+                focusScore: focusScore,
+                activities: sessionActivities,
+                referenceNow: referenceNow
+            )
+            builders.append(builder)
+        }
+
+        return builders.enumerated().map { offset, builder in
+            InsightBehavioralBlockSnapshot(
+                index: offset,
+                startTime: builder.startTime,
+                endTime: builder.endTime,
+                blockType: builder.blockType,
+                dominantActivity: builder.dominantActivity,
+                dominantAppBundleId: builder.dominantAppBundleId,
+                focusScore: builder.averageFocusScore,
+                contextSwitchCount: builder.contextSwitchCount,
+                sessionIndices: builder.sessionIndices
+            )
+        }
+    }
+
+    private static func classifyInsightSession(
+        _ session: InsightSessionSnapshot,
+        activities: [InsightActivityRecord],
+        referenceNow: Date
+    ) -> InsightBlockType {
+        let duration = session.duration
+        let switches = session.contextSwitchCount
+
+        if duration < 60 && switches == 0 {
+            return .idle
+        }
+
+        if isCommunicationSession(session, activities: activities, referenceNow: referenceNow) {
+            return .communication
+        }
+
+        if duration >= deepWorkMinDuration && switches <= deepWorkMaxSwitches {
+            return .deep
+        }
+
+        if switches >= fragmentedHighSwitchThreshold ||
+            (duration < fragmentedShortDurationThreshold && switches > 0) {
+            return .fragmented
+        }
+
+        if isPassiveSession(session, activities: activities, referenceNow: referenceNow) {
+            return .passive
+        }
+
+        return .fragmented
+    }
+
+    private static func calculateInsightFocusScore(
+        session: InsightSessionSnapshot,
+        blockType: InsightBlockType
+    ) -> Double {
+        var score: Double
+        switch blockType {
+        case .deep:
+            score = 0.9
+        case .fragmented:
+            score = 0.3
+        case .passive:
+            score = 0.5
+        case .communication:
+            score = 0.6
+        case .idle:
+            score = 0.0
+        }
+
+        let durationMinutes = session.duration / 60
+        if durationMinutes > 45 {
+            score = min(1.0, score + 0.1)
+        }
+
+        let switchPenalty = Double(session.contextSwitchCount) * 0.02
+        return max(0.0, score - switchPenalty)
+    }
+
+    private static func isCommunicationSession(
+        _ session: InsightSessionSnapshot,
+        activities: [InsightActivityRecord],
+        referenceNow: Date
+    ) -> Bool {
+        if let bundleId = session.dominantAppBundleId,
+           communicationBundleIds.contains(bundleId) {
+            return true
+        }
+
+        var domainDuration: Double = 0
+        var communicationDuration: Double = 0
+        for activity in activities {
+            guard let domain = extractDomain(from: activity) else { continue }
+            let duration = max(0, activity.calculatedDuration(at: referenceNow))
+            domainDuration += duration
+            if isCommunicationDomain(domain) {
+                communicationDuration += duration
+            }
+        }
+
+        guard domainDuration > 0 else { return false }
+        return communicationDuration / domainDuration >= 0.5
+    }
+
+    private static func isPassiveSession(
+        _ session: InsightSessionSnapshot,
+        activities: [InsightActivityRecord],
+        referenceNow: Date
+    ) -> Bool {
+        var domainDuration: Double = 0
+        var passiveDuration: Double = 0
+        for activity in activities {
+            guard let domain = extractDomain(from: activity) else { continue }
+            let duration = max(0, activity.calculatedDuration(at: referenceNow))
+            domainDuration += duration
+            if isPassiveDomain(domain) {
+                passiveDuration += duration
+            }
+        }
+
+        if domainDuration > 0 {
+            return passiveDuration / domainDuration >= 0.5
+        }
+
+        if let bundleId = session.dominantAppBundleId {
+            return passiveFallbackBundleIds.contains(bundleId)
+        }
+        return false
+    }
+
+    private static func analyzeInsightTimeStructure(
+        from blocks: [InsightBehavioralBlockSnapshot]
+    ) -> InsightTimeStructureSnapshot {
+        var deepDuration: Double = 0
+        var fragmentedDuration: Double = 0
+        var passiveDuration: Double = 0
+        var communicationDuration: Double = 0
+        var idleDuration: Double = 0
+
+        for block in blocks {
+            switch block.blockType {
+            case .deep:
+                deepDuration += block.duration
+            case .fragmented:
+                fragmentedDuration += block.duration
+            case .passive:
+                passiveDuration += block.duration
+            case .communication:
+                communicationDuration += block.duration
+            case .idle:
+                idleDuration += block.duration
+            }
+        }
+
+        return InsightTimeStructureSnapshot(
+            deepDuration: deepDuration,
+            fragmentedDuration: fragmentedDuration,
+            passiveDuration: passiveDuration,
+            communicationDuration: communicationDuration,
+            idleDuration: idleDuration
+        )
+    }
+
+    private static func generateInsightNarrative(
+        structure: InsightTimeStructureSnapshot,
+        blocks: [InsightBehavioralBlockSnapshot]
+    ) -> InsightNarrativeSnapshot {
+        let headline = generateInsightHeadline(structure: structure, blocks: blocks)
+        let subtext = generateInsightSubtext(structure: structure, blocks: blocks)
+        var keyMetrics = extractInsightKeyMetrics(blocks: blocks)
+        keyMetrics["analysisVersion"] = insightAnalysisVersion
+        return InsightNarrativeSnapshot(headline: headline, subtext: subtext, keyMetrics: keyMetrics)
+    }
+
+    private static func generateInsightHeadline(
+        structure: InsightTimeStructureSnapshot,
+        blocks: [InsightBehavioralBlockSnapshot]
+    ) -> String {
+        let totalMinutes = Int(structure.totalTracked / 60)
+        let deepBlocks = blocks.filter { $0.blockType == .deep }
+
+        if structure.deepPercentage > 40 {
+            return "This day was productive with \(deepBlocks.count) deep focus sessions totaling \(structure.deepDurationFormatted)."
+        } else if structure.fragmentedPercentage > 50 {
+            let deepSessionCount = deepBlocks.count
+            if deepSessionCount == 0 {
+                return "Your day was highly fragmented with no sustained deep focus periods."
+            }
+            return "Your day was mostly fragmented. Only \(deepSessionCount) deep focus sessions occurred, totaling \(structure.deepDurationFormatted)."
+        } else if structure.communicationPercentage > 30 {
+            return "This day was communication-heavy with \(structure.communicationDurationFormatted) in meetings and messages."
+        } else if structure.passivePercentage > 40 {
+            return "You spent significant time in passive consumption (\(structure.passiveDurationFormatted)) on this day."
+        } else {
+            return "This day was balanced across different types of work (\(totalMinutes)m total tracked)."
+        }
+    }
+
+    private static func generateInsightSubtext(
+        structure: InsightTimeStructureSnapshot,
+        blocks: [InsightBehavioralBlockSnapshot]
+    ) -> String {
+        let deepBlocks = blocks.filter { $0.blockType == .deep }.sorted { $0.duration > $1.duration }
+
+        if let longestBlock = deepBlocks.first {
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            let start = formatter.string(from: longestBlock.startTime)
+            let end = formatter.string(from: longestBlock.endTime)
+            let appName = longestBlock.dominantActivity ?? "an app"
+            return "The longest uninterrupted work happened between \(start) and \(end) in \(appName)."
+        }
+
+        if blocks.count > 10 {
+            return "You switched contexts \(blocks.count) times throughout the day, indicating high fragmentation."
+        }
+
+        if structure.totalTracked < 2 * 3600 {
+            return "Limited tracking data for this day - consider keeping your tracking running longer."
+        }
+
+        return "Your work pattern shows a mix of focused and fragmented periods."
+    }
+
+    private static func extractInsightKeyMetrics(
+        blocks: [InsightBehavioralBlockSnapshot]
+    ) -> [String: String] {
+        var metrics: [String: String] = [:]
+        let deepBlocks = blocks.filter { $0.blockType == .deep }
+        metrics["deepSessionCount"] = "\(deepBlocks.count)"
+
+        if let longestDeep = deepBlocks.max(by: { $0.duration < $1.duration }) {
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            metrics["longestDeepStart"] = formatter.string(from: longestDeep.startTime)
+            metrics["longestDeepDuration"] = formatInsightDuration(longestDeep.duration)
+        }
+
+        let totalSwitches = blocks.reduce(0) { $0 + $1.contextSwitchCount }
+        metrics["totalContextSwitches"] = "\(totalSwitches)"
+        metrics["totalBlocks"] = "\(blocks.count)"
+
+        let avgFocus = blocks.isEmpty ? 0 : blocks.reduce(0.0) { $0 + $1.focusScore } / Double(blocks.count)
+        metrics["averageFocusScore"] = String(format: "%.2f", avgFocus)
+
+        return metrics
+    }
+
+    private static func compareInsightStructures(
+        today: InsightTimeStructureSnapshot,
+        yesterday: InsightTimeStructureSnapshot
+    ) -> [InsightComparisonSnapshot] {
+        [
+            InsightComparisonSnapshot(
+                name: "Deep Focus",
+                value: today.deepDurationFormatted,
+                change: calculateInsightPercentageChange(from: yesterday.deepDuration, to: today.deepDuration),
+                isPositive: true
+            ),
+            InsightComparisonSnapshot(
+                name: "Fragmented Time",
+                value: today.fragmentedDurationFormatted,
+                change: calculateInsightPercentageChange(from: yesterday.fragmentedDuration, to: today.fragmentedDuration),
+                isPositive: false
+            ),
+            InsightComparisonSnapshot(
+                name: "Passive Time",
+                value: today.passiveDurationFormatted,
+                change: calculateInsightPercentageChange(from: yesterday.passiveDuration, to: today.passiveDuration),
+                isPositive: false
+            ),
+        ]
+    }
+
+    private static func calculateInsightPercentageChange(from old: Double, to new: Double) -> Double {
+        guard old > 0 else {
+            return new > 0 ? 100 : 0
+        }
+        return ((new - old) / old) * 100
+    }
+
+    fileprivate static func extractDomain(from activity: InsightActivityRecord) -> String? {
+        if let domain = activity.domain, !domain.isEmpty {
+            return normalizeHost(domain)
+        }
+        if let urlString = activity.webURL,
+           let url = URL(string: urlString),
+           let host = url.host {
+            return normalizeHost(host)
+        }
+        return nil
+    }
+
+    fileprivate static func contextLabel(for activity: InsightActivityRecord) -> String {
+        if let title = activity.title, !title.isEmpty {
+            return title
+        }
+        if let domain = extractDomain(from: activity) {
+            return domain
+        }
+        if let path = activity.filePath, !path.isEmpty {
+            return (path as NSString).lastPathComponent
+        }
+        return activity.appName
+    }
+
+    private static func isPassiveDomain(_ domain: String) -> Bool {
+        matches(domain: domain, keywords: passiveDomainKeywords)
+    }
+
+    private static func isCommunicationDomain(_ domain: String) -> Bool {
+        matches(domain: domain, keywords: communicationDomainKeywords)
+    }
+
+    private static func normalizeHost(_ host: String) -> String {
+        let lower = host.lowercased()
+        if lower.hasPrefix("www.") {
+            return String(lower.dropFirst(4))
+        }
+        return lower
+    }
+
+    private static func matches(domain: String, keywords: [String]) -> Bool {
+        let normalized = normalizeHost(domain)
+        return keywords.contains { keyword in
+            normalized == keyword || normalized.hasSuffix(".\(keyword)")
+        }
+    }
+
+    private static func fromAppleTimestampDate(_ value: Double?) -> Date? {
+        guard let value else { return nil }
+        return Date(timeIntervalSince1970: value + Constants.appleReferenceDate)
+    }
+
+    static func formatInsightDuration(_ duration: Double) -> String {
+        let hours = Int(duration) / 3600
+        let minutes = Int(duration) / 60 % 60
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        }
+        return "\(minutes)m"
     }
 
     private static func isoString(_ date: Date) -> String {
