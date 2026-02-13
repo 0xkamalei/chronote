@@ -91,6 +91,10 @@ struct ContentView: View {
     }
 
     @State private var timelineDebounceTask: Task<Void, Never>?
+    @AppStorage("cliPathPromptDismissed") private var cliPathPromptDismissed: Bool = false
+    @State private var showCLIPathPrompt: Bool = false
+    @State private var showCLIPathResult: Bool = false
+    @State private var cliPathResultMessage: String = ""
     
     var body: some View {
         NavigationSplitView(
@@ -145,6 +149,8 @@ struct ContentView: View {
             if !WindowMonitor.shared.checkAccessibilityPermissions() {
                 Logger.ui.warning("Accessibility permissions missing. Window titles will not be tracked.")
             }
+
+            maybePromptCLIPathInstall()
         }
         .onChange(of: appState.selectedProject) { _, newProject in
             activityQueryManager.setProjectFilter(newProject)
@@ -187,6 +193,43 @@ struct ContentView: View {
                 await activityQueryManager.refreshActivities()
                 Logger.ui.info("App became active. Refreshed activities.")
             }
+        }
+        .alert("Add chronote-cli To PATH?", isPresented: $showCLIPathPrompt) {
+            Button("Not Now") {
+                cliPathPromptDismissed = true
+            }
+            Button("Add To PATH") {
+                installCLIPathLink()
+            }
+        } message: {
+            Text("Chronote can install 'chronote-cli' to /usr/local/bin so you can run it from Terminal and MCP clients.")
+        }
+        .alert("chronote-cli PATH Setup", isPresented: $showCLIPathResult) {
+            Button("OK") { }
+        } message: {
+            Text(cliPathResultMessage)
+        }
+    }
+
+    private func maybePromptCLIPathInstall() {
+        guard !cliPathPromptDismissed else { return }
+        guard CLIPathInstaller.embeddedCLIURL() != nil else { return }
+        if CLIPathInstaller.isInstalledInPath() {
+            cliPathPromptDismissed = true
+            return
+        }
+        showCLIPathPrompt = true
+    }
+
+    private func installCLIPathLink() {
+        do {
+            try CLIPathInstaller.installSymlinkToPath()
+            cliPathPromptDismissed = true
+            cliPathResultMessage = "Installed successfully. You can now use 'chronote-cli' in Terminal."
+            showCLIPathResult = true
+        } catch {
+            cliPathResultMessage = error.localizedDescription
+            showCLIPathResult = true
         }
     }
 }

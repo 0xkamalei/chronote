@@ -35,4 +35,7 @@ struct TimelineRenderBlock: Identifiable {
     
     /// Optional Event ID for manual events
     var eventId: UUID? = nil
+    
+    /// Optional Project ID for manual events
+    var projectId: String? = nil
 }

@@ -7,6 +7,7 @@ SCHEME="chronote"
 BUILD_DIR="build_output"
 STAGING_DIR="dmg_staging"
 CLI_OUT_DIR="build/cli-dist"
+DIST_DIR="dist"
 
 # Function to increment build number
 increment_build_number() {
@@ -62,21 +63,30 @@ build_for_architecture() {
         return 1
     fi
     
+    # Embed architecture-specific CLI binary inside app bundle resources
+    local EMBEDDED_CLI_PATH="$APP_PATH/Contents/Resources/chronote-cli"
+    if [ "$ARCH_NAME" = "ARM64" ] && [ -f "$CLI_OUT_DIR/chronote-cli-arm64" ]; then
+        cp "$CLI_OUT_DIR/chronote-cli-arm64" "$EMBEDDED_CLI_PATH"
+        chmod +x "$EMBEDDED_CLI_PATH"
+    elif [ "$ARCH_NAME" = "x86_64" ] && [ -f "$CLI_OUT_DIR/chronote-cli-x86_64" ]; then
+        cp "$CLI_OUT_DIR/chronote-cli-x86_64" "$EMBEDDED_CLI_PATH"
+        chmod +x "$EMBEDDED_CLI_PATH"
+    fi
+    if [ ! -x "$EMBEDDED_CLI_PATH" ]; then
+        echo "Error: Failed to embed chronote-cli into $EMBEDDED_CLI_PATH"
+        return 1
+    fi
+
     # Prepare staging directory for DMG
     local STAGING="${STAGING_DIR}_${ARCH_NAME}"
     echo "Preparing DMG contents for $ARCH_NAME..."
     rm -rf "$STAGING"
     mkdir -p "$STAGING"
     cp -R "$APP_PATH" "$STAGING/"
-    if [ "$ARCH_NAME" = "ARM64" ] && [ -f "$CLI_OUT_DIR/chronote-cli-arm64" ]; then
-        cp "$CLI_OUT_DIR/chronote-cli-arm64" "$STAGING/chronote-cli"
-    elif [ "$ARCH_NAME" = "x86_64" ] && [ -f "$CLI_OUT_DIR/chronote-cli-x86_64" ]; then
-        cp "$CLI_OUT_DIR/chronote-cli-x86_64" "$STAGING/chronote-cli"
-    fi
     ln -s /Applications "$STAGING/Applications"
     
     # Create DMG with architecture-specific name
-    local DMG_NAME="Chronote-${ARCH_NAME}.dmg"
+    local DMG_NAME="$DIST_DIR/Chronote-${ARCH_NAME}.dmg"
     echo "Creating DMG for $ARCH_NAME..."
     hdiutil create -volname "$APP_NAME" \
                    -srcfolder "$STAGING" \
@@ -84,7 +94,7 @@ build_for_architecture() {
                    "$DMG_NAME"
     
     if [ $? -eq 0 ]; then
-        echo "✓ Success! DMG created: $(pwd)/$DMG_NAME"
+        echo "✓ Success! DMG created: $DMG_NAME"
         
         # Cleanup
         rm -rf "$BUILD_PATH"
@@ -133,19 +143,27 @@ build_universal() {
     echo "Verifying universal binary..."
     lipo -info "$APP_PATH/Contents/MacOS/$APP_NAME"
     
+    # Embed universal CLI binary inside app bundle resources
+    local EMBEDDED_CLI_PATH="$APP_PATH/Contents/Resources/chronote-cli"
+    if [ -f "$CLI_OUT_DIR/chronote-cli" ]; then
+        cp "$CLI_OUT_DIR/chronote-cli" "$EMBEDDED_CLI_PATH"
+        chmod +x "$EMBEDDED_CLI_PATH"
+    fi
+    if [ ! -x "$EMBEDDED_CLI_PATH" ]; then
+        echo "Error: Failed to embed chronote-cli into $EMBEDDED_CLI_PATH"
+        return 1
+    fi
+
     # Prepare staging directory for DMG
     local STAGING="${STAGING_DIR}_universal"
     echo "Preparing DMG contents for Universal..."
     rm -rf "$STAGING"
     mkdir -p "$STAGING"
     cp -R "$APP_PATH" "$STAGING/"
-    if [ -f "$CLI_OUT_DIR/chronote-cli" ]; then
-        cp "$CLI_OUT_DIR/chronote-cli" "$STAGING/chronote-cli"
-    fi
     ln -s /Applications "$STAGING/Applications"
     
     # Create DMG
-    local DMG_NAME="Chronote-Universal.dmg"
+    local DMG_NAME="$DIST_DIR/Chronote-Universal.dmg"
     echo "Creating Universal DMG..."
     hdiutil create -volname "$APP_NAME" \
                    -srcfolder "$STAGING" \
@@ -153,7 +171,7 @@ build_universal() {
                    "$DMG_NAME"
     
     if [ $? -eq 0 ]; then
-        echo "✓ Success! DMG created: $(pwd)/$DMG_NAME"
+        echo "✓ Success! DMG created: $DMG_NAME"
         
         # Cleanup
         rm -rf "$BUILD_PATH"
@@ -165,32 +183,71 @@ build_universal() {
     fi
 }
 
+# Parse arguments
+BUILD_ALL=false
+for arg in "$@"; do
+    case $arg in
+        --all)
+            BUILD_ALL=true
+            shift
+            ;;
+    esac
+done
+
+# Detect current architecture
+CURRENT_ARCH=$(uname -m)
+if [ "$CURRENT_ARCH" = "arm64" ]; then
+    CURRENT_ARCH_NAME="ARM64"
+else
+    CURRENT_ARCH_NAME="x86_64"
+fi
+
 # Main build process
 echo "==============================================="
-echo "Starting Multi-Architecture Build Process"
+if [ "$BUILD_ALL" = true ]; then
+    echo "Starting Multi-Architecture Build Process (ALL)"
+else
+    echo "Starting Build Process for $CURRENT_ARCH_NAME"
+    echo "(use --all to build all architectures)"
+fi
 echo "==============================================="
 
 # Increment build number first
 increment_build_number
 
+# Create dist directory
+echo "Creating dist directory..."
+mkdir -p "$DIST_DIR"
+
 # Clean old DMG files
 echo "Cleaning old DMG files..."
-rm -f Chronote-*.dmg
+rm -f "$DIST_DIR"/Chronote-*.dmg
 
 echo "Building standalone chronote-cli binaries..."
-./scripts/build-chronote-cli.sh "$CLI_OUT_DIR"
+if [ "$BUILD_ALL" = true ]; then
+    ./scripts/build-chronote-cli.sh "$CLI_OUT_DIR"
+else
+    ./scripts/build-chronote-cli.sh "$CLI_OUT_DIR" "$CURRENT_ARCH"
+fi
 
-# Build all three versions
+# Build versions
 FAILED=0
 
-build_universal
-if [ $? -ne 0 ]; then FAILED=1; fi
+if [ "$BUILD_ALL" = true ]; then
+    # Build all three versions
+    build_universal
+    if [ $? -ne 0 ]; then FAILED=1; fi
 
-build_for_architecture "arm64" "ARM64"
-if [ $? -ne 0 ]; then FAILED=1; fi
+    build_for_architecture "arm64" "ARM64"
+    if [ $? -ne 0 ]; then FAILED=1; fi
 
-build_for_architecture "x86_64" "x86_64"
-if [ $? -ne 0 ]; then FAILED=1; fi
+    build_for_architecture "x86_64" "x86_64"
+    if [ $? -ne 0 ]; then FAILED=1; fi
+else
+    # Build only current architecture
+    build_for_architecture "$CURRENT_ARCH" "$CURRENT_ARCH_NAME"
+    if [ $? -ne 0 ]; then FAILED=1; fi
+fi
 
 # Final summary
 echo ""
@@ -202,7 +259,7 @@ if [ $FAILED -eq 0 ]; then
     echo "✓ All builds completed successfully!"
     echo ""
     echo "Created DMG files:"
-    ls -lh Chronote-*.dmg
+    ls -lh "$DIST_DIR"/Chronote-*.dmg
 else
     echo "⚠ Some builds failed. Check the output above."
     exit 1

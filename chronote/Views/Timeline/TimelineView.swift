@@ -4,6 +4,7 @@ import SwiftData
 struct TimelineView: View {
     var activities: [Activity]
     var events: [Event]
+    @Query(sort: \Project.name) private var projects: [Project]
     
     // Controlled from outside
     @Binding var visibleTimeRange: ClosedRange<Date>
@@ -28,8 +29,13 @@ struct TimelineView: View {
     @State private var dragCreateStartTime: Date?
     @State private var dragCreateEndTime: Date?
     @State private var dragCreateLocation: CGPoint = .zero
+    @State private var eventProjectColors: [UUID: Color] = [:]
     
     private let processor = TimelineProcessor()
+    private let activityTrackHeight: CGFloat = 48
+    private let eventTrackHeight: CGFloat = 24
+    private let projectLineHeight: CGFloat = 4
+    private let trackDividerHeight: CGFloat = 1
     
     init(activities: [Activity], events: [Event] = [], visibleTimeRange: Binding<ClosedRange<Date>>, totalTimeRange: ClosedRange<Date>, selectedTimeRange: ClosedRange<Date>? = nil, onRangeSelected: ((ClosedRange<Date>) -> Void)? = nil) {
         self.activities = activities
@@ -43,6 +49,9 @@ struct TimelineView: View {
     var body: some View {
         GeometryReader { geo in
             let width = geo.size.width
+            let eventTrackTop = activityTrackHeight + trackDividerHeight
+            let projectLineTop = eventTrackTop + eventTrackHeight
+            let eventSectionBottom = projectLineTop + projectLineHeight
             
             VStack(alignment: .leading, spacing: 0) {
                 // Header: Time Axis Labels
@@ -87,7 +96,7 @@ struct TimelineView: View {
                                 }
                             }
                         }
-                        .frame(height: 48)
+                        .frame(height: activityTrackHeight)
                         
                         Divider()
                         
@@ -101,13 +110,28 @@ struct TimelineView: View {
                                 if block.rect.width > 20 {
                                     let center = CGPoint(x: block.rect.midX, y: block.rect.midY)
                                     let text = Text(block.appName)
-                                        .font(.caption)
+                                        .font(.caption2.weight(.medium))
                                         .foregroundColor(.white)
                                     context.draw(text, at: center, anchor: .center)
                                 }
                             }
                         }
-                        .frame(height: 48)
+                        .frame(height: eventTrackHeight)
+
+                        Canvas { context, size in
+                            for block in eventRenderBlocks {
+                                let projectColor = projectColor(for: block) ?? block.color.opacity(0.25)
+                                let lineRect = CGRect(
+                                    x: block.rect.minX,
+                                    y: 0,
+                                    width: block.rect.width,
+                                    height: size.height
+                                )
+                                let linePath = Path(roundedRect: lineRect, cornerRadius: 2)
+                                context.fill(linePath, with: .color(projectColor))
+                            }
+                        }
+                        .frame(height: projectLineHeight)
                     }
                     
                     // Interaction Overlay
@@ -117,7 +141,7 @@ struct TimelineView: View {
                         totalWidth: width,
                         onHover: { point in
                             // Check Activity Track (Top, 0-48)
-                            if point.y < 48 {
+                            if point.y < activityTrackHeight {
                                 // Hit test on activity blocks
                                 if let block = renderBlocks.first(where: { $0.rect.contains(point) }) {
                                     hoveredBlock = block
@@ -136,10 +160,10 @@ struct TimelineView: View {
                                     hoveredActivity = nil
                                 }
                             }
-                            // Check Event Track (Bottom, > 49)
-                            else if point.y > 49 {
-                                // Convert point to Event Track coordinate space (y - 49)
-                                let localY = point.y - 49
+                            // Check Event Track (Bottom)
+                            else if point.y >= eventTrackTop && point.y < eventSectionBottom {
+                                // Convert point to Event Track coordinate space
+                                let localY = point.y - eventTrackTop
                                 let localPoint = CGPoint(x: point.x, y: localY)
 
                                 if let block = eventRenderBlocks.first(where: { $0.rect.contains(localPoint) }) {
@@ -165,16 +189,15 @@ struct TimelineView: View {
                             // Currently empty to avoid conflict with double click
                         },
                         onDoubleClick: { point in
-                            // Event Track is > 49 (48 + 1)
-                            if point.y > 49 {
-                                let eventY = point.y - 49
+                            if point.y >= eventTrackTop && point.y < eventSectionBottom {
+                                let eventY = point.y - eventTrackTop
                                 if let block = eventRenderBlocks.first(where: { $0.rect.contains(CGPoint(x: point.x, y: eventY)) }) {
                                     if let id = block.eventId {
                                         selectedEventId = id
                                         // Calculate center point of the block in global coordinate space
-                                        // Block rect is local to the track (y-offset: 49)
+                                        // Block rect is local to the event track
                                         let centerX = block.rect.midX
-                                        let centerY = block.rect.midY + 49
+                                        let centerY = block.rect.midY + eventTrackTop
                                         dragCreateLocation = CGPoint(x: centerX, y: centerY)
                                         
                                         showEditEventPopover = true
@@ -199,8 +222,8 @@ struct TimelineView: View {
                             let start = min(t1, t2)
                             let end = max(t1, t2)
                             
-                            // Check if this is Event Creation (y > 48)
-                            if y > 48 {
+                            // Check if this is Event Creation (event section)
+                            if y >= eventTrackTop {
                                 dragCreateStartTime = start
                                 dragCreateEndTime = end
                                 dragCreateLocation = CGPoint(x: (x1 + x2) / 2, y: y)
@@ -261,10 +284,10 @@ struct TimelineView: View {
                         TimelineTooltipView(activity: activity)
                             // Position vertically based on track (Top/Bottom)
                             // Position horizontally centered on the hover location
-                            .position(
-                                x: hoverLocation.x,
-                                y: hoverLocation.y > 48 ? 15 : 85
-                            )
+                                .position(
+                                    x: hoverLocation.x,
+                                    y: hoverLocation.y >= eventTrackTop ? 15 : 85
+                                )
                             .transition(.opacity)
                             .allowsHitTesting(false)
                     }
@@ -308,6 +331,9 @@ struct TimelineView: View {
             .onChange(of: events) { _ in
                 recalculate(width: width)
             }
+            .onChange(of: projects) { _ in
+                recalculate(width: width)
+            }
             .onChange(of: visibleTimeRange) { _ in
                 recalculate(width: width)
             }
@@ -320,7 +346,7 @@ struct TimelineView: View {
                 recalculate(width: width)
             }
         }
-        .frame(height: isFullyZoomedOut ? 122 : 138)
+        .frame(height: isFullyZoomedOut ? 102 : 118)
     }
     
     private var isFullyZoomedOut: Bool {
@@ -335,8 +361,29 @@ struct TimelineView: View {
         let blocks = processor.processWithSessionAggregation(activities: activities, visibleTimeRange: visibleTimeRange, canvasWidth: width)
         self.renderBlocks = blocks
 
-        let evtBlocks = processor.processEvents(events: events, visibleTimeRange: visibleTimeRange, canvasWidth: width)
+        let evtBlocks = processor.processEvents(
+            events: events,
+            visibleTimeRange: visibleTimeRange,
+            canvasWidth: width,
+            blockHeight: eventTrackHeight
+        )
         self.eventRenderBlocks = evtBlocks
+        self.eventProjectColors = buildEventProjectColorMap()
+    }
+
+    private func buildEventProjectColorMap() -> [UUID: Color] {
+        let projectColors = Dictionary(uniqueKeysWithValues: projects.map { ($0.id, $0.color) })
+        var map: [UUID: Color] = [:]
+        for event in events {
+            guard let projectId = event.projectId, let color = projectColors[projectId] else { continue }
+            map[event.id] = color
+        }
+        return map
+    }
+
+    private func projectColor(for block: TimelineRenderBlock) -> Color? {
+        guard let eventId = block.eventId else { return nil }
+        return eventProjectColors[eventId]
     }
 
     /// 根据鼠标 X 位置计算对应的时间戳

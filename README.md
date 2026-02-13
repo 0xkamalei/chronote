@@ -50,7 +50,15 @@ TimeTrace 需要以下系统权限才能正常工作：
 ### 🤖 Agent CLI（独立可执行文件）
 
 长期产品化方案使用独立 CLI 可执行文件 `chronote-cli`（不耦合 GUI 生命周期）。
-可先构建：
+打包后，CLI 会内置在：
+
+```bash
+chronote.app/Contents/Resources/chronote-cli
+```
+
+首次启动时 App 会提示是否将它安装到 `/usr/local/bin/chronote-cli`（类似 VS Code 的 PATH 提示）。
+
+开发阶段可先构建：
 
 ```bash
 ./scripts/build-chronote-cli.sh
@@ -77,6 +85,22 @@ build/cli-dist/chronote-cli
 
 # 手动 Event 列表
 ./build/cli-dist/chronote-cli events --limit 200 --pretty
+
+# MCP stdio server
+./build/cli-dist/chronote-cli mcp-stdio
+```
+
+MCP 客户端配置示例（本地路径按你的机器调整）：
+
+```json
+{
+  "mcpServers": {
+    "chronote": {
+      "command": "/absolute/path/to/chronote-cli",
+      "args": ["mcp-stdio"]
+    }
+  }
+}
 ```
 
 ### 📄 许可证
@@ -131,7 +155,15 @@ TimeTrace requires the following system permissions to function properly:
 ### 🤖 Agent CLI (Standalone Executable)
 
 For long-term productization, use the standalone `chronote-cli` binary.
-Build it with:
+In packaged builds, it is embedded at:
+
+```bash
+chronote.app/Contents/Resources/chronote-cli
+```
+
+On first launch, the app prompts to install it into `/usr/local/bin/chronote-cli` (similar to VS Code PATH setup).
+
+During development, build with:
 
 ```bash
 ./scripts/build-chronote-cli.sh
@@ -158,6 +190,22 @@ build/cli-dist/chronote-cli
 
 # Manual events
 ./build/cli-dist/chronote-cli events --limit 200 --pretty
+
+# MCP stdio server
+./build/cli-dist/chronote-cli mcp-stdio
+```
+
+MCP client config example (adjust local path):
+
+```json
+{
+  "mcpServers": {
+    "chronote": {
+      "command": "/absolute/path/to/chronote-cli",
+      "args": ["mcp-stdio"]
+    }
+  }
+}
 ```
 
 ### 📄 License

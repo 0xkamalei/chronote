@@ -108,6 +108,12 @@ struct ChronoteCLI {
             let args = try parseArguments(CommandLine.arguments)
             let storePath = args.options["store"] ?? Constants.defaultStorePath
             let pretty = args.flags.contains("pretty")
+
+            if args.command == "mcp-stdio" {
+                try runMCPStdio(storePath: storePath)
+                return 0
+            }
+
             let db = try SQLiteDatabase(path: storePath)
             defer { db.close() }
 
@@ -207,10 +213,259 @@ struct ChronoteCLI {
               "name": "summary",
               "description": "Get one-day activity summary",
               "options": ["--date <YYYY-MM-DD>", "--store <path>", "--pretty"]
+            },
+            {
+              "name": "mcp-stdio",
+              "description": "Run MCP server over stdio",
+              "options": ["--store <path>"]
             }
           ]
         }
         """
+    }
+
+    private static func runMCPStdio(storePath: String) throws {
+        while let request = try readMCPMessage() {
+            guard let method = request["method"] as? String else { continue }
+            let id = request["id"]
+            let params = request["params"] as? [String: Any] ?? [:]
+
+            // Notifications do not require a response.
+            let shouldReply = id != nil
+
+            switch method {
+            case "initialize":
+                guard shouldReply else { continue }
+                try writeMCPResponse([
+                    "jsonrpc": "2.0",
+                    "id": id as Any,
+                    "result": [
+                        "protocolVersion": "2024-11-05",
+                        "capabilities": ["tools": [:]],
+                        "serverInfo": [
+                            "name": "chronote-cli",
+                            "version": "0.1.0",
+                        ],
+                    ],
+                ])
+            case "ping":
+                guard shouldReply else { continue }
+                try writeMCPResponse([
+                    "jsonrpc": "2.0",
+                    "id": id as Any,
+                    "result": [:],
+                ])
+            case "tools/list":
+                guard shouldReply else { continue }
+                try writeMCPResponse([
+                    "jsonrpc": "2.0",
+                    "id": id as Any,
+                    "result": [
+                        "tools": mcpTools(),
+                    ],
+                ])
+            case "tools/call":
+                guard shouldReply else { continue }
+                do {
+                    guard let toolName = params["name"] as? String else {
+                        throw CLIError.invalidArguments("Missing tool name")
+                    }
+                    let toolArgs = params["arguments"] as? [String: Any] ?? [:]
+                    let result = try callMCPTool(toolName: toolName, args: toolArgs, storePath: storePath)
+                    try writeMCPResponse([
+                        "jsonrpc": "2.0",
+                        "id": id as Any,
+                        "result": result,
+                    ])
+                } catch {
+                    try writeMCPResponse([
+                        "jsonrpc": "2.0",
+                        "id": id as Any,
+                        "error": [
+                            "code": -32000,
+                            "message": error.localizedDescription,
+                        ],
+                    ])
+                }
+            default:
+                guard shouldReply else { continue }
+                try writeMCPResponse([
+                    "jsonrpc": "2.0",
+                    "id": id as Any,
+                    "error": [
+                        "code": -32601,
+                        "message": "Method not found: \(method)",
+                    ],
+                ])
+            }
+        }
+    }
+
+    private static func mcpTools() -> [[String: Any]] {
+        [
+            [
+                "name": "chronote.projects",
+                "description": "List projects from Chronote local store",
+                "inputSchema": [
+                    "type": "object",
+                    "properties": [:],
+                ],
+            ],
+            [
+                "name": "chronote.activities",
+                "description": "List activity records in a time window",
+                "inputSchema": [
+                    "type": "object",
+                    "properties": [
+                        "start": ["type": "string", "description": "ISO-8601 inclusive lower bound"],
+                        "end": ["type": "string", "description": "ISO-8601 exclusive upper bound"],
+                        "limit": ["type": "integer", "minimum": 1, "maximum": 5000],
+                    ],
+                ],
+            ],
+            [
+                "name": "chronote.events",
+                "description": "List manual event records in a time window",
+                "inputSchema": [
+                    "type": "object",
+                    "properties": [
+                        "start": ["type": "string", "description": "ISO-8601 inclusive lower bound"],
+                        "end": ["type": "string", "description": "ISO-8601 exclusive upper bound"],
+                        "limit": ["type": "integer", "minimum": 1, "maximum": 5000],
+                    ],
+                ],
+            ],
+            [
+                "name": "chronote.summary",
+                "description": "Get one-day activity summary",
+                "inputSchema": [
+                    "type": "object",
+                    "properties": [
+                        "date": ["type": "string", "description": "YYYY-MM-DD"],
+                    ],
+                ],
+            ],
+        ]
+    }
+
+    private static func callMCPTool(
+        toolName: String,
+        args: [String: Any],
+        storePath: String
+    ) throws -> [String: Any] {
+        let db = try SQLiteDatabase(path: storePath)
+        defer { db.close() }
+
+        let responseObject: Any
+        switch toolName {
+        case "chronote.projects":
+            responseObject = try toJSONObject(listProjects(db: db))
+        case "chronote.activities":
+            let response = try listActivities(
+                db: db,
+                args: makeArgs(command: "activities", from: args)
+            )
+            responseObject = try toJSONObject(response)
+        case "chronote.events":
+            let response = try listEvents(
+                db: db,
+                args: makeArgs(command: "events", from: args)
+            )
+            responseObject = try toJSONObject(response)
+        case "chronote.summary":
+            let response = try summary(
+                db: db,
+                args: makeArgs(command: "summary", from: args)
+            )
+            responseObject = try toJSONObject(response)
+        default:
+            throw CLIError.invalidArguments("Unknown tool: \(toolName)")
+        }
+
+        let structured = responseObject as? [String: Any] ?? [:]
+        let prettyData = try JSONSerialization.data(withJSONObject: structured, options: [.prettyPrinted])
+        let text = String(data: prettyData, encoding: .utf8) ?? "{}"
+
+        return [
+            "content": [
+                [
+                    "type": "text",
+                    "text": text,
+                ],
+            ],
+            "structuredContent": structured,
+            "isError": false,
+        ]
+    }
+
+    private static func makeArgs(command: String, from dict: [String: Any]) -> Arguments {
+        var options: [String: String] = [:]
+        if let start = dict["start"] as? String { options["start"] = start }
+        if let end = dict["end"] as? String { options["end"] = end }
+        if let date = dict["date"] as? String { options["date"] = date }
+        if let limit = dict["limit"] as? Int { options["limit"] = "\(limit)" }
+        if let limitString = dict["limit"] as? String { options["limit"] = limitString }
+        return Arguments(command: command, options: options, flags: [])
+    }
+
+    private static func toJSONObject<T: Encodable>(_ value: T) throws -> Any {
+        let data = try JSONEncoder().encode(value)
+        return try JSONSerialization.jsonObject(with: data, options: [])
+    }
+
+    private static func readMCPMessage() throws -> [String: Any]? {
+        var contentLength: Int?
+
+        while true {
+            guard let lineData = try readLineData() else { return nil }
+            guard let line = String(data: lineData, encoding: .utf8) else {
+                throw CLIError.invalidArguments("Invalid MCP header encoding")
+            }
+
+            if line == "\r\n" || line == "\n" {
+                break
+            }
+
+            if line.lowercased().hasPrefix("content-length:") {
+                let value = line.split(separator: ":", maxSplits: 1).last?.trimmingCharacters(in: .whitespacesAndNewlines)
+                if let value, let intValue = Int(value) {
+                    contentLength = intValue
+                }
+            }
+        }
+
+        guard let length = contentLength, length > 0 else {
+            throw CLIError.invalidArguments("Missing Content-Length")
+        }
+
+        let body = FileHandle.standardInput.readData(ofLength: length)
+        if body.isEmpty { return nil }
+        let object = try JSONSerialization.jsonObject(with: body, options: [])
+        return object as? [String: Any]
+    }
+
+    private static func readLineData() throws -> Data? {
+        var buffer = Data()
+        while true {
+            let byte = FileHandle.standardInput.readData(ofLength: 1)
+            if byte.isEmpty {
+                return buffer.isEmpty ? nil : buffer
+            }
+            buffer.append(byte)
+            if byte == Data([0x0A]) { // \n
+                return buffer
+            }
+        }
+    }
+
+    private static func writeMCPResponse(_ payload: [String: Any]) throws {
+        let body = try JSONSerialization.data(withJSONObject: payload, options: [])
+        let header = "Content-Length: \(body.count)\r\n\r\n"
+        guard let headerData = header.data(using: .utf8) else {
+            throw CLIError.encoding
+        }
+        FileHandle.standardOutput.write(headerData)
+        FileHandle.standardOutput.write(body)
     }
 
     private static func parseISODateTime(_ value: String) throws -> Date {

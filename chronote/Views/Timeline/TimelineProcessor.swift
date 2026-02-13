@@ -285,7 +285,7 @@ class TimelineProcessor {
         return renderBlocks
     }
     
-    func processEvents(events: [Event], visibleTimeRange: ClosedRange<Date>, canvasWidth: CGFloat) -> [TimelineRenderBlock] {
+    func processEvents(events: [Event], visibleTimeRange: ClosedRange<Date>, canvasWidth: CGFloat, blockHeight: CGFloat = 24) -> [TimelineRenderBlock] {
         guard !events.isEmpty, canvasWidth > 0 else { return [] }
         
         let totalSeconds = visibleTimeRange.upperBound.timeIntervalSince(visibleTimeRange.lowerBound)
@@ -312,9 +312,8 @@ class TimelineProcessor {
             let endX = getX(eventEnd)
             let width = max(2.0, endX - startX)
             
-            // Rect relative to the track height (matches Activity track height)
-            // TRACK_HEIGHT (40) + 8 = 48
-            let rect = CGRect(x: startX, y: 0, width: width, height: TRACK_HEIGHT + 8)
+            // Event block uses a compact height so labels remain readable but less visually heavy
+            let rect = CGRect(x: startX, y: 0, width: width, height: blockHeight)
             
             let color = self.color(for: event.name)
             
@@ -328,7 +327,8 @@ class TimelineProcessor {
                 totalDuration: event.duration,
                 startTime: event.startTime,
                 endTime: eventEnd,
-                eventId: event.id
+                eventId: event.id,
+                projectId: event.projectId
             ))
         }
         return blocks
