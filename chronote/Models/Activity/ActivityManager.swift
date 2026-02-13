@@ -214,8 +214,13 @@ class ActivityManager: ObservableObject {
             endTime: nil
         )
 
-        // Auto assign project
-        if let projectId = AutoAssignmentManager.shared.evaluate(activity: newActivity) {
+        // Priority 1: If there is a running manual event with a project, force-assign this activity to that project.
+        if let runningEventProjectId = runningEventProjectId(modelContext: modelContext) {
+            newActivity.projectId = runningEventProjectId
+            logger.debug("Assigned activity '\(appName)' to running event project \(runningEventProjectId)")
+        }
+        // Priority 2: Fallback to rule-based auto assignment.
+        else if let projectId = AutoAssignmentManager.shared.evaluate(activity: newActivity) {
             newActivity.projectId = projectId
             logger.debug("Auto-assigned activity '\(appName)' to project \(projectId)")
         }
@@ -233,6 +238,21 @@ class ActivityManager: ObservableObject {
     private func extractDomain(from urlString: String?) -> String? {
         guard let urlString = urlString, let url = URL(string: urlString) else { return nil }
         return url.host
+    }
+
+    /// Returns the projectId of the currently running event (endTime == nil), if any.
+    private func runningEventProjectId(modelContext: ModelContext) -> String? {
+        let descriptor = FetchDescriptor<Event>(
+            predicate: #Predicate<Event> { $0.endTime == nil },
+            sortBy: [SortDescriptor(\.startTime, order: .reverse)]
+        )
+
+        do {
+            return try modelContext.fetch(descriptor).first?.projectId
+        } catch {
+            logger.error("Failed to fetch running event for activity assignment: \(error.localizedDescription)")
+            return nil
+        }
     }
 
     private func handleAppActivation(_ notification: Notification) {

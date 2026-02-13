@@ -14,4 +14,20 @@ enum AppTheme: String, CaseIterable, Identifiable {
         case .dark: return .dark
         }
     }
+
+    var systemImage: String {
+        switch self {
+        case .system: return "circle.lefthalf.filled"
+        case .light: return "sun.max"
+        case .dark: return "moon"
+        }
+    }
+
+    var next: AppTheme {
+        switch self {
+        case .system: return .light
+        case .light: return .dark
+        case .dark: return .system
+        }
+    }
 }

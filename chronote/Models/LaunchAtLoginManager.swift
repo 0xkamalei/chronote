@@ -8,8 +8,12 @@ class LaunchAtLoginManager {
     static let shared = LaunchAtLoginManager()
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.mac-time-trace", category: "LaunchAtLogin")
     
+    private var isRefreshingStatus = false
+
     var isEnabled: Bool {
         didSet {
+            guard !isRefreshingStatus else { return }
+            guard oldValue != isEnabled else { return }
             updateLaunchAtLogin(enabled: isEnabled)
         }
     }
@@ -44,6 +48,8 @@ class LaunchAtLoginManager {
     
     func refreshStatus() {
         let status = SMAppService.mainApp.status
+        isRefreshingStatus = true
         isEnabled = (status == .enabled)
+        isRefreshingStatus = false
     }
 }

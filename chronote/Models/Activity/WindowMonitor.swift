@@ -74,6 +74,12 @@ class WindowMonitor {
     
     /// Checks if the application has accessibility permissions
     func checkAccessibilityPermissions() -> Bool {
+        // Passive check only; do not trigger system permission prompt during polling.
+        AXIsProcessTrusted()
+    }
+
+    /// Requests accessibility permissions and may trigger the system prompt.
+    func requestAccessibilityPermissions() -> Bool {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
         return AXIsProcessTrustedWithOptions(options as CFDictionary)
     }
@@ -141,4 +147,3 @@ class WindowMonitor {
         return nil
     }
 }
-

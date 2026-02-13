@@ -5,6 +5,7 @@ import SwiftUI
 struct MainToolbarView: ToolbarContent {
     @Environment(AppState.self) private var appState
     @Environment(\.modelContext) private var modelContext
+    @AppStorage("appTheme") private var appTheme: AppTheme = .system
 
     @Binding var selectedDateRange: AppDateRange
     @Binding var selectedPreset: AppDateRangePreset?
@@ -28,6 +29,32 @@ struct MainToolbarView: ToolbarContent {
 
         ToolbarItem(placement: .principal) {
             DateNavigatorView(selectedDateRange: $selectedDateRange, selectedPreset: $selectedPreset)
+        }
+
+        ToolbarItem(placement: .automatic) {
+            Button {
+                appTheme = appTheme.next
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: appTheme.systemImage)
+                        .font(.system(size: 14, weight: .semibold))
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
+                        .opacity(0.8)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 9)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(Color(nsColor: .controlBackgroundColor))
+                        .overlay(
+                            Capsule(style: .continuous)
+                                .stroke(Color(nsColor: .separatorColor).opacity(0.5), lineWidth: 1)
+                        )
+                )
+            }
+            .buttonStyle(.plain)
+            .help("Appearance")
         }
     }
 }

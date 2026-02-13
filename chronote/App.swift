@@ -86,6 +86,14 @@ struct timApp: App {
     @State private var eventManager = EventManager()
     @AppStorage("appTheme") private var appTheme: AppTheme = .system
 
+    init() {
+        UserDefaults.standard.register(defaults: [
+            "timelineMergeStatisticsEnabled": true,
+            "timelineMergeIntervalMinutes": 30,
+            "stopEventOnIdle": false
+        ])
+    }
+
     var body: some Scene {
         WindowGroup("") {
             ContentView()

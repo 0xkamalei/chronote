@@ -4,110 +4,174 @@ struct SettingsView: View {
     private enum Tab: String, CaseIterable, Identifiable {
         case general = "General"
         case tracking = "Tracking"
-        
+
         var id: String { rawValue }
     }
-    
+
     @State private var selectedTab: Tab? = .general
-    
+
     var body: some View {
-        NavigationSplitView {
-            List(Tab.allCases, selection: $selectedTab) { tab in
-                NavigationLink(value: tab) {
-                    Label(tab.rawValue, systemImage: icon(for: tab))
+        HSplitView {
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(Tab.allCases) { tab in
+                    Button {
+                        selectedTab = tab
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: icon(for: tab))
+                                .frame(width: 16)
+                            Text(tab.rawValue)
+                                .font(.system(size: 15, weight: .semibold))
+                            Spacer()
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                                .fill(selectedTab == tab ? Color.accentColor : Color.clear)
+                        )
+                        .foregroundStyle(selectedTab == tab ? .white : .primary)
+                        .contentShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                }
+                Spacer()
+            }
+            .padding(10)
+            .background(Color(nsColor: .controlBackgroundColor))
+            .frame(minWidth: 150, idealWidth: 180, maxWidth: 200)
+
+            ZStack {
+                Color(nsColor: .windowBackgroundColor)
+                    .ignoresSafeArea()
+
+                switch selectedTab {
+                case .general:
+                    GeneralSettingsView()
+                case .tracking:
+                    TrackingSettingsView()
+                case nil:
+                    ContentUnavailableView("Select a setting", systemImage: "gearshape.2")
                 }
             }
-            .listStyle(.sidebar)
-            .navigationSplitViewColumnWidth(min: 150, ideal: 180, max: 200)
-        } detail: {
-            switch selectedTab {
-            case .general:
-                GeneralSettingsView()
-            case .tracking:
-                TrackingSettingsView()
-                    .padding()
-            case nil:
-                Text("Select a setting")
-            }
+            .frame(minWidth: 600)
         }
-        .frame(width: 750, height: 450)
+        .frame(width: 860, height: 560)
     }
-    
+
     private func icon(for tab: Tab) -> String {
         switch tab {
-        case .general: return "gearshape"
-        case .tracking: return "timer"
+        case .general:
+            return "gearshape"
+        case .tracking:
+            return "timer"
         }
     }
 }
 
 struct GeneralSettingsView: View {
-    @AppStorage("appTheme") private var appTheme: AppTheme = .system
-    @AppStorage("timelineMergeStatisticsEnabled") private var mergeEnabled = false
+    @AppStorage("timelineMergeStatisticsEnabled") private var mergeEnabled = true
     @AppStorage("timelineMergeIntervalMinutes") private var mergeIntervalMinutes = 30
-    
+
     @State private var launchManager = LaunchAtLoginManager.shared
-    
+    @State private var cliStatus: CLIInstallStatus = .unknown
+    @State private var cliMessage: String?
+    @State private var checkingCLI = false
+
     var body: some View {
-        Form {
-            Section {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(spacing: 20) {
-                        ThemePreviewButton(theme: .light, selectedTheme: $appTheme)
-                        ThemePreviewButton(theme: .dark, selectedTheme: $appTheme)
-                        ThemePreviewButton(theme: .system, selectedTheme: $appTheme)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("General")
+                    .font(.system(size: 30, weight: .bold))
+                    .padding(.top, 4)
+
+                SettingCard(title: "Timeline", systemImage: "timeline.selection") {
+                    Toggle(isOn: $mergeEnabled) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Merge Fragmented Activities")
+                            Text("Combine short activities within a time range into a continuous block.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
-                    .padding(.vertical, 4)
-                    
-                    Text("Select the color scheme for the application. System follows your macOS settings.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            } header: {
-                Text("Appearance")
-            }
-            
-            Section {
-                Toggle(isOn: $mergeEnabled) {
-                    VStack(alignment: .leading) {
-                        Text("Merge Fragmented Activities")
-                        Text("Combine short activities within a time range into a continuous block.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
-                if mergeEnabled {
-                    Stepper(value: $mergeIntervalMinutes, in: 10...1440, step: 10) {
-                        HStack {
-                            Text("Merge Interval")
-                            Spacer()
-                            Text(formatInterval(mergeIntervalMinutes))
-                                .foregroundColor(.secondary)
+
+                    if mergeEnabled {
+                        Divider()
+                        Stepper(value: $mergeIntervalMinutes, in: 10...1440, step: 10) {
+                            HStack {
+                                Text("Merge Interval")
+                                Spacer()
+                                Text(formatInterval(mergeIntervalMinutes))
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }
-            } header: {
-                Text("Timeline")
-            }
-            
-            Section {
-                Toggle(isOn: Bindable(launchManager).isEnabled) {
-                    VStack(alignment: .leading) {
-                        Text("Launch at login")
-                        Text("Automatically start Time Tracker when you log in")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+
+                SettingCard(title: "Startup", systemImage: "power.circle") {
+                    Toggle(isOn: Bindable(launchManager).isEnabled) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Launch at login")
+                            Text("Automatically start Chronote when you log in.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
-            } header: {
-                Text("Startup")
+
+                SettingCard(title: "chronote-cli", systemImage: "terminal") {
+                    HStack(alignment: .top, spacing: 12) {
+                        statusDot
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(cliStatus.title)
+                                .font(.subheadline.weight(.semibold))
+                            Text(cliStatus.description)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                    }
+
+                    if let cliMessage {
+                        Text(cliMessage)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 4)
+                    }
+
+                    HStack(spacing: 10) {
+                        if cliStatus == .notInstalled {
+                            Button("Install") {
+                                installCLI()
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(checkingCLI || CLIPathInstaller.embeddedCLIURL() == nil)
+                        }
+
+                        Button {
+                            checkCLIStatus()
+                        } label: {
+                            HStack(spacing: 6) {
+                                if checkingCLI {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                }
+                                Text("Check Availability")
+                            }
+                        }
+                        .disabled(checkingCLI)
+                    }
+                }
             }
+            .padding(20)
         }
-        .formStyle(.grouped)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .onAppear {
+            launchManager.refreshStatus()
+            checkCLIStatus()
+        }
     }
-    
+
     private func formatInterval(_ minutes: Int) -> String {
         if minutes < 60 {
             return "\(minutes) min"
@@ -116,174 +180,97 @@ struct GeneralSettingsView: View {
             return String(format: "%.1f hours", hours)
         }
     }
-}
 
-struct AppearanceSettingsView: View {
-    @AppStorage("appTheme") private var appTheme: AppTheme = .system
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Appearance")
-                .font(.headline)
-            
-            HStack(spacing: 20) {
-                ThemePreviewButton(theme: .light, selectedTheme: $appTheme)
-                ThemePreviewButton(theme: .dark, selectedTheme: $appTheme)
-                ThemePreviewButton(theme: .system, selectedTheme: $appTheme)
-            }
-            
-            Text("Select the color scheme for the application. System follows your macOS settings.")
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            
-            Spacer()
-        }
-        .padding()
-    }
-}
+    private func checkCLIStatus() {
+        checkingCLI = true
+        cliMessage = nil
+        defer { checkingCLI = false }
 
-struct ThemePreviewButton: View {
-    let theme: AppTheme
-    @Binding var selectedTheme: AppTheme
-    
-    var isSelected: Bool {
-        selectedTheme == theme
-    }
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            ZStack {
-                // Background
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(backgroundColor)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                    )
-                
-                // Content Representation
-                GeometryReader { geo in
-                    HStack(spacing: 0) {
-                        // Sidebar
-                        Rectangle()
-                            .fill(sidebarColor)
-                            .frame(width: geo.size.width * 0.3)
-                        
-                        // Main Content
-                        VStack(spacing: 4) {
-                            // Header
-                            Rectangle()
-                                .fill(headerColor)
-                                .frame(height: 10)
-                                .padding(.top, 6)
-                                .padding(.horizontal, 6)
-                            
-                            // Lines
-                            VStack(spacing: 3) {
-                                RoundedRectangle(cornerRadius: 1)
-                                    .fill(contentColor)
-                                    .frame(height: 2)
-                                RoundedRectangle(cornerRadius: 1)
-                                    .fill(contentColor)
-                                    .frame(height: 2)
-                                RoundedRectangle(cornerRadius: 1)
-                                    .fill(contentColor.opacity(0.6))
-                                    .frame(height: 2)
-                                    .padding(.trailing, 10)
-                            }
-                            .padding(.horizontal, 6)
-                            
-                            Spacer()
-                        }
-                    }
-                }
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-                
-                // Selection Ring
-                if isSelected {
-                    RoundedRectangle(cornerRadius: 9)
-                        .stroke(Color.accentColor, lineWidth: 3)
-                        .frame(width: 74, height: 54) // Slightly larger than the preview
-                }
-                
-                // System split effect
-                if theme == .system {
-                    GeometryReader { geo in
-                        Path { path in
-                            path.move(to: CGPoint(x: 0, y: geo.size.height))
-                            path.addLine(to: CGPoint(x: geo.size.width, y: 0))
-                            path.addLine(to: CGPoint(x: geo.size.width, y: geo.size.height))
-                            path.closeSubpath()
-                        }
-                        .fill(Color.black.opacity(0.1)) // Subtle darkening for the "dark" half
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                }
-            }
-            .frame(width: 68, height: 48)
-            .onTapGesture {
-                selectedTheme = theme
-            }
-            
-            Text(theme.rawValue)
-                .font(.subheadline)
-                .foregroundColor(isSelected ? .primary : .secondary)
+        if let resolvedPath = CLIPathInstaller.resolvedCLIPath() {
+            cliStatus = .installed
+            cliMessage = "Found at: \(resolvedPath)"
+        } else {
+            cliStatus = .notInstalled
+            cliMessage = "chronote-cli is not detected in this app environment."
         }
     }
-    
-    // MARK: - Color Helpers
-    
-    private var backgroundColor: Color {
-        switch theme {
-        case .light: return Color(white: 0.95)
-        case .dark: return Color(white: 0.25)
-        case .system: return Color(white: 0.95)
+
+    private func installCLI() {
+        do {
+            try CLIPathInstaller.installSymlinkToPath()
+            cliMessage = "Installed successfully."
+            checkCLIStatus()
+        } catch {
+            cliMessage = error.localizedDescription
         }
     }
-    
-    private var sidebarColor: Color {
-        switch theme {
-        case .light: return Color(white: 0.9)
-        case .dark: return Color(white: 0.2)
-        case .system: return Color(white: 0.9)
-        }
-    }
-    
-    private var headerColor: Color {
-        switch theme {
-        case .light: return Color(white: 0.85)
-        case .dark: return Color(white: 0.3)
-        case .system: return Color(white: 0.85)
-        }
-    }
-    
-    private var contentColor: Color {
-        switch theme {
-        case .light: return Color(white: 0.8)
-        case .dark: return Color(white: 0.4)
-        case .system: return Color(white: 0.8)
-        }
+
+    private var statusDot: some View {
+        Circle()
+            .fill(cliStatus.color)
+            .frame(width: 10, height: 10)
+            .padding(.top, 5)
     }
 }
 
-
-
-
-
-struct PlaceholderSettingsView: View {
+struct SettingCard<Content: View>: View {
     let title: String
-    let icon: String
-    
+    let systemImage: String
+    @ViewBuilder let content: Content
+
     var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: icon)
-                .font(.system(size: 48))
-                .foregroundColor(.secondary)
-            Text("\(title) Settings")
-                .font(.title2)
-            Text("This feature is coming soon.")
-                .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 12) {
+            Label(title, systemImage: systemImage)
+                .font(.headline)
+            content
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor).opacity(0.9))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Color(nsColor: .separatorColor).opacity(0.35), lineWidth: 1)
+                )
+        )
+    }
+}
+
+private enum CLIInstallStatus {
+    case unknown
+    case installed
+    case notInstalled
+
+    var title: String {
+        switch self {
+        case .unknown:
+            return "Not Checked"
+        case .installed:
+            return "Installed"
+        case .notInstalled:
+            return "Not Installed"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .unknown:
+            return "Click check to verify whether chronote-cli is available."
+        case .installed:
+            return "chronote-cli is available."
+        case .notInstalled:
+            return "chronote-cli is not available."
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .unknown:
+            return .secondary
+        case .installed:
+            return .green
+        case .notInstalled:
+            return .orange
         }
     }
 }
