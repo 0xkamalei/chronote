@@ -6,6 +6,7 @@ PROJECT_NAME="chronote.xcodeproj"
 SCHEME="chronote"
 BUILD_DIR="build_output"
 STAGING_DIR="dmg_staging"
+CLI_OUT_DIR="build/cli-dist"
 
 # Function to increment build number
 increment_build_number() {
@@ -67,6 +68,11 @@ build_for_architecture() {
     rm -rf "$STAGING"
     mkdir -p "$STAGING"
     cp -R "$APP_PATH" "$STAGING/"
+    if [ "$ARCH_NAME" = "ARM64" ] && [ -f "$CLI_OUT_DIR/chronote-cli-arm64" ]; then
+        cp "$CLI_OUT_DIR/chronote-cli-arm64" "$STAGING/chronote-cli"
+    elif [ "$ARCH_NAME" = "x86_64" ] && [ -f "$CLI_OUT_DIR/chronote-cli-x86_64" ]; then
+        cp "$CLI_OUT_DIR/chronote-cli-x86_64" "$STAGING/chronote-cli"
+    fi
     ln -s /Applications "$STAGING/Applications"
     
     # Create DMG with architecture-specific name
@@ -133,6 +139,9 @@ build_universal() {
     rm -rf "$STAGING"
     mkdir -p "$STAGING"
     cp -R "$APP_PATH" "$STAGING/"
+    if [ -f "$CLI_OUT_DIR/chronote-cli" ]; then
+        cp "$CLI_OUT_DIR/chronote-cli" "$STAGING/chronote-cli"
+    fi
     ln -s /Applications "$STAGING/Applications"
     
     # Create DMG
@@ -167,6 +176,9 @@ increment_build_number
 # Clean old DMG files
 echo "Cleaning old DMG files..."
 rm -f Chronote-*.dmg
+
+echo "Building standalone chronote-cli binaries..."
+./scripts/build-chronote-cli.sh "$CLI_OUT_DIR"
 
 # Build all three versions
 FAILED=0

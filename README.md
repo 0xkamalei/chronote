@@ -47,6 +47,38 @@ TimeTrace 需要以下系统权限才能正常工作：
 
 - **辅助功能权限** - 用于读取窗口标题以实现智能分类
 
+### 🤖 Agent CLI（独立可执行文件）
+
+长期产品化方案使用独立 CLI 可执行文件 `chronote-cli`（不耦合 GUI 生命周期）。
+可先构建：
+
+```bash
+./scripts/build-chronote-cli.sh
+```
+
+产物在：
+
+```bash
+build/cli-dist/chronote-cli
+```
+
+```bash
+# 帮助
+./build/cli-dist/chronote-cli help
+
+# 当日汇总
+./build/cli-dist/chronote-cli summary --date 2026-02-13 --pretty
+
+# 活动明细
+./build/cli-dist/chronote-cli activities --start 2026-02-13T00:00:00+08:00 --end 2026-02-14T00:00:00+08:00 --limit 300 --pretty
+
+# 项目列表
+./build/cli-dist/chronote-cli projects --pretty
+
+# 手动 Event 列表
+./build/cli-dist/chronote-cli events --limit 200 --pretty
+```
+
 ### 📄 许可证
 
 MIT License - 自由使用、修改和分发
@@ -95,6 +127,38 @@ open time.xcodeproj
 TimeTrace requires the following system permissions to function properly:
 
 - **Accessibility Permission** - Required to read window titles for smart classification
+
+### 🤖 Agent CLI (Standalone Executable)
+
+For long-term productization, use the standalone `chronote-cli` binary.
+Build it with:
+
+```bash
+./scripts/build-chronote-cli.sh
+```
+
+Output:
+
+```bash
+build/cli-dist/chronote-cli
+```
+
+```bash
+# Help
+./build/cli-dist/chronote-cli help
+
+# Daily summary
+./build/cli-dist/chronote-cli summary --date 2026-02-13 --pretty
+
+# Activity records
+./build/cli-dist/chronote-cli activities --start 2026-02-13T00:00:00+08:00 --end 2026-02-14T00:00:00+08:00 --limit 300 --pretty
+
+# Projects
+./build/cli-dist/chronote-cli projects --pretty
+
+# Manual events
+./build/cli-dist/chronote-cli events --limit 200 --pretty
+```
 
 ### 📄 License
 

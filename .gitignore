@@ -37,3 +37,5 @@ TestResult.xcresult/
 
 build_output_*/
 docs/
+
+cli/.build/
