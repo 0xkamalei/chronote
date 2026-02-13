@@ -5,6 +5,8 @@ struct TimelineView: View {
     var activities: [ActivitySnapshot]
     var events: [Event]
     @Query(sort: \Project.name) private var projects: [Project]
+    @AppStorage("timelineMergeStatisticsEnabled") private var mergeEnabled = true
+    @AppStorage("timelineMergeIntervalMinutes") private var mergeIntervalMinutes = 30
     
     // Controlled from outside
     @Binding var visibleTimeRange: ClosedRange<Date>
@@ -335,6 +337,12 @@ struct TimelineView: View {
             .onChange(of: visibleTimeRange) { _, _ in
                 scheduleRecalculate(width: width)
             }
+            .onChange(of: mergeEnabled) { _, _ in
+                scheduleRecalculate(width: width, debounceNanoseconds: 0)
+            }
+            .onChange(of: mergeIntervalMinutes) { _, _ in
+                scheduleRecalculate(width: width, debounceNanoseconds: 0)
+            }
             .onAppear {
                 // 初次出现时，自动检测活跃时间范围
                 let smartRange = TimelineSmartRangeDetector.detectActiveTimeRange(from: activities)
@@ -369,7 +377,9 @@ struct TimelineView: View {
                 events: events,
                 visibleTimeRange: visibleTimeRange,
                 canvasWidth: width,
-                eventBlockHeight: eventTrackHeight
+                eventBlockHeight: eventTrackHeight,
+                mergeEnabled: mergeEnabled,
+                mergeInterval: TimeInterval(max(1, mergeIntervalMinutes)) * 60
             )
             guard !Task.isCancelled else { return }
 

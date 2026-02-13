@@ -6,66 +6,57 @@ struct SettingsView: View {
         case tracking = "Tracking"
 
         var id: String { rawValue }
+
+        var icon: String {
+            switch self {
+            case .general: return "gearshape"
+            case .tracking: return "timer"
+            }
+        }
     }
 
-    @State private var selectedTab: Tab? = .general
+    @State private var selectedTab: Tab = .general
 
     var body: some View {
-        HSplitView {
-            VStack(alignment: .leading, spacing: 6) {
+        HStack(spacing: 0) {
+            // Sidebar
+            VStack(alignment: .leading, spacing: 2) {
                 ForEach(Tab.allCases) { tab in
                     Button {
                         selectedTab = tab
                     } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: icon(for: tab))
-                                .frame(width: 16)
-                            Text(tab.rawValue)
-                                .font(.system(size: 15, weight: .semibold))
-                            Spacer()
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .background(
-                            RoundedRectangle(cornerRadius: 11, style: .continuous)
-                                .fill(selectedTab == tab ? Color.accentColor : Color.clear)
-                        )
-                        .foregroundStyle(selectedTab == tab ? .white : .primary)
-                        .contentShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+                        Label(tab.rawValue, systemImage: tab.icon)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                    .fill(selectedTab == tab ? Color.accentColor.opacity(0.2) : Color.clear)
+                            )
+                            .foregroundStyle(selectedTab == tab ? .primary : .secondary)
                     }
                     .buttonStyle(.plain)
                 }
                 Spacer()
             }
-            .padding(10)
-            .background(Color(nsColor: .controlBackgroundColor))
-            .frame(minWidth: 150, idealWidth: 180, maxWidth: 200)
+            .padding(12)
+            .frame(width: 180)
+            .background(Color(nsColor: .windowBackgroundColor))
 
-            ZStack {
-                Color(nsColor: .windowBackgroundColor)
-                    .ignoresSafeArea()
+            Divider()
 
+            // Detail
+            Group {
                 switch selectedTab {
                 case .general:
                     GeneralSettingsView()
                 case .tracking:
                     TrackingSettingsView()
-                case nil:
-                    ContentUnavailableView("Select a setting", systemImage: "gearshape.2")
                 }
             }
-            .frame(minWidth: 600)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(width: 860, height: 560)
-    }
-
-    private func icon(for tab: Tab) -> String {
-        switch tab {
-        case .general:
-            return "gearshape"
-        case .tracking:
-            return "timer"
-        }
     }
 }
 
@@ -102,10 +93,9 @@ struct GeneralSettingsView: View {
                             title: "Merge Interval",
                             detail1: "Activities with short gaps inside this interval will be merged into one block.",
                             detail2: "Applies to timeline statistics and grouped activity views.",
-                            valueText: formatInterval(mergeIntervalMinutes),
                             value: $mergeIntervalMinutes,
                             range: 10...1440,
-                            step: 10
+                            unitText: "min"
                         )
                     }
                 }
@@ -115,10 +105,9 @@ struct GeneralSettingsView: View {
                         title: "Deep Focus Minimum Duration",
                         detail1: "Sessions at or above this duration (with low switches) are classified as Deep Focus.",
                         detail2: "Changes apply to newly generated day insights.",
-                        valueText: "\(deepFocusMinMinutes) min",
                         value: $deepFocusMinMinutes,
                         range: 5...120,
-                        step: 5
+                        unitText: "min"
                     )
                 }
 
@@ -159,7 +148,7 @@ struct GeneralSettingsView: View {
                                 installCLI()
                             }
                             .buttonStyle(.borderedProminent)
-                            .disabled(checkingCLI || CLIPathInstaller.embeddedCLIURL() == nil)
+                            .disabled(checkingCLI)
                         }
 
                         Button {
@@ -186,36 +175,43 @@ struct GeneralSettingsView: View {
         }
     }
 
-    private func formatInterval(_ minutes: Int) -> String {
-        if minutes < 60 {
-            return "\(minutes) min"
-        } else {
-            let hours = Double(minutes) / 60.0
-            return String(format: "%.1f hours", hours)
-        }
-    }
-
     private func checkCLIStatus() {
         checkingCLI = true
         cliMessage = nil
-        defer { checkingCLI = false }
 
-        if let resolvedPath = CLIPathInstaller.resolvedCLIPath() {
-            cliStatus = .installed
-            cliMessage = "Found at: \(resolvedPath)"
-        } else {
-            cliStatus = .notInstalled
-            cliMessage = "chronote-cli is not detected in this app environment."
+        Task {
+            let resolvedPath = CLIPathInstaller.resolvedCLIPath()
+
+            await MainActor.run {
+                if let resolvedPath {
+                    cliStatus = .installed
+                    cliMessage = "Found at: \(resolvedPath)"
+                } else {
+                    cliStatus = .notInstalled
+                    cliMessage = "chronote-cli is not detected in this app environment."
+                }
+                checkingCLI = false
+            }
         }
     }
 
     private func installCLI() {
-        do {
-            try CLIPathInstaller.installSymlinkToPath()
-            cliMessage = "Installed successfully."
-            checkCLIStatus()
-        } catch {
-            cliMessage = error.localizedDescription
+        guard let command = CLIPathInstaller.manualInstallCommandForEmbeddedCLI() else {
+            cliMessage = "Embedded CLI not found in app bundle."
+            return
+        }
+        
+        let alert = NSAlert()
+        alert.messageText = "Install chronote-cli"
+        alert.informativeText = "Please run this command in Terminal:\n\n\(command)"
+        alert.addButton(withTitle: "Copy Command")
+        alert.addButton(withTitle: "OK")
+        alert.alertStyle = .informational
+        
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(command, forType: .string)
         }
     }
 
@@ -227,14 +223,16 @@ struct GeneralSettingsView: View {
     }
 }
 
+
 private struct DurationSettingRow: View {
     let title: String
     let detail1: String
     let detail2: String
-    let valueText: String
     @Binding var value: Int
     let range: ClosedRange<Int>
-    let step: Int
+    let unitText: String
+    @State private var draftValue: String = ""
+    @FocusState private var isEditingValue: Bool
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
@@ -249,14 +247,53 @@ private struct DurationSettingRow: View {
             }
             Spacer(minLength: 12)
             HStack(spacing: 10) {
-                Text(valueText)
-                    .foregroundStyle(.secondary)
+                TextField("min", text: $draftValue)
+                    .frame(width: 72)
+                    .multilineTextAlignment(.trailing)
                     .monospacedDigit()
-                    .frame(width: 78, alignment: .trailing)
-                Stepper("", value: $value, in: range, step: step)
-                    .labelsHidden()
+                    .textFieldStyle(.roundedBorder)
+                    .focused($isEditingValue)
+                    .onSubmit {
+                        commitDraft()
+                    }
+                    .onChange(of: isEditingValue) { _, focused in
+                        if !focused {
+                            commitDraft()
+                        }
+                    }
+                Text(unitText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
+        .onAppear {
+            syncDraftFromValue()
+        }
+        .onChange(of: value) { _, _ in
+            if !isEditingValue {
+                syncDraftFromValue()
+            }
+        }
+    }
+
+    private func syncDraftFromValue() {
+        draftValue = "\(value)"
+    }
+
+    private func commitDraft() {
+        let trimmed = draftValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            syncDraftFromValue()
+            return
+        }
+
+        guard let parsed = Int(trimmed) else {
+            syncDraftFromValue()
+            return
+        }
+
+        value = max(range.lowerBound, min(parsed, range.upperBound))
+        syncDraftFromValue()
     }
 }
 
