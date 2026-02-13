@@ -13,21 +13,20 @@ struct DateNavigatorView: View {
         if let preset = selectedPreset {
             return preset.rawValue
         }
-        
-        let startOfSelectedDay = calendar.startOfDay(for: selectedDateRange.startDate)
-        let endOfSelectedDay = calendar.date(byAdding: .day, value: 1, to: startOfSelectedDay)!
-        
-        if calendar.isDate(selectedDateRange.endDate, equalTo: endOfSelectedDay, toGranularity: .minute) ||
-           calendar.isDate(selectedDateRange.startDate, inSameDayAs: selectedDateRange.endDate) {
+
+        let displayStartDate = selectedDateRange.displayStartDate(calendar: calendar)
+        let displayEndDate = selectedDateRange.displayEndDate(calendar: calendar)
+
+        if selectedDateRange.isSingleDay {
             let formatter = DateFormatter()
             formatter.dateFormat = "M月d日"
-            return formatter.string(from: selectedDateRange.startDate)
+            return formatter.string(from: displayStartDate)
         }
         
         let formatter = DateFormatter()
         formatter.dateFormat = "M/d"
-        let startString = formatter.string(from: selectedDateRange.startDate)
-        let endString = formatter.string(from: selectedDateRange.endDate)
+        let startString = formatter.string(from: displayStartDate)
+        let endString = formatter.string(from: displayEndDate)
         return "\(startString) - \(endString)"
     }
 
@@ -85,10 +84,9 @@ struct DateNavigatorView: View {
 
     private func adjustDateRange(by value: Int) {
         let calendar = Calendar.current
+        let currentRange = selectedDateRange.toDateInterval(calendar: calendar)
         let component: Calendar.Component
         var amount = value
-
-        let referenceDate = selectedDateRange.startDate
 
         if let preset = selectedPreset {
             switch preset {
@@ -104,60 +102,34 @@ struct DateNavigatorView: View {
             case .thisYear:
                 component = .year
             default: // For "Past X Days"
-                let dayCount = calendar.dateComponents([.day], from: selectedDateRange.startDate, to: selectedDateRange.endDate).day ?? 0
                 component = .day
-                amount *= (dayCount + 1)
+                amount *= selectedDateRange.displayedDayCount
             }
         } else {
-            let startOfDay = calendar.startOfDay(for: selectedDateRange.startDate)
-            let endOfDayRange = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
-            
-            if calendar.isDate(selectedDateRange.endDate, equalTo: endOfDayRange, toGranularity: .minute) {
-                component = .day
-            } else {
-                let dayDifference = calendar.dateComponents([.day], from: selectedDateRange.startDate, to: selectedDateRange.endDate).day ?? 0
-                component = .day
-                amount *= (dayDifference + 1)
-            }
+            component = .day
+            amount *= selectedDateRange.displayedDayCount
         }
 
-        if let newStartDate = calendar.date(byAdding: component, value: amount, to: referenceDate) {
-            let newEndDate: Date
-            if let preset = selectedPreset, preset.isFixedDuration {
-                let duration = calendar.dateComponents([.day], from: selectedDateRange.startDate, to: selectedDateRange.endDate)
-                newEndDate = calendar.date(byAdding: duration, to: newStartDate)!
-            } else if selectedPreset == nil {
-                let duration = calendar.dateComponents([.day], from: selectedDateRange.startDate, to: selectedDateRange.endDate)
-                newEndDate = calendar.date(byAdding: duration, to: newStartDate)!
-            } else {
-                newEndDate = Date()
-            }
-            let newRange = AppDateRange(startDate: newStartDate, endDate: newEndDate)
-            selectedDateRange = newRange
-            
-            let targetPresets: [AppDateRangePreset] = [.today, .yesterday]
-            if let matched = targetPresets.first(where: { preset in
-                let presetRange = preset.dateRange
-                return abs(presetRange.startDate.timeIntervalSince(newRange.startDate)) < 1 &&
-                       abs(presetRange.endDate.timeIntervalSince(newRange.endDate)) < 1
-            }) {
-                selectedPreset = matched
-            } else {
-                selectedPreset = nil
-            }
+        guard
+            let newStartDate = calendar.date(byAdding: component, value: amount, to: currentRange.start),
+            let newEndDate = calendar.date(byAdding: component, value: amount, to: currentRange.end)
+        else {
+            selectedPreset = nil
+            return
+        }
+
+        let newRange = AppDateRange(startDate: newStartDate, endDate: newEndDate)
+        selectedDateRange = newRange
+        
+        let targetPresets: [AppDateRangePreset] = [.today, .yesterday]
+        if let matched = targetPresets.first(where: { preset in
+            let presetRange = preset.dateRange
+            return abs(presetRange.startDate.timeIntervalSince(newRange.startDate)) < 1 &&
+                   abs(presetRange.endDate.timeIntervalSince(newRange.endDate)) < 1
+        }) {
+            selectedPreset = matched
         } else {
             selectedPreset = nil
-        }
-    }
-}
-
-extension AppDateRangePreset {
-    var isFixedDuration: Bool {
-        switch self {
-        case .past7Days, .past15Days, .past30Days, .past90Days, .past365Days, .lastWeek, .lastMonth, .today, .yesterday:
-            return true
-        default:
-            return false
         }
     }
 }

@@ -58,14 +58,15 @@ struct ContentView: View {
     private var detailView: some View {
         // Route to Insight view if selected
         if appState.selectedSidebar == "Day Insight" {
-            InsightView(date: selectedDateRange.startDate)
+            InsightView(selectedDateRange: selectedDateRange)
         } else {
             // Original activities view
             VStack(spacing: 0) {
                 // Timeline Visualization
                 if !activityQueryManager.activities.isEmpty {
-                    let start = min(selectedDateRange.startDate, selectedDateRange.endDate)
-                    let end = max(selectedDateRange.startDate, selectedDateRange.endDate)
+                    let interval = selectedDateRange.toDateInterval()
+                    let start = interval.start
+                    let end = interval.end
                     
                     TimelineView(
                         activities: activityQueryManager.activities,
@@ -126,9 +127,9 @@ struct ContentView: View {
             activityQueryManager.setModelContext(modelContext)
             
             // Sync initial date range
-            let start = min(selectedDateRange.startDate, selectedDateRange.endDate)
-            let end = max(selectedDateRange.startDate, selectedDateRange.endDate)
-            let initialInterval = DateInterval(start: start, end: end)
+            let initialInterval = selectedDateRange.toDateInterval()
+            let start = initialInterval.start
+            let end = initialInterval.end
             activityQueryManager.setDateRange(initialInterval)
             timelineVisibleRange = start...end
             filterDateRange = start...end
@@ -161,10 +162,9 @@ struct ContentView: View {
             Logger.ui.info("Sidebar selection changed to: \(newSidebar ?? "None", privacy: .public)")
         }
         .onChange(of: selectedDateRange) { _, newDateRange in
-            // Ensure start date is before or equal to end date to avoid DateInterval crash
-            let start = min(newDateRange.startDate, newDateRange.endDate)
-            let end = max(newDateRange.startDate, newDateRange.endDate)
-            let dateInterval = DateInterval(start: start, end: end)
+            let dateInterval = newDateRange.toDateInterval()
+            let start = dateInterval.start
+            let end = dateInterval.end
             activityQueryManager.setDateRange(dateInterval)
             // Reset timeline zoom when global range changes
             timelineVisibleRange = start...end

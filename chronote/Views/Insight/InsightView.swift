@@ -4,7 +4,7 @@ import os
 
 /// Main view for displaying daily insights and analysis
 struct InsightView: View {
-    let date: Date
+    let selectedDateRange: AppDateRange
     
     @Environment(\.modelContext) private var modelContext
     @StateObject private var analysisManager = AnalysisManager.shared
@@ -18,11 +18,15 @@ struct InsightView: View {
     @State private var errorMessage: String?
     
     private let logger = Logger(subsystem: "dev.leix.chronote", category: "InsightView")
+    private var selectedDate: Date { selectedDateRange.displayStartDate() }
+    private var supportsCurrentSelection: Bool { selectedDateRange.isSingleDay }
     
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                if isLoading {
+                if !supportsCurrentSelection {
+                    multiDayNotSupportedView
+                } else if isLoading {
                     ProgressView("Analyzing your day...")
                         .padding()
                 } else if let error = errorMessage {
@@ -40,7 +44,7 @@ struct InsightView: View {
 
                     if !sessions.isEmpty {
                         BehaviorTimelineView(
-                            date: date,
+                            date: selectedDate,
                             sessions: sessions,
                             blocks: behavioralBlocks,
                             activities: dayActivities
@@ -62,13 +66,8 @@ struct InsightView: View {
             .padding(.bottom, 24)
         }
         .frame(minWidth: 600, minHeight: 400)
-        .task {
-            await loadInsight()
-        }
-        .onChange(of: date) { _, _ in
-            Task {
-                await loadInsight()
-            }
+        .task(id: selectedDateRange) {
+            await loadInsightForSelection()
         }
     }
     
@@ -107,15 +106,50 @@ struct InsightView: View {
             
             Button("Try Again") {
                 Task {
-                    await loadInsight()
+                    await loadInsightForSelection()
                 }
             }
             .buttonStyle(.borderedProminent)
         }
         .padding(40)
     }
+
+    private var multiDayNotSupportedView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "info.circle")
+                .font(.system(size: 48))
+                .foregroundStyle(.blue)
+
+            Text("Day Insight supports a single day only")
+                .font(.title2)
+                .fontWeight(.semibold)
+
+            Text("Current selection is \(selectionText). Please select one day in the date picker to view Day Insight.")
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(40)
+    }
     
-    private func loadInsight() async {
+    private func loadInsightForSelection() async {
+        guard supportsCurrentSelection else {
+            await MainActor.run {
+                isLoading = false
+                errorMessage = nil
+                insight = nil
+                timeStructure = nil
+                behavioralBlocks = []
+                sessions = []
+                dayActivities = []
+            }
+            return
+        }
+
+        await loadInsight(for: selectedDate)
+    }
+
+    private func loadInsight(for date: Date) async {
         isLoading = true
         errorMessage = nil
         
@@ -139,6 +173,21 @@ struct InsightView: View {
             }
             
             logger.info("Loaded insight for \(date)")
+        } catch let analysisError as AnalysisError {
+            await MainActor.run {
+                if case .noActivities = analysisError {
+                    insight = nil
+                    timeStructure = nil
+                    behavioralBlocks = []
+                    sessions = []
+                    dayActivities = []
+                    errorMessage = nil
+                } else {
+                    errorMessage = analysisError.localizedDescription
+                }
+                isLoading = false
+            }
+            logger.error("Failed to load insight: \(analysisError.localizedDescription)")
         } catch {
             await MainActor.run {
                 errorMessage = error.localizedDescription
@@ -174,9 +223,17 @@ struct InsightView: View {
         
         return comparisons
     }
+
+    private var selectionText: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy/MM/dd"
+        let start = formatter.string(from: selectedDateRange.displayStartDate())
+        let end = formatter.string(from: selectedDateRange.displayEndDate())
+        return "\(start) - \(end)"
+    }
 }
 
 #Preview {
-    InsightView(date: Date())
+    InsightView(selectedDateRange: AppDateRangePreset.today.dateRange)
         .modelContainer(for: [Activity.self, Session.self, BehavioralBlock.self, TimeStructure.self, DailyInsight.self])
 }
