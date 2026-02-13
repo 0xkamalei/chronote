@@ -13,6 +13,7 @@ struct ActivityContext: Equatable {
     }
 }
 
+@MainActor
 class WindowMonitor {
     static let shared = WindowMonitor()
     
@@ -80,7 +81,7 @@ class WindowMonitor {
 
     /// Requests accessibility permissions and may trigger the system prompt.
     func requestAccessibilityPermissions() -> Bool {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
+        let options = ["AXTrustedCheckOptionPrompt": true]
         return AXIsProcessTrustedWithOptions(options as CFDictionary)
     }
 

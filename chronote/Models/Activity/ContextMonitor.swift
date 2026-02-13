@@ -5,6 +5,7 @@ protocol ContextMonitorDelegate: AnyObject {
     func didDetectContextChange(context: ActivityContext, startTime: Date)
 }
 
+@MainActor
 class ContextMonitor {
     weak var delegate: ContextMonitorDelegate?
     

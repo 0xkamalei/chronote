@@ -1,19 +1,20 @@
 import SwiftUI
 import AppKit
 
+@MainActor
 struct TimelineInteractionOverlay: NSViewRepresentable {
     @Binding var visibleTimeRange: ClosedRange<Date>
     var totalTimeRange: ClosedRange<Date>
     var totalWidth: CGFloat
     
     // Hit-Testing Callback
-    var onHover: ((CGPoint) -> Void)?
-    var onHoverEnd: (() -> Void)?
-    var onClick: ((CGPoint) -> Void)?
-    var onDoubleClick: ((CGPoint) -> Void)?
+    var onHover: (@MainActor (CGPoint) -> Void)?
+    var onHoverEnd: (@MainActor () -> Void)?
+    var onClick: (@MainActor (CGPoint) -> Void)?
+    var onDoubleClick: (@MainActor (CGPoint) -> Void)?
     
     // Drag Selection Callback (start, end, y)
-    var onDragEnd: ((CGFloat, CGFloat, CGFloat) -> Void)?
+    var onDragEnd: (@MainActor (CGFloat, CGFloat, CGFloat) -> Void)?
     
     func makeNSView(context: Context) -> NSView {
         let view = InteractionView()
@@ -71,6 +72,7 @@ struct TimelineInteractionOverlay: NSViewRepresentable {
         Coordinator(self)
     }
     
+    @MainActor
     class Coordinator: NSObject {
         var parent: TimelineInteractionOverlay
         
@@ -140,9 +142,7 @@ struct TimelineInteractionOverlay: NSViewRepresentable {
                 newStart = newEnd.addingTimeInterval(-newDuration)
             }
             
-            DispatchQueue.main.async {
-                self.parent.visibleTimeRange = newStart...newEnd
-            }
+            parent.visibleTimeRange = newStart...newEnd
         }
         
         private func applyPan(deltaX: CGFloat) {
@@ -167,21 +167,20 @@ struct TimelineInteractionOverlay: NSViewRepresentable {
                 newStart = newEnd.addingTimeInterval(-duration)
             }
             
-            DispatchQueue.main.async {
-                self.parent.visibleTimeRange = newStart...newEnd
-            }
+            parent.visibleTimeRange = newStart...newEnd
         }
     }
     
+    @MainActor
     class InteractionView: NSView {
-        var onScroll: ((NSEvent) -> Void)?
-        var onMagnify: ((NSEvent) -> Void)?
+        var onScroll: (@MainActor (NSEvent) -> Void)?
+        var onMagnify: (@MainActor (NSEvent) -> Void)?
         
         // Hover
-        var onHover: ((CGPoint) -> Void)?
-        var onHoverEnd: (() -> Void)?
-        var onClick: ((CGPoint) -> Void)?
-        var onDoubleClick: ((CGPoint) -> Void)?
+        var onHover: (@MainActor (CGPoint) -> Void)?
+        var onHoverEnd: (@MainActor () -> Void)?
+        var onClick: (@MainActor (CGPoint) -> Void)?
+        var onDoubleClick: (@MainActor (CGPoint) -> Void)?
         
         // Drag Selection UI
         private var dragStartPoint: CGPoint?
@@ -310,6 +309,6 @@ struct TimelineInteractionOverlay: NSViewRepresentable {
         }
         
         // We need a way to communicate "Zoom to X1...X2" back to SwiftUI.
-        var onZoomToRange: ((CGFloat, CGFloat, CGFloat) -> Void)?
+        var onZoomToRange: (@MainActor (CGFloat, CGFloat, CGFloat) -> Void)?
     }
 }

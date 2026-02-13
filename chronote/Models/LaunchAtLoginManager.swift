@@ -3,6 +3,7 @@ import ServiceManagement
 import Observation
 import OSLog
 
+@MainActor
 @Observable
 class LaunchAtLoginManager {
     static let shared = LaunchAtLoginManager()

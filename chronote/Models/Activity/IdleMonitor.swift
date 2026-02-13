@@ -3,6 +3,7 @@ import CoreGraphics
 import Foundation
 import os
 
+@MainActor
 class IdleMonitor: ObservableObject {
     static let shared = IdleMonitor()
     
@@ -22,7 +23,9 @@ class IdleMonitor: ObservableObject {
         if timer != nil { return }
         
         timer = Timer.scheduledTimer(withTimeInterval: checkInterval, repeats: true) { [weak self] _ in
-            self?.checkIdleStatus()
+            Task { @MainActor in
+                self?.checkIdleStatus()
+            }
         }
         
         // Listen for system wake to reset idle state
@@ -31,7 +34,9 @@ class IdleMonitor: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.handleSystemWake()
+            Task { @MainActor in
+                self?.handleSystemWake()
+            }
         }
         
         logger.info("Idle monitoring started")

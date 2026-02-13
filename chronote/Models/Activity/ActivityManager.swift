@@ -48,8 +48,12 @@ class ActivityManager: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] notification in
+            guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                  let bundleId = app.bundleIdentifier else { return }
+            let processId = app.processIdentifier
+
             Task { @MainActor in
-                self?.handleAppActivation(notification)
+                self?.handleAppActivation(bundleId: bundleId, processId: processId)
             }
         }
         notificationObservers.append(appActivationObserver)
@@ -82,8 +86,9 @@ class ActivityManager: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] notification in
+            guard let idleStartTime = notification.userInfo?["idleStartTime"] as? Date else { return }
             Task { @MainActor in
-                self?.handleUserIdle(notification)
+                self?.handleUserIdle(idleStartTime)
             }
         }
         notificationObservers.append(idleObserver)
@@ -92,9 +97,9 @@ class ActivityManager: ObservableObject {
             forName: .userDidBecomeActive,
             object: nil,
             queue: .main
-        ) { [weak self] notification in
+        ) { [weak self] _ in
             Task { @MainActor in
-                self?.handleUserActive(notification)
+                self?.handleUserActive()
             }
         }
         notificationObservers.append(activeObserver)
@@ -105,8 +110,10 @@ class ActivityManager: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] notification in
+            guard let bundleId = notification.userInfo?["bundleId"] as? String,
+                  let processId = notification.userInfo?["processIdentifier"] as? Int32 else { return }
             Task { @MainActor in
-                self?.handleBackgroundAppCheck(notification)
+                self?.handleBackgroundAppCheck(bundleId: bundleId, processId: processId)
             }
         }
         notificationObservers.append(backgroundCheckObserver)
@@ -259,11 +266,8 @@ class ActivityManager: ObservableObject {
         }
     }
 
-    private func handleAppActivation(_ notification: Notification) {
-        guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
-              let bundleId = app.bundleIdentifier else { return }
-
-        let context = WindowMonitor.shared.getContext(for: app.processIdentifier)
+    private func handleAppActivation(bundleId: String, processId: pid_t) {
+        let context = WindowMonitor.shared.getContext(for: processId)
 
         if let modelContext = modelContext {
             trackAppSwitch(newApp: bundleId, context: context, modelContext: modelContext)
@@ -320,8 +324,7 @@ class ActivityManager: ObservableObject {
         BackgroundTaskManager.shared.startBackgroundTracking()
     }
 
-    private func handleUserIdle(_ notification: Notification) {
-        guard let idleStartTime = notification.userInfo?["idleStartTime"] as? Date else { return }
+    private func handleUserIdle(_ idleStartTime: Date) {
         logger.info("Handling user idle (start: \(idleStartTime))")
         
         if let modelContext = modelContext {
@@ -351,7 +354,7 @@ class ActivityManager: ObservableObject {
         }
     }
 
-    private func handleUserActive(_ notification: Notification) {
+    private func handleUserActive() {
         logger.info("Handling user active")
 
         // Resume tracking frontmost app
@@ -364,10 +367,8 @@ class ActivityManager: ObservableObject {
         }
     }
 
-    private func handleBackgroundAppCheck(_ notification: Notification) {
-        guard let bundleId = notification.userInfo?["bundleId"] as? String,
-              let processId = notification.userInfo?["processIdentifier"] as? Int32,
-              let modelContext = modelContext else { return }
+    private func handleBackgroundAppCheck(bundleId: String, processId: Int32) {
+        guard let modelContext = modelContext else { return }
 
         // Check if the frontmost app has changed
         if let currentActivity = self.currentActivity, currentActivity.appBundleId == bundleId {
