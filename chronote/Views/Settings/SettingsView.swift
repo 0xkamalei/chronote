@@ -91,10 +91,10 @@ struct GeneralSettingsView: View {
                         Divider()
                         DurationSettingRow(
                             title: "Merge Interval",
-                            detail1: "Activities with short gaps inside this interval will be merged into one block.",
-                            detail2: "Applies to timeline statistics and grouped activity views.",
+                            detail1: "Activities with short gaps inside this interval stay in one continuous session window.",
+                            detail2: "Main apps are still shown as separate timeline blocks.",
                             value: $mergeIntervalMinutes,
-                            range: 10...1440,
+                            range: 1...1440,
                             unitText: "min"
                         )
                     }

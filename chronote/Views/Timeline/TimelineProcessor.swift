@@ -69,6 +69,14 @@ class TimelineProcessor {
         var endTime: Date
     }
 
+    private struct SessionAppSegment: Sendable {
+        var appBundleId: String
+        var appName: String
+        var startTime: Date
+        var endTime: Date
+        var underlyingActivityIds: [UUID]
+    }
+
     private struct ComputedEventBlock: Sendable {
         var startX: CGFloat
         var width: CGFloat
@@ -471,29 +479,82 @@ class TimelineProcessor {
             sessions = baseSessions
         }
 
-        return sessions.compactMap { session in
-            if session.endTime <= visibleTimeRange.lowerBound || session.startTime >= visibleTimeRange.upperBound {
-                return nil
+        var blocks: [ComputedActivityBlock] = []
+        blocks.reserveCapacity(sessions.count * 2)
+
+        for session in sessions {
+            let segments = splitIntoAppSegments(session)
+            for segment in segments {
+                if segment.endTime <= visibleTimeRange.lowerBound || segment.startTime >= visibleTimeRange.upperBound {
+                    continue
+                }
+
+                let clippedStart = max(segment.startTime, visibleTimeRange.lowerBound)
+                let clippedEnd = min(segment.endTime, visibleTimeRange.upperBound)
+                let startX = CGFloat(clippedStart.timeIntervalSince(rangeStart)) * pixelsPerSecond
+                let endX = CGFloat(clippedEnd.timeIntervalSince(rangeStart)) * pixelsPerSecond
+                let width = endX - startX
+                guard width > 0.5 else { continue }
+
+                blocks.append(ComputedActivityBlock(
+                    startX: startX,
+                    width: max(width, minDrawWidth),
+                    appBundleId: segment.appBundleId,
+                    appName: segment.appName,
+                    underlyingActivityIds: segment.underlyingActivityIds,
+                    totalDuration: clippedEnd.timeIntervalSince(clippedStart),
+                    startTime: clippedStart,
+                    endTime: clippedEnd
+                ))
+            }
+        }
+
+        return blocks
+    }
+
+    nonisolated private static func splitIntoAppSegments(_ session: TimelineSession) -> [SessionAppSegment] {
+        let sameAppGapTolerance: TimeInterval = 2
+        let sortedActivities = session.activities
+            .filter { !$0.isNoise && $0.endTime > $0.startTime }
+            .sorted { lhs, rhs in
+                if lhs.startTime == rhs.startTime {
+                    return lhs.endTime < rhs.endTime
+                }
+                return lhs.startTime < rhs.startTime
             }
 
-            let clippedStart = max(session.startTime, visibleTimeRange.lowerBound)
-            let clippedEnd = min(session.endTime, visibleTimeRange.upperBound)
-            let startX = CGFloat(clippedStart.timeIntervalSince(rangeStart)) * pixelsPerSecond
-            let endX = CGFloat(clippedEnd.timeIntervalSince(rangeStart)) * pixelsPerSecond
-            let width = endX - startX
-            guard width > 0.5 else { return nil }
-
-            return ComputedActivityBlock(
-                startX: startX,
-                width: max(width, minDrawWidth),
+        guard !sortedActivities.isEmpty else {
+            return [SessionAppSegment(
                 appBundleId: session.primaryAppBundleId,
                 appName: session.primaryAppName,
-                underlyingActivityIds: session.underlyingActivityIds,
-                totalDuration: session.duration,
                 startTime: session.startTime,
-                endTime: session.endTime
-            )
+                endTime: session.endTime,
+                underlyingActivityIds: session.underlyingActivityIds
+            )]
         }
+
+        var segments: [SessionAppSegment] = []
+        segments.reserveCapacity(sortedActivities.count)
+
+        for activity in sortedActivities {
+            if var last = segments.last,
+               last.appBundleId == activity.appBundleId,
+               activity.startTime.timeIntervalSince(last.endTime) <= sameAppGapTolerance {
+                last.endTime = max(last.endTime, activity.endTime)
+                last.underlyingActivityIds.append(activity.activityId)
+                segments[segments.count - 1] = last
+            } else {
+                segments.append(SessionAppSegment(
+                    appBundleId: activity.appBundleId,
+                    appName: activity.appName,
+                    startTime: activity.startTime,
+                    endTime: activity.endTime,
+                    underlyingActivityIds: [activity.activityId]
+                ))
+            }
+        }
+
+        return segments
     }
 
     nonisolated private static func mergeSessions(_ sessions: [TimelineSession], maxGap: TimeInterval) -> [TimelineSession] {
@@ -509,28 +570,20 @@ class TimelineProcessor {
                 current.endTime = max(current.endTime, next.endTime)
                 current.underlyingActivityIds.append(contentsOf: next.underlyingActivityIds)
                 current.activities.append(contentsOf: next.activities)
+                current.activities.sort { $0.startTime < $1.startTime }
                 current.containsNoise = current.containsNoise || next.containsNoise
                 current.confidence = min(current.confidence, next.confidence)
-                assignDominantApp(to: &current)
+                if current.primaryProjectId == nil {
+                    current.primaryProjectId = next.primaryProjectId
+                }
             } else {
-                assignDominantApp(to: &current)
                 merged.append(current)
                 current = next
             }
         }
 
-        assignDominantApp(to: &current)
         merged.append(current)
         return merged
-    }
-
-    nonisolated private static func assignDominantApp(to session: inout TimelineSession) {
-        let distribution = session.appDistribution
-        guard let dominant = distribution.max(by: { $0.value < $1.value })?.key else { return }
-        session.primaryAppBundleId = dominant
-        if let name = session.activities.first(where: { $0.appBundleId == dominant })?.appName {
-            session.primaryAppName = name
-        }
     }
 
     nonisolated private static func computeEventBlocks(
