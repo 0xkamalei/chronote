@@ -99,15 +99,17 @@ class TimelineProcessor {
         visibleTimeRange: ClosedRange<Date>,
         canvasWidth: CGFloat,
         eventBlockHeight: CGFloat = 24,
-        mergeEnabled: Bool = true,
-        mergeInterval: TimeInterval = 30 * 60
+        mergeEnabled: Bool = true
     ) async -> TimelineProcessingResult {
         let now = Date()
         let activitySnapshots = activities.map { TimelineActivitySnapshot(from: $0, fallbackEndTime: now) }
         let eventSnapshots = events.map { TimelineEventSnapshot(from: $0, fallbackEndTime: now) }
         let minDrawWidth = MIN_DRAW_WIDTH_PX
         let trackHeight = TRACK_HEIGHT
-        let effectiveMergeInterval = max(1, mergeInterval)
+        let effectiveMergeInterval = Self.adaptiveMergeInterval(
+            visibleTimeRange: visibleTimeRange,
+            canvasWidth: canvasWidth
+        )
 
         let computed = await Task.detached(priority: .userInitiated) {
             let activityBlocks = Self.computeSessionBlocks(
@@ -156,7 +158,10 @@ class TimelineProcessor {
             canvasWidth: canvasWidth,
             minDrawWidth: MIN_DRAW_WIDTH_PX,
             mergeEnabled: true,
-            mergeInterval: 30 * 60
+            mergeInterval: Self.adaptiveMergeInterval(
+                visibleTimeRange: visibleTimeRange,
+                canvasWidth: canvasWidth
+            )
         )
         return computedBlocks.map { makeActivityRenderBlock(from: $0, trackHeight: TRACK_HEIGHT) }
     }
@@ -483,7 +488,10 @@ class TimelineProcessor {
         blocks.reserveCapacity(sessions.count * 2)
 
         for session in sessions {
-            let segments = splitIntoAppSegments(session)
+            let segments = splitIntoAppSegments(
+                session,
+                secondsPerPixel: Double(totalSeconds) / Double(canvasWidth)
+            )
             for segment in segments {
                 if segment.endTime <= visibleTimeRange.lowerBound || segment.startTime >= visibleTimeRange.upperBound {
                     continue
@@ -512,7 +520,27 @@ class TimelineProcessor {
         return blocks
     }
 
-    nonisolated private static func splitIntoAppSegments(_ session: TimelineSession) -> [SessionAppSegment] {
+    nonisolated private static func adaptiveMergeInterval(
+        visibleTimeRange: ClosedRange<Date>,
+        canvasWidth: CGFloat
+    ) -> TimeInterval {
+        let visibleDuration = visibleTimeRange.upperBound.timeIntervalSince(visibleTimeRange.lowerBound)
+        guard visibleDuration > 0, canvasWidth > 0 else { return 60 }
+
+        // Keep short visual gaps connected at current zoom, while avoiding over-merge.
+        let secondsPerPixel = visibleDuration / Double(canvasWidth)
+        let targetGapPixels = 12.0
+        let adaptiveGap = secondsPerPixel * targetGapPixels
+
+        let minGap: TimeInterval = 45
+        let maxGap: TimeInterval = 20 * 60
+        return min(max(adaptiveGap, minGap), maxGap)
+    }
+
+    nonisolated private static func splitIntoAppSegments(
+        _ session: TimelineSession,
+        secondsPerPixel: TimeInterval
+    ) -> [SessionAppSegment] {
         let sameAppGapTolerance: TimeInterval = 2
         let sortedActivities = session.activities
             .filter { !$0.isNoise && $0.endTime > $0.startTime }
@@ -554,7 +582,135 @@ class TimelineProcessor {
             }
         }
 
-        return segments
+        let simplified = simplifySegments(segments, secondsPerPixel: secondsPerPixel)
+        return coalesceSameAppSegments(simplified, gapTolerance: sameAppGapTolerance)
+    }
+
+    nonisolated private static func simplifySegments(
+        _ segments: [SessionAppSegment],
+        secondsPerPixel: TimeInterval
+    ) -> [SessionAppSegment] {
+        guard segments.count > 1 else { return segments }
+
+        let interruptionThreshold = min(max(secondsPerPixel * 5, 18), 180)
+        let minorSegmentThreshold = min(max(secondsPerPixel * 9, 45), 8 * 60)
+        let bridgeGapTolerance = min(max(secondsPerPixel * 2, 2), 75)
+
+        var simplified = segments
+
+        // Step 1: bridge short interruptions when both sides are the same app.
+        var index = 0
+        while index + 2 < simplified.count {
+            let previous = simplified[index]
+            let middle = simplified[index + 1]
+            let next = simplified[index + 2]
+            let middleDuration = middle.endTime.timeIntervalSince(middle.startTime)
+            let gapToMiddle = middle.startTime.timeIntervalSince(previous.endTime)
+            let gapToNext = next.startTime.timeIntervalSince(middle.endTime)
+
+            if previous.appBundleId == next.appBundleId,
+               middleDuration <= interruptionThreshold,
+               gapToMiddle <= bridgeGapTolerance,
+               gapToNext <= bridgeGapTolerance {
+                var merged = previous
+                merged.endTime = max(next.endTime, middle.endTime)
+                merged.underlyingActivityIds.append(contentsOf: middle.underlyingActivityIds)
+                merged.underlyingActivityIds.append(contentsOf: next.underlyingActivityIds)
+                simplified[index] = merged
+                simplified.remove(at: index + 2)
+                simplified.remove(at: index + 1)
+                if index > 0 {
+                    index -= 1
+                }
+                continue
+            }
+
+            index += 1
+        }
+
+        // Step 2: absorb very short fragments into neighboring dominant segments.
+        var fragmentIndex = 0
+        while fragmentIndex < simplified.count {
+            let segment = simplified[fragmentIndex]
+            let duration = segment.endTime.timeIntervalSince(segment.startTime)
+
+            guard duration <= minorSegmentThreshold, simplified.count > 1 else {
+                fragmentIndex += 1
+                continue
+            }
+
+            let leftIndex = fragmentIndex > 0 ? fragmentIndex - 1 : nil
+            let rightIndex = fragmentIndex + 1 < simplified.count ? fragmentIndex + 1 : nil
+
+            if let leftIndex, let rightIndex,
+               simplified[leftIndex].appBundleId == simplified[rightIndex].appBundleId {
+                var merged = simplified[leftIndex]
+                let right = simplified[rightIndex]
+                merged.endTime = max(right.endTime, segment.endTime)
+                merged.underlyingActivityIds.append(contentsOf: segment.underlyingActivityIds)
+                merged.underlyingActivityIds.append(contentsOf: right.underlyingActivityIds)
+                simplified[leftIndex] = merged
+                simplified.remove(at: rightIndex)
+                simplified.remove(at: fragmentIndex)
+                fragmentIndex = max(0, leftIndex - 1)
+                continue
+            }
+
+            var targetIndex: Int?
+            if let leftIndex, let rightIndex {
+                let leftDuration = simplified[leftIndex].endTime.timeIntervalSince(simplified[leftIndex].startTime)
+                let rightDuration = simplified[rightIndex].endTime.timeIntervalSince(simplified[rightIndex].startTime)
+                targetIndex = leftDuration >= rightDuration ? leftIndex : rightIndex
+            } else if let leftIndex {
+                targetIndex = leftIndex
+            } else if let rightIndex {
+                targetIndex = rightIndex
+            }
+
+            guard let targetIndex else {
+                fragmentIndex += 1
+                continue
+            }
+
+            if targetIndex < fragmentIndex {
+                var target = simplified[targetIndex]
+                target.endTime = max(target.endTime, segment.endTime)
+                target.underlyingActivityIds.append(contentsOf: segment.underlyingActivityIds)
+                simplified[targetIndex] = target
+                simplified.remove(at: fragmentIndex)
+                fragmentIndex = max(0, targetIndex - 1)
+            } else {
+                var target = simplified[targetIndex]
+                target.startTime = min(target.startTime, segment.startTime)
+                target.underlyingActivityIds.insert(contentsOf: segment.underlyingActivityIds, at: 0)
+                simplified[targetIndex] = target
+                simplified.remove(at: fragmentIndex)
+                fragmentIndex = max(0, fragmentIndex - 1)
+            }
+        }
+
+        return simplified
+    }
+
+    nonisolated private static func coalesceSameAppSegments(
+        _ segments: [SessionAppSegment],
+        gapTolerance: TimeInterval
+    ) -> [SessionAppSegment] {
+        guard !segments.isEmpty else { return [] }
+
+        var merged: [SessionAppSegment] = [segments[0]]
+        for segment in segments.dropFirst() {
+            let gap = segment.startTime.timeIntervalSince(merged[merged.count - 1].endTime)
+            if gap <= gapTolerance, merged[merged.count - 1].appBundleId == segment.appBundleId {
+                var last = merged[merged.count - 1]
+                last.endTime = max(last.endTime, segment.endTime)
+                last.underlyingActivityIds.append(contentsOf: segment.underlyingActivityIds)
+                merged[merged.count - 1] = last
+            } else {
+                merged.append(segment)
+            }
+        }
+        return merged
     }
 
     nonisolated private static func mergeSessions(_ sessions: [TimelineSession], maxGap: TimeInterval) -> [TimelineSession] {

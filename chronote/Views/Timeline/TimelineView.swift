@@ -6,7 +6,6 @@ struct TimelineView: View {
     var events: [Event]
     @Query(sort: \Project.name) private var projects: [Project]
     @AppStorage("timelineMergeStatisticsEnabled") private var mergeEnabled = true
-    @AppStorage("timelineMergeIntervalMinutes") private var mergeIntervalMinutes = 30
     
     // Controlled from outside
     @Binding var visibleTimeRange: ClosedRange<Date>
@@ -87,12 +86,12 @@ struct TimelineView: View {
                                 context.fill(path, with: .color(block.color))
                                 
                                 // Draw Icon (if space permits)
-                                if block.rect.width > 20, let icon = block.icon {
-                                    let iconSize: CGFloat = 16
+                                if block.rect.width > 14, let icon = block.icon {
+                                    let iconSize = max(10.0, min(14.0, block.rect.width - 4))
                                     // Center icon in the block
                                     let iconRect = CGRect(
-                                        x: block.rect.midX - (iconSize / 2),
-                                        y: block.rect.midY - (iconSize / 2),
+                                        x: block.rect.midX - (iconSize / 2.0),
+                                        y: block.rect.midY - (iconSize / 2.0),
                                         width: iconSize,
                                         height: iconSize
                                     )
@@ -340,9 +339,6 @@ struct TimelineView: View {
             .onChange(of: mergeEnabled) { _, _ in
                 scheduleRecalculate(width: width, debounceNanoseconds: 0)
             }
-            .onChange(of: mergeIntervalMinutes) { _, _ in
-                scheduleRecalculate(width: width, debounceNanoseconds: 0)
-            }
             .onAppear {
                 // 初次出现时，自动检测活跃时间范围
                 let smartRange = TimelineSmartRangeDetector.detectActiveTimeRange(from: activities)
@@ -378,8 +374,7 @@ struct TimelineView: View {
                 visibleTimeRange: visibleTimeRange,
                 canvasWidth: width,
                 eventBlockHeight: eventTrackHeight,
-                mergeEnabled: mergeEnabled,
-                mergeInterval: TimeInterval(max(1, mergeIntervalMinutes)) * 60
+                mergeEnabled: mergeEnabled
             )
             guard !Task.isCancelled else { return }
 

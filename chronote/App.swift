@@ -90,7 +90,6 @@ struct timApp: App {
     init() {
         UserDefaults.standard.register(defaults: [
             "timelineMergeStatisticsEnabled": true,
-            "timelineMergeIntervalMinutes": 30,
             "stopEventOnIdle": false,
             "deepFocusMinMinutes": 20
         ])

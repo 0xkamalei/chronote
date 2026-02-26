@@ -62,7 +62,6 @@ struct SettingsView: View {
 
 struct GeneralSettingsView: View {
     @AppStorage("timelineMergeStatisticsEnabled") private var mergeEnabled = true
-    @AppStorage("timelineMergeIntervalMinutes") private var mergeIntervalMinutes = 30
     @AppStorage("deepFocusMinMinutes") private var deepFocusMinMinutes: Int = 20
 
     @State private var launchManager = LaunchAtLoginManager.shared
@@ -81,22 +80,10 @@ struct GeneralSettingsView: View {
                     Toggle(isOn: $mergeEnabled) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Merge Fragmented Activities")
-                            Text("Combine short activities within a time range into a continuous block.")
+                            Text("Automatically connect short gaps based on current timeline zoom.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
-                    }
-
-                    if mergeEnabled {
-                        Divider()
-                        DurationSettingRow(
-                            title: "Merge Interval",
-                            detail1: "Activities with short gaps inside this interval stay in one continuous session window.",
-                            detail2: "Main apps are still shown as separate timeline blocks.",
-                            value: $mergeIntervalMinutes,
-                            range: 1...1440,
-                            unitText: "min"
-                        )
                     }
                 }
 
